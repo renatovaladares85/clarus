@@ -1,0 +1,17 @@
+/vendor/
+/dist/
+/var/
+/node_modules/
+/.phpunit.result.cache
+/.phpunit.cache/
+/.env
+/.env.*
+!.env.example
+config_db.php
+glpicrypt.key
+*.log
+*.sql
+*.sqlite
+*.sqlite3
+/.gh_token
+/.codex-write-test

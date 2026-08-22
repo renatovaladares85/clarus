@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+  <name>Clarus</name>
+  <key>clarus</key>
+  <state>development</state>
+  <description>
+    <short>
+      <en>Read-only diagnostic inspection of GLPI Ticket business rules.</en>
+      <pt_BR>Inspeção diagnóstica somente leitura das regras de negócio de chamados do GLPI.</pt_BR>
+    </short>
+  </description>
+  <homepage>https://github.com/renatovaladares85/clarus</homepage>
+  <issues>https://github.com/renatovaladares85/clarus/issues</issues>
+  <readme>https://github.com/renatovaladares85/clarus/blob/main/README.md</readme>
+  <authors>
+    <author>Renato Valadares</author>
+  </authors>
+  <versions>
+    <version>
+      <num>0.1.0</num>
+      <compatibility>10.0</compatibility>
+    </version>
+  </versions>
+  <langs>
+    <lang>en_GB</lang>
+    <lang>pt_BR</lang>
+  </langs>
+  <license>GPL-3.0-or-later</license>
+</root>

@@ -1,0 +1,7 @@
+/.github/
+/tests/
+/AGENTS.md
+/.php-cs-fixer.php
+/phpstan.neon
+/phpunit.xml.dist
+/composer.lock
