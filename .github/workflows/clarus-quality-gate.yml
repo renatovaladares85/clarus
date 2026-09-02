@@ -249,6 +249,7 @@ jobs:
           if-no-files-found: error
 
   artifact-lifecycle:
+    needs: release-artifact
     name: Extracted release artifact lifecycle
     runs-on: ubuntu-latest
     container:
