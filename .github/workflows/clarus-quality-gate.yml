@@ -223,10 +223,10 @@ jobs:
           php bin/console tools:plugin:release --plugin=clarus --dest=plugins/clarus/dist/clarus.tar.bz2 --no-interaction --force --verbose
           package_path="$(find plugins/clarus/dist -type f -name '*.tar.bz2' -print -quit)"
           test -n "$package_path"
-          echo "PACKAGE_PATH=$package_path" >> "$GITHUB_ENV"
       - name: Audit release archive contents
         working-directory: /var/www/glpi
         run: |
+          PACKAGE_PATH="$(find plugins/clarus/dist -type f -name '*.tar.bz2' -print -quit)"
           tar -tjf "$PACKAGE_PATH" | tee /tmp/clarus-archive.txt
           if grep -Ev '^clarus(/|$)' /tmp/clarus-archive.txt; then
             echo 'The archive must contain only the clarus directory.' >&2
