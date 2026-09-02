@@ -12,17 +12,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  generate-ci-matrix:
-    name: Generate CI matrix
-    uses: glpi-project/plugin-ci-workflows/.github/workflows/generate-ci-matrix.yml@v1
-    with:
-      glpi-version: 10.0.x
   ci:
     name: GLPI ${{ matrix.glpi-version }} - PHP ${{ matrix.php-version }} - ${{ matrix.db-image }}
-    needs: generate-ci-matrix
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.generate-ci-matrix.outputs.matrix) }}
+      matrix:
+        include:
+          - glpi-version: 10.0.x
+            php-version: '8.1'
+            db-image: mysql:5.7
+          - glpi-version: 10.0.x
+            php-version: '8.3'
+            db-image: mysql:8.4
     uses: glpi-project/plugin-ci-workflows/.github/workflows/continuous-integration.yml@v1
     with:
       plugin-key: clarus
