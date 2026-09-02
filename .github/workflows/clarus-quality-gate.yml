@@ -1,0 +1,227 @@
+name: Clarus Quality Gate
+
+on:
+  push:
+    branches:
+      - main
+      - valadares/foundation
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality (PHP 8.3)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/glpi-project/githubactions-glpi-apache:php-8.3-glpi-10.0.x
+      options: >-
+        --volume ${{ github.workspace }}:/var/www/glpi/plugins:rw
+        --user github-actions-runner
+    defaults:
+      run:
+        shell: sudo --set-home --user=www-data --preserve-env bash --noprofile --norc -eo pipefail {0}
+        working-directory: /var/www/glpi/plugins/clarus
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: clarus
+      - name: Install development dependencies
+        run: |
+          git config --global --add safe.directory /var/www/glpi/plugins/clarus
+          composer install --ansi --no-interaction --no-progress --prefer-dist
+      - name: Execute Clarus quality suite
+        run: composer run qa
+
+  integration:
+    name: GLPI ${{ matrix.glpi-version }} / PHP ${{ matrix.php-version }} / ${{ matrix.db-image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - glpi-version: 10.0.20
+            php-version: '8.1'
+            db-image: mysql:5.7
+          - glpi-version: 10.0.x
+            php-version: '8.2'
+            db-image: mysql:8.4
+          - glpi-version: 10.0.x
+            php-version: '8.3'
+            db-image: mysql:8.4
+    uses: glpi-project/plugin-ci-workflows/.github/workflows/continuous-integration.yml@e64f6feaa4e8656df3ac985a35a50e6f3f4a33eb # v1
+    with:
+      plugin-key: clarus
+      glpi-version: ${{ matrix.glpi-version }}
+      php-version: ${{ matrix.php-version }}
+      db-image: ${{ matrix.db-image }}
+
+  unsupported-php:
+    name: PHP ${{ matrix.php-version }} incompatibility is native
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php-version: '7.4'
+          - php-version: '8.4'
+    container:
+      image: ghcr.io/glpi-project/githubactions-glpi-apache:php-${{ matrix.php-version }}-glpi-10.0.x
+      options: >-
+        --volume ${{ github.workspace }}:/var/www/glpi/plugins:rw
+        --user github-actions-runner
+    services:
+      db:
+        image: ghcr.io/glpi-project/githubactions-mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: glpi
+        options: --shm-size=1g
+    defaults:
+      run:
+        shell: sudo --set-home --user=www-data --preserve-env bash --noprofile --norc -eo pipefail {0}
+        working-directory: /var/www/glpi/plugins/clarus
+    steps:
+      - name: Checkout plugin without dependencies
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: clarus
+      - name: Confirm GLPI rejects unsupported PHP during plugin install
+        working-directory: /var/www/glpi
+        run: |
+          bin/console database:install --ansi --no-interaction --db-name=glpi --db-host=db --db-user=root --db-password='' --strict-configuration
+          set +e
+          output="$(bin/console plugin:install --ansi --no-interaction --username=glpi clarus 2>&1)"
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$status" -eq 0 ]; then
+            echo 'GLPI accepted an unsupported PHP version.' >&2
+            exit 1
+          fi
+          printf '%s' "$output" | grep -F 'requires PHP >= 8.1.0 and < 8.4.0.'
+
+  release-artifact:
+    name: Release artifact and extracted lifecycle
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/glpi-project/githubactions-glpi-apache:php-8.3-glpi-10.0.x
+      options: >-
+        --volume ${{ github.workspace }}:/var/www/glpi/plugins:rw
+        --user github-actions-runner
+    services:
+      db:
+        image: ghcr.io/glpi-project/githubactions-mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: glpi
+        options: --shm-size=1g
+    defaults:
+      run:
+        shell: sudo --set-home --user=www-data --preserve-env bash --noprofile --norc -eo pipefail {0}
+        working-directory: /var/www/glpi/plugins/clarus
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: clarus
+      - name: Install release tooling
+        run: |
+          git config --global --add safe.directory /var/www/glpi/plugins/clarus
+          composer install --ansi --no-interaction --no-progress --prefer-dist
+      - name: Build release archive with GLPI tooling
+        working-directory: /var/www/glpi
+        run: |
+          mkdir -p plugins/clarus/dist
+          php bin/console tools:plugin:release --plugin=clarus --dest=plugins/clarus/dist/clarus.tar.bz2 --no-interaction --force --verbose
+          package_path="$(find plugins/clarus/dist -type f -name '*.tar.bz2' -print -quit)"
+          test -n "$package_path"
+          echo "PACKAGE_PATH=$package_path" >> "$GITHUB_ENV"
+      - name: Audit release archive contents
+        working-directory: /var/www/glpi
+        run: |
+          tar -tjf "$PACKAGE_PATH" | tee /tmp/clarus-archive.txt
+          if grep -Ev '^clarus(/|$)' /tmp/clarus-archive.txt; then
+            echo 'The archive must contain only the clarus directory.' >&2
+            exit 1
+          fi
+          for required in clarus/setup.php clarus/hook.php clarus/plugin.xml; do
+            grep -Fx "$required" /tmp/clarus-archive.txt
+          done
+          for forbidden in .github/ tests/ AGENTS.md .php-cs-fixer.php .phpcs.xml phpstan.neon phpunit.xml phpunit.xml.dist stubs/ composer.lock vendor/ var/; do
+            if grep -Fq "clarus/$forbidden" /tmp/clarus-archive.txt; then
+              echo "Unexpected development content: clarus/$forbidden" >&2
+              exit 1
+            fi
+          done
+      - name: Install and remove the extracted artifact
+        working-directory: /var/www/glpi
+        run: |
+          mkdir -p /tmp/clarus-release
+          tar -xjf "$PACKAGE_PATH" -C /tmp/clarus-release
+          test -d /tmp/clarus-release/clarus
+          mv plugins/clarus /tmp/clarus-source
+          mv /tmp/clarus-release/clarus plugins/clarus
+          bin/console database:install --ansi --no-interaction --db-name=glpi --db-host=db --db-user=root --db-password='' --strict-configuration
+          php bin/console config:set url_base 'http://localhost'
+          php bin/console config:set url_base_api 'http://localhost/apirest.php'
+          bin/console plugin:install --ansi --no-interaction --username=glpi clarus
+          bin/console plugin:activate --ansi --no-interaction clarus
+          bin/console plugin:deactivate --ansi --no-interaction clarus
+          bin/console plugin:uninstall --ansi --no-interaction clarus
+          cat > /tmp/check-uninstall.php <<'PHP'
+          <?php
+          mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+          $db = new mysqli('db', 'root', '', 'glpi');
+          $checks = [
+              "SHOW TABLES LIKE 'glpi_plugin_clarus_%'" => 'plugin tables',
+              "SELECT COUNT(*) FROM glpi_configs WHERE context = 'plugin:clarus'" => 'configuration rows',
+              "SELECT COUNT(*) FROM glpi_crontasks WHERE itemtype LIKE 'PluginClarus%' OR itemtype LIKE 'GlpiPlugin\\\\Clarus\\\\%'" => 'cron rows',
+              "SELECT COUNT(*) FROM glpi_profilerights WHERE name LIKE 'plugin_clarus%'" => 'profile rights',
+              "SELECT COUNT(*) FROM glpi_displaypreferences WHERE itemtype LIKE 'PluginClarus%'" => 'display preferences',
+          ];
+          foreach ($checks as $sql => $label) {
+              $result = $db->query($sql);
+              $count = str_starts_with($sql, 'SHOW') ? $result->num_rows : (int) $result->fetch_row()[0];
+              if ($count !== 0) {
+                  fwrite(STDERR, "Residual {$label}: {$count}\n");
+                  exit(1);
+              }
+          }
+          PHP
+          php /tmp/check-uninstall.php
+
+  final-gate:
+    name: Clarus Quality Gate
+    if: ${{ always() }}
+    needs:
+      - quality
+      - integration
+      - unsupported-php
+      - release-artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every prerequisite to succeed
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          printf '%s\n' "$NEEDS_JSON" | jq .
+          for result in $(printf '%s' "$NEEDS_JSON" | jq -r '.[].result'); do
+            case "$result" in
+              success) ;;
+              failure|cancelled|skipped)
+                echo "Unexpected prerequisite result: $result" >&2
+                exit 1
+                ;;
+              *)
+                echo "Unknown prerequisite result: $result" >&2
+                exit 1
+                ;;
+            esac
+          done

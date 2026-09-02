@@ -1,0 +1,13 @@
+parameters:
+    level: max
+    paths:
+        - hook.php
+        - setup.php
+        - tests
+        - tools
+    stubFiles:
+        - stubs/glpi.php
+    dynamicConstantNames:
+        GLPI_VERSION: string
+    excludePaths:
+        - vendor

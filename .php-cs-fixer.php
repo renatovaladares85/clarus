@@ -11,7 +11,6 @@ $finder = (new PhpCsFixer\Finder())
 
 return (new PhpCsFixer\Config())
     ->setRules([
-        '@PER-CS2.0' => true,
         'heredoc_indentation' => false,
         'no_unused_imports' => true,
     ])

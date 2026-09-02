@@ -8,6 +8,9 @@
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.80",
+    "glpi-project/coding-standard": "^0.9",
+    "glpi-project/tools": "^0.8",
+    "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^9.6"
   },
   "autoload": {
@@ -22,23 +25,30 @@
   },
   "scripts": {
     "composer-validate": "@composer validate --strict",
-    "composer-audit": "@composer audit --locked --no-interaction",
+    "composer-audit": "@composer audit --locked --no-interaction --abandoned=ignore",
     "lint": "@php tools/lint.php",
     "cs:check": "php-cs-fixer fix --dry-run --diff --ansi",
+    "phpcs": "phpcs",
+    "phpstan": "phpstan analyze --memory-limit=2G --no-progress",
     "test": "phpunit --colors=always",
     "qa": [
       "@composer-validate",
       "@composer-audit",
       "@lint",
       "@cs:check",
+      "@phpcs",
+      "@phpstan",
       "@test"
     ]
   },
   "config": {
     "optimize-autoloader": true,
     "platform": {
-      "php": "8.2.0"
+      "php": "8.1.0"
     },
-    "sort-packages": true
+    "sort-packages": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
   }
 }

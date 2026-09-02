@@ -14,20 +14,29 @@ define('PLUGIN_CLARUS_MAX_PHP_VERSION', '8.4.0');
  * Feature-specific hooks are registered by their corresponding implementation
  * phases to keep the bootstrap independent of unfinished functionality.
  */
-function plugin_init_clarus(): void
-{
+function plugin_init_clarus(): void {
     global $PLUGIN_HOOKS;
 
+    /** @var array<string, array<string, bool>> $PLUGIN_HOOKS */
     $PLUGIN_HOOKS['csrf_compliant']['clarus'] = true;
 }
 
 /**
  * Return Clarus metadata used by GLPI's plugin manager.
  *
- * @return array<string, mixed>
+ * @return array{
+ *     name: string,
+ *     version: string,
+ *     author: string,
+ *     license: string,
+ *     homepage: string,
+ *     requirements: array{
+ *         glpi: array{min: string, max: string},
+ *         php: array{min: string, max: string}
+ *     }
+ * }
  */
-function plugin_version_clarus(): array
-{
+function plugin_version_clarus(): array {
     return [
         'name'         => 'Clarus',
         'version'      => PLUGIN_CLARUS_VERSION,
@@ -50,17 +59,23 @@ function plugin_version_clarus(): array
 /**
  * Check whether the running GLPI version is supported.
  */
-function plugin_clarus_check_prerequisites(): bool
-{
-    return defined('GLPI_VERSION')
-        && version_compare(GLPI_VERSION, PLUGIN_CLARUS_MIN_GLPI_VERSION, '>=')
-        && version_compare(GLPI_VERSION, PLUGIN_CLARUS_MAX_GLPI_VERSION, '<');
+function plugin_clarus_check_prerequisites(): bool {
+   if (!defined('GLPI_VERSION')) {
+       return false;
+   }
+
+    $glpiVersion = constant('GLPI_VERSION');
+   if (!is_string($glpiVersion)) {
+       return false;
+   }
+
+    return version_compare($glpiVersion, PLUGIN_CLARUS_MIN_GLPI_VERSION, '>=')
+        && version_compare($glpiVersion, PLUGIN_CLARUS_MAX_GLPI_VERSION, '<');
 }
 
 /**
  * Clarus has no mandatory post-install configuration in the foundation phase.
  */
-function plugin_clarus_check_config(bool $verbose = false): bool
-{
+function plugin_clarus_check_config(bool $verbose = false): bool {
     return true;
 }

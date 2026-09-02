@@ -9,26 +9,32 @@ $excluded = [
     $root . DIRECTORY_SEPARATOR . '.git' . DIRECTORY_SEPARATOR,
     $root . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR,
 ];
-$files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
+/** @var RecursiveDirectoryIterator<SplFileInfo> $directory */
+$directory = new RecursiveDirectoryIterator($root);
+$files = new RecursiveIteratorIterator($directory);
 $exitCode = 0;
 
 foreach ($files as $file) {
-    if (!$file->isFile() || $file->getExtension() !== 'php') {
-        continue;
-    }
+   if (!$file instanceof SplFileInfo) {
+       continue;
+   }
+
+   if (!$file->isFile() || $file->getExtension() !== 'php') {
+       continue;
+   }
 
     $path = $file->getPathname();
-    foreach ($excluded as $directory) {
-        if (strpos($path, $directory) === 0) {
-            continue 2;
-        }
-    }
+   foreach ($excluded as $directory) {
+      if (strpos($path, $directory) === 0) {
+          continue 2;
+      }
+   }
 
     $command = escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($path);
     passthru($command, $result);
-    if ($result !== 0) {
-        $exitCode = $result;
-    }
+   if ($result !== 0) {
+       $exitCode = $result;
+   }
 }
 
 exit($exitCode);

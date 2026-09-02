@@ -4,4 +4,7 @@
 /.php-cs-fixer.php
 /phpstan.neon
 /phpunit.xml.dist
+/phpunit.xml
+/.phpcs.xml
+/stubs/
 /composer.lock

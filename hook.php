@@ -7,8 +7,7 @@
  *
  * No database object is created during the foundation phase.
  */
-function plugin_clarus_install(): bool
-{
+function plugin_clarus_install(): bool {
     return true;
 }
 
@@ -17,7 +16,6 @@ function plugin_clarus_install(): bool
  *
  * The foundation phase owns no persistent data.
  */
-function plugin_clarus_uninstall(): bool
-{
+function plugin_clarus_uninstall(): bool {
     return true;
 }
