@@ -235,9 +235,15 @@ jobs:
           for required in clarus/setup.php clarus/hook.php clarus/plugin.xml; do
             grep -Fx "$required" /tmp/clarus-archive.txt
           done
-          for forbidden in .github/ tests/ AGENTS.md .php-cs-fixer.php .phpcs.xml phpstan.neon phpunit.xml phpunit.xml.dist stubs/ composer.lock vendor/ var/; do
+          for forbidden in .github/ tests/ AGENTS.md .php-cs-fixer.php .phpcs.xml phpstan.neon phpunit.xml phpunit.xml.dist stubs/ composer.lock var/; do
             if grep -Fq "clarus/$forbidden" /tmp/clarus-archive.txt; then
               echo "Unexpected development content: clarus/$forbidden" >&2
+              exit 1
+            fi
+          done
+          for development_dependency in vendor/friendsofphp/ vendor/glpi-project/coding-standard/ vendor/phpstan/ vendor/phpunit/ vendor/squizlabs/; do
+            if grep -Fq "clarus/$development_dependency" /tmp/clarus-archive.txt; then
+              echo "Unexpected development dependency: clarus/$development_dependency" >&2
               exit 1
             fi
           done
