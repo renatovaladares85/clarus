@@ -33,6 +33,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           path: clarus
+      - name: Grant the runtime user write access
+        shell: bash
+        run: sudo setfacl --recursive --modify u:www-data:rwx /var/www/glpi/plugins
       - name: Install development dependencies
         run: |
           git config --global --add safe.directory /var/www/glpi/plugins/clarus
@@ -46,9 +49,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - glpi-version: 10.0.20
-            php-version: '8.1'
-            db-image: mysql:5.7
           - glpi-version: 10.0.x
             php-version: '8.2'
             db-image: mysql:8.4
@@ -61,6 +61,84 @@ jobs:
       glpi-version: ${{ matrix.glpi-version }}
       php-version: ${{ matrix.php-version }}
       db-image: ${{ matrix.db-image }}
+
+  integration-exact:
+    name: GLPI 10.0.20 / PHP 8.1 / mysql:5.7
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/glpi-project/githubactions-glpi-apache:php-8.1-glpi-10.0.x
+      options: >-
+        --volume ${{ github.workspace }}:/var/www/glpi/plugins:rw
+        --user github-actions-runner
+    services:
+      db:
+        image: ghcr.io/glpi-project/githubactions-mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: glpi
+        options: --shm-size=1g
+    defaults:
+      run:
+        shell: sudo --set-home --user=www-data --preserve-env bash --noprofile --norc -eo pipefail {0}
+        working-directory: /var/www/glpi/plugins/clarus
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: clarus
+      - name: Grant the runtime user write access
+        shell: bash
+        run: sudo setfacl --recursive --modify u:www-data:rwx /var/www/glpi/plugins
+      - name: Download the official GLPI 10.0.20 package
+        run: |
+          glpi_dir=/tmp/glpi-10.0.20
+          curl --fail --location --silent --show-error --output /tmp/glpi-10.0.20.tgz https://github.com/glpi-project/glpi/releases/download/10.0.20/glpi-10.0.20.tgz
+          mkdir -p /tmp/glpi-release
+          tar -xzf /tmp/glpi-10.0.20.tgz -C /tmp/glpi-release
+          mv /tmp/glpi-release/glpi "$glpi_dir"
+          grep -Fx "define('GLPI_VERSION', '10.0.20');" "$glpi_dir/inc/define.php"
+          test -f "$glpi_dir/vendor/autoload.php"
+          ln -s /var/www/glpi/plugins/clarus "$glpi_dir/plugins/clarus"
+      - name: Install plugin development dependencies on PHP 8.1
+        run: |
+          git config --global --add safe.directory /var/www/glpi/plugins/clarus
+          composer install --ansi --no-interaction --no-progress --prefer-dist
+      - name: Install and activate against GLPI 10.0.20
+        working-directory: /tmp/glpi-10.0.20
+        run: |
+          bin/console database:install --ansi --no-interaction --db-name=glpi --db-host=db --db-user=root --db-password='' --strict-configuration
+          php bin/console config:set url_base 'http://localhost'
+          php bin/console config:set url_base_api 'http://localhost/apirest.php'
+          bin/console plugin:install --ansi --no-interaction --username=glpi clarus
+          bin/console plugin:activate --ansi --no-interaction clarus
+      - name: Run PHPUnit after activation on PHP 8.1
+        run: php vendor/bin/phpunit --colors=always
+      - name: Deactivate, uninstall and verify residues
+        working-directory: /tmp/glpi-10.0.20
+        run: |
+          bin/console plugin:deactivate --ansi --no-interaction clarus
+          bin/console plugin:uninstall --ansi --no-interaction clarus
+          cat > /tmp/check-uninstall.php <<'PHP'
+          <?php
+          mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+          $db = new mysqli('db', 'root', '', 'glpi');
+          $checks = [
+              "SHOW TABLES LIKE 'glpi_plugin_clarus_%'" => 'plugin tables',
+              "SELECT COUNT(*) FROM glpi_configs WHERE context = 'plugin:clarus'" => 'configuration rows',
+              "SELECT COUNT(*) FROM glpi_crontasks WHERE itemtype LIKE 'PluginClarus%' OR itemtype LIKE 'GlpiPlugin\\\\Clarus\\\\%'" => 'cron rows',
+              "SELECT COUNT(*) FROM glpi_profilerights WHERE name LIKE 'plugin_clarus%'" => 'profile rights',
+              "SELECT COUNT(*) FROM glpi_displaypreferences WHERE itemtype LIKE 'PluginClarus%'" => 'display preferences',
+          ];
+          foreach ($checks as $sql => $label) {
+              $result = $db->query($sql);
+              $count = str_starts_with($sql, 'SHOW') ? $result->num_rows : (int) $result->fetch_row()[0];
+              if ($count !== 0) {
+                  fwrite(STDERR, "Residual {$label}: {$count}\n");
+                  exit(1);
+              }
+          }
+          PHP
+          php /tmp/check-uninstall.php
 
   unsupported-php:
     name: PHP ${{ matrix.php-version }} incompatibility is native
@@ -131,6 +209,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           path: clarus
+      - name: Grant the runtime user write access
+        shell: bash
+        run: sudo setfacl --recursive --modify u:www-data:rwx /var/www/glpi/plugins
       - name: Install release tooling
         run: |
           git config --global --add safe.directory /var/www/glpi/plugins/clarus
@@ -203,6 +284,7 @@ jobs:
     needs:
       - quality
       - integration
+      - integration-exact
       - unsupported-php
       - release-artifact
     runs-on: ubuntu-latest
