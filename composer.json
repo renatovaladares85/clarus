@@ -7,6 +7,7 @@
     "php": ">=8.1 <8.4"
   },
   "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.80",
     "phpunit/phpunit": "^9.6"
   },
   "autoload": {
@@ -20,10 +21,16 @@
     }
   },
   "scripts": {
+    "composer-validate": "@composer validate --strict",
+    "composer-audit": "@composer audit --locked --no-interaction",
     "lint": "@php tools/lint.php",
+    "cs:check": "php-cs-fixer fix --dry-run --diff --ansi",
     "test": "phpunit --colors=always",
     "qa": [
+      "@composer-validate",
+      "@composer-audit",
       "@lint",
+      "@cs:check",
       "@test"
     ]
   },

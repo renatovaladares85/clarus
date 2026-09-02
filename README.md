@@ -8,7 +8,7 @@ Ticket being inspected.
 ## Compatibility
 
 - GLPI `>= 10.0.20` and `< 11.0.0`
-- PHP `>= 7.4`
+- PHP `>= 8.1` and `< 8.4`
 
 ## Development status
 

@@ -18,6 +18,7 @@
   <versions>
     <version>
       <num>0.1.0</num>
+      <!-- Marketplace metadata identifies the GLPI major.minor series; setup.php enforces the runtime patch range. -->
       <compatibility>10.0</compatibility>
     </version>
   </versions>

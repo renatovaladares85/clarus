@@ -1,9 +1,12 @@
 <?php
+
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 define('PLUGIN_CLARUS_VERSION', '0.1.0');
 define('PLUGIN_CLARUS_MIN_GLPI_VERSION', '10.0.20');
 define('PLUGIN_CLARUS_MAX_GLPI_VERSION', '11.0.0');
+define('PLUGIN_CLARUS_MIN_PHP_VERSION', '8.1.0');
+define('PLUGIN_CLARUS_MAX_PHP_VERSION', '8.4.0');
 
 /**
  * Initialize Clarus hooks.
@@ -35,6 +38,10 @@ function plugin_version_clarus(): array
             'glpi' => [
                 'min' => PLUGIN_CLARUS_MIN_GLPI_VERSION,
                 'max' => PLUGIN_CLARUS_MAX_GLPI_VERSION,
+            ],
+            'php' => [
+                'min' => PLUGIN_CLARUS_MIN_PHP_VERSION,
+                'max' => PLUGIN_CLARUS_MAX_PHP_VERSION,
             ],
         ],
     ];
