@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - valadares/foundation
   pull_request:
   workflow_dispatch:
 
@@ -189,7 +188,7 @@ jobs:
     name: Release artifact and extracted lifecycle
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/glpi-project/githubactions-glpi-apache:latest
+      image: ghcr.io/glpi-project/githubactions-glpi-apache@sha256:6213dca8d5fa0c1b347a44679c43746edd6fda62d7ea1b7de52556cc5aeb585b
       options: >-
         --volume ${{ github.workspace }}:/var/www/glpi/plugins:rw
         --user github-actions-runner
