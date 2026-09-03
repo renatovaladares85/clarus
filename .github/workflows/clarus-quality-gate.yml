@@ -137,7 +137,15 @@ jobs:
           php --version
           php bin/console --version
           test -f /tmp/glpi-10.0.20/inc/includes.php
-          php bin/console plugin:list | grep -F clarus
+          php -r '
+            require "inc/includes.php";
+            $plugin = new Plugin();
+            if (!$plugin->getFromDBByCrit(["directory" => "clarus"]) || (int) $plugin->fields["state"] !== Plugin::ACTIVATED) {
+              fwrite(STDERR, "The clarus plugin is not active.\n");
+              exit(1);
+            }
+            printf("The clarus plugin is active (state: %d).\n", $plugin->fields["state"]);
+          '
       - name: Run PHPUnit after activation on PHP 8.1
         run: php vendor/bin/phpunit --colors=always
       - name: Run RuleTicket characterization on GLPI 10.0.20
@@ -242,7 +250,15 @@ jobs:
           php --version
           php bin/console --version
           test -f /var/www/glpi/inc/includes.php
-          php bin/console plugin:list | grep -F clarus
+          php -r '
+            require "inc/includes.php";
+            $plugin = new Plugin();
+            if (!$plugin->getFromDBByCrit(["directory" => "clarus"]) || (int) $plugin->fields["state"] !== Plugin::ACTIVATED) {
+              fwrite(STDERR, "The clarus plugin is not active.\n");
+              exit(1);
+            }
+            printf("The clarus plugin is active (state: %d).\n", $plugin->fields["state"]);
+          '
       - name: Run RuleTicket characterization on current GLPI 10.0.x
         run: >-
           GLPI_ROOT=/var/www/glpi php vendor/bin/phpunit
