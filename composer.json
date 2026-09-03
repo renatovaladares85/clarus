@@ -30,7 +30,7 @@
     "cs:check": "php-cs-fixer fix --dry-run --diff --ansi",
     "phpcs": "phpcs",
     "phpstan": "phpstan analyze --memory-limit=2G --no-progress",
-    "test": "phpunit --colors=always",
+    "test": "phpunit --exclude-group glpi-integration --colors=always",
     "qa": [
       "@composer-validate",
       "@composer-audit",

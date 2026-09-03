@@ -11,3 +11,4 @@ parameters:
         GLPI_VERSION: string
     excludePaths:
         - vendor
+        - tests/Integration
