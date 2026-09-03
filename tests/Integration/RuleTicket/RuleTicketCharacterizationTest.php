@@ -74,8 +74,8 @@ final class RuleTicketCharacterizationTest extends TestCase
        self::assertNotContains($inactive->getID(), $addIds);
        self::assertNotContains($update->getID(), $addIds);
        self::assertLessThan(
-           array_search($childRule->getID(), $addIds, true),
-           array_search($parentRecursive->getID(), $addIds, true)
+           array_search($parentRecursive->getID(), $addIds, true),
+           array_search($childRule->getID(), $addIds, true)
        );
 
        self::assertContains($update->getID(), $this->collectionIds($childId, \RuleTicket::ONUPDATE));
@@ -111,6 +111,7 @@ final class RuleTicketCharacterizationTest extends TestCase
        $under = $this->createRule('under', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [
            ['entities_id', \Rule::PATTERN_UNDER, (string) $parentId],
        ]);
+       self::assertArrayHasKey($childId, getSonsOf(\Entity::getTable(), $parentId));
        self::assertTrue($under->checkCriterias(['entities_id' => $childId]));
 
        $positive = $this->createRule('array-positive', 0, \RuleTicket::ONADD, true, 2, true, \Rule::AND_MATCHING, [

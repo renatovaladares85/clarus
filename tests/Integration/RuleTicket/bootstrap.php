@@ -14,3 +14,6 @@ if (!defined('TU_USER')) {
 }
 
 require_once $glpiRoot . '/inc/includes.php';
+
+$_SESSION['glpiactiveentities'] ??= [0 => 0];
+$_SESSION['glpiactiveentities_string'] ??= "'0'";
