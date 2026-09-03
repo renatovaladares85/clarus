@@ -63,6 +63,7 @@ jobs:
 
   integration-exact:
     name: GLPI 10.0.20 / PHP 8.1 / mysql:5.7
+    needs: release-artifact
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/glpi-project/githubactions-glpi-apache:php-8.1-glpi-10.0.x
@@ -75,7 +76,12 @@ jobs:
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
           MYSQL_DATABASE: glpi
-        options: --shm-size=1g
+        options: >-
+          --shm-size=1g
+          --health-cmd="mysqladmin ping -h localhost -uroot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     defaults:
       run:
         shell: sudo --set-home --user=www-data --preserve-env bash --noprofile --norc -eo pipefail {0}
@@ -97,7 +103,22 @@ jobs:
           mv /tmp/glpi-release/glpi "$glpi_dir"
           grep -Fx "define('GLPI_VERSION', '10.0.20');" "$glpi_dir/inc/define.php"
           test -f "$glpi_dir/vendor/autoload.php"
-          ln -s /var/www/glpi/plugins/clarus "$glpi_dir/plugins/clarus"
+      - name: Download and verify production plugin archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: clarus-release-package
+          path: release-artifact
+      - name: Install production plugin archive in GLPI 10.0.20
+        run: |
+          package_path="$(find "$GITHUB_WORKSPACE/release-artifact" -type f -name '*.tar.bz2' -print -quit)"
+          checksum_path="$(find "$GITHUB_WORKSPACE/release-artifact" -type f -name '*.tar.bz2.sha256' -print -quit)"
+          test -n "$package_path"
+          test -n "$checksum_path"
+          (cd "$(dirname "$package_path")" && sha256sum --check "$(basename "$checksum_path")")
+          mkdir -p /tmp/clarus-plugin
+          tar -xjf "$package_path" -C /tmp/clarus-plugin
+          test -d /tmp/clarus-plugin/clarus
+          mv /tmp/clarus-plugin/clarus /tmp/glpi-10.0.20/plugins/clarus
       - name: Install plugin development dependencies on PHP 8.1
         run: |
           git config --global --add safe.directory /var/www/glpi/plugins/clarus
@@ -110,8 +131,22 @@ jobs:
           php bin/console config:set url_base_api 'http://localhost/apirest.php'
           bin/console plugin:install --ansi --no-interaction --username=glpi clarus
           bin/console plugin:activate --ansi --no-interaction clarus
+      - name: Report GLPI 10.0.20 integration runtime
+        working-directory: /tmp/glpi-10.0.20
+        run: |
+          php --version
+          php bin/console --version
+          test -f /tmp/glpi-10.0.20/inc/includes.php
+          php bin/console plugin:list | grep -F clarus
       - name: Run PHPUnit after activation on PHP 8.1
         run: php vendor/bin/phpunit --colors=always
+      - name: Run RuleTicket characterization on GLPI 10.0.20
+        run: >-
+          GLPI_ROOT=/tmp/glpi-10.0.20 php vendor/bin/phpunit
+          --configuration phpunit.glpi.xml
+          --group glpi-integration
+          --fail-on-skipped
+          --colors=always
       - name: Deactivate, uninstall and verify residues
         working-directory: /tmp/glpi-10.0.20
         run: |
@@ -138,6 +173,83 @@ jobs:
           }
           PHP
           php /tmp/check-uninstall.php
+
+  rule-ticket-characterization-current:
+    name: RuleTicket / GLPI 10.0.x / PHP 8.3 / mysql:8.4
+    needs: release-artifact
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/glpi-project/githubactions-glpi-apache:php-8.3-glpi-10.0.x
+      options: >-
+        --volume ${{ github.workspace }}:/var/www/glpi/plugins:rw
+        --user github-actions-runner
+    services:
+      db:
+        image: ghcr.io/glpi-project/githubactions-mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: glpi
+        options: >-
+          --shm-size=1g
+          --health-cmd="mysqladmin ping -h localhost -uroot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    defaults:
+      run:
+        shell: sudo --set-home --user=www-data --preserve-env bash --noprofile --norc -eo pipefail {0}
+        working-directory: /var/www/glpi/plugins/clarus-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: clarus-tests
+      - name: Grant the runtime user write access
+        shell: bash
+        run: sudo setfacl --recursive --modify u:www-data:rwx /var/www/glpi/plugins
+      - name: Install plugin development dependencies on PHP 8.3
+        run: |
+          git config --global --add safe.directory /var/www/glpi/plugins/clarus-tests
+          composer install --ansi --no-interaction --no-progress --prefer-dist
+      - name: Download and verify production plugin archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: clarus-release-package
+          path: release-artifact
+      - name: Install production plugin archive in current GLPI 10.0.x
+        working-directory: /var/www/glpi
+        run: |
+          package_path="$(find "$GITHUB_WORKSPACE/release-artifact" -type f -name '*.tar.bz2' -print -quit)"
+          checksum_path="$(find "$GITHUB_WORKSPACE/release-artifact" -type f -name '*.tar.bz2.sha256' -print -quit)"
+          test -n "$package_path"
+          test -n "$checksum_path"
+          (cd "$(dirname "$package_path")" && sha256sum --check "$(basename "$checksum_path")")
+          mkdir -p /tmp/clarus-plugin
+          tar -xjf "$package_path" -C /tmp/clarus-plugin
+          test -d /tmp/clarus-plugin/clarus
+          mv /tmp/clarus-plugin/clarus plugins/clarus
+      - name: Install and activate against current GLPI 10.0.x
+        working-directory: /var/www/glpi
+        run: |
+          bin/console database:install --ansi --no-interaction --db-name=glpi --db-host=db --db-user=root --db-password='' --strict-configuration
+          php bin/console config:set url_base 'http://localhost'
+          php bin/console config:set url_base_api 'http://localhost/apirest.php'
+          bin/console plugin:install --ansi --no-interaction --username=glpi clarus
+          bin/console plugin:activate --ansi --no-interaction clarus
+      - name: Report current GLPI 10.0.x integration runtime
+        working-directory: /var/www/glpi
+        run: |
+          php --version
+          php bin/console --version
+          test -f /var/www/glpi/inc/includes.php
+          php bin/console plugin:list | grep -F clarus
+      - name: Run RuleTicket characterization on current GLPI 10.0.x
+        run: >-
+          GLPI_ROOT=/var/www/glpi php vendor/bin/phpunit
+          --configuration phpunit.glpi.xml
+          --group glpi-integration
+          --fail-on-skipped
+          --colors=always
 
   unsupported-php:
     name: PHP ${{ matrix.php-version }} incompatibility is native
@@ -186,6 +298,7 @@ jobs:
 
   release-artifact:
     name: Release artifact and extracted lifecycle
+    needs: quality
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/glpi-project/githubactions-glpi-apache@sha256:6213dca8d5fa0c1b347a44679c43746edd6fda62d7ea1b7de52556cc5aeb585b
@@ -222,6 +335,7 @@ jobs:
           php bin/console tools:plugin:release --plugin=clarus --dest=plugins/clarus/dist/clarus.tar.bz2 --no-interaction --force --verbose
           package_path="$(find plugins/clarus/dist -type f -name '*.tar.bz2' -print -quit)"
           test -n "$package_path"
+          (cd "$(dirname "$package_path")" && sha256sum "$(basename "$package_path")" > "$(basename "$package_path").sha256")
       - name: Audit release archive contents
         working-directory: /var/www/glpi
         run: |
@@ -250,7 +364,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: clarus-release-package
-          path: /var/www/glpi/plugins/clarus/dist/*.tar.bz2
+          path: |
+            /var/www/glpi/plugins/clarus/dist/*.tar.bz2
+            /var/www/glpi/plugins/clarus/dist/*.tar.bz2.sha256
           if-no-files-found: error
 
   artifact-lifecycle:
@@ -325,6 +441,7 @@ jobs:
       - quality
       - integration
       - integration-exact
+      - rule-ticket-characterization-current
       - unsupported-php
       - release-artifact
       - artifact-lifecycle

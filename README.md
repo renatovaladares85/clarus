@@ -39,3 +39,6 @@ third-party plugin code is modified by Clarus.
 ## License
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
+## Architecture research
+
+The executable RuleTicket characterization that informs the future inspector is documented in [the Phase 2 technical spike](docs/architecture/rule-ticket-technical-spike.md).
