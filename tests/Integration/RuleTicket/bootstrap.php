@@ -15,5 +15,12 @@ if (!defined('TU_USER')) {
 
 require_once $glpiRoot . '/inc/includes.php';
 
-$_SESSION['glpiactiveentities'] ??= [0 => 0];
-$_SESSION['glpiactiveentities_string'] ??= "'0'";
+\Session::destroy();
+\Session::start();
+
+$auth = new \Auth();
+if (!$auth->login('glpi', 'glpi', true) || !\Session::haveRight('entity', UPDATE)) {
+    throw new \RuntimeException(
+        'GLPI integration bootstrap could not establish an authenticated session with entity UPDATE right.'
+    );
+}
