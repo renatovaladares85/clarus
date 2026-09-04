@@ -27,4 +27,12 @@ final class InspectionResultTest extends TestCase
        $this->expectException(\InvalidArgumentException::class);
        new InspectionResult(8, 1, 1000, 2, 0, false, []);
    }
+
+   public function testRuleActionsAreAnAdditiveImmutableDimension(): void {
+       $rule = new RuleInspection(1, 'rule', 1, 0, true, 1, 'AND', [], Evaluation::MATCH);
+
+       self::assertSame([], $rule->actions);
+       self::assertNotSame($rule, $rule->withActions([]));
+       self::assertSame(Evaluation::MATCH, $rule->withActions([])->evaluation);
+   }
 }

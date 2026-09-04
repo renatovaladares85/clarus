@@ -15,3 +15,4 @@ glpicrypt.key
 *.sqlite3
 /.gh_token
 /.codex-write-test
+AGENTS.md

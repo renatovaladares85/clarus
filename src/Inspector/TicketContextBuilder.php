@@ -8,6 +8,15 @@ namespace GlpiPlugin\Clarus\Inspector;
 
 final class TicketContextBuilder
 {
+    /** @var list<string> */
+   private const ACTION_TARGET_FIELDS = [
+       'validation_percent',
+       'time_to_resolve',
+       'time_to_own',
+       'internal_time_to_resolve',
+       'internal_time_to_own',
+   ];
+
    private const RETROSPECTIVE_REASON =
         'Value cannot be reconstructed defensibly from the persisted Ticket state.';
 
@@ -19,6 +28,9 @@ final class TicketContextBuilder
        $rule = new \RuleTicket();
        $values = [];
       foreach (array_keys($rule->getCriterias()) as $key) {
+          $values[$key] = ContextValue::indeterminate(self::RETROSPECTIVE_REASON);
+      }
+      foreach (self::ACTION_TARGET_FIELDS as $key) {
           $values[$key] = ContextValue::indeterminate(self::RETROSPECTIVE_REASON);
       }
 
