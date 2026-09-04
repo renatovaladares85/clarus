@@ -35,6 +35,29 @@ class RuleCriteria
    public array $fields;
 }
 
+class DBmysql
+{
+    /**
+     * @param array<string, mixed> $criteria
+     * @return iterable<array<string, mixed>>
+     */
+   public function request(array $criteria): iterable {
+   }
+}
+
+class RuleAction
+{
+    /** @var array<string, mixed> */
+   public array $fields;
+
+   public function getTable(): string {
+   }
+
+    /** @return list<RuleAction> */
+   public function getRuleActions(int $ruleId): array {
+   }
+}
+
 class RuleTicket
 {
    public const ONADD = 1;

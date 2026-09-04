@@ -19,6 +19,9 @@ The Phase 3 inspector core can reconstruct persisted and safely derived Ticket
 context, select native RuleTicket candidates, and report `MATCH`, `NO_MATCH`,
 or `INDETERMINATE` per criterion and rule. `INDETERMINATE` is used whenever a
 historical/transient value cannot be reconstructed without guessing.
+Action analysis is opt-in and reports only whether supported configured effects
+are reflected in the current snapshot; it does not execute actions or attribute
+historical causality.
 
 ## Installation
 
@@ -48,3 +51,4 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 The executable RuleTicket characterization that informs the future inspector is documented in [the Phase 2 technical spike](docs/architecture/rule-ticket-technical-spike.md).
 The implemented read-only pipeline and its limits are documented in [the Inspector core architecture](docs/architecture/inspector-core.md).
+The supported action semantics and their read-only limits are documented in [the action analysis architecture](docs/architecture/action-analysis.md).

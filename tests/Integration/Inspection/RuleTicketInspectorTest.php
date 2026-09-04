@@ -6,9 +6,13 @@ declare(strict_types=1);
 
 namespace GlpiPlugin\Clarus\Tests\Integration\Inspection;
 
+use GlpiPlugin\Clarus\Inspector\ActionEvaluation;
+use GlpiPlugin\Clarus\Inspector\ActionInspection;
+use GlpiPlugin\Clarus\Inspector\ActionSupport;
 use GlpiPlugin\Clarus\Inspector\ContextState;
 use GlpiPlugin\Clarus\Inspector\Evaluation;
 use GlpiPlugin\Clarus\Inspector\InspectionOptions;
+use GlpiPlugin\Clarus\Inspector\RuleActionProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketCandidateProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketInspector;
 use GlpiPlugin\Clarus\Inspector\TicketContextBuilder;
@@ -23,6 +27,11 @@ final class RuleTicketInspectorTest extends TestCase
         'actions' => [],
         'criteria' => [],
         'rules' => [],
+        'slas' => [],
+        'olas' => [],
+        'slms' => [],
+        'suppliers' => [],
+        'groups' => [],
         'categories' => [],
         'entities' => [],
     ];
@@ -33,6 +42,11 @@ final class RuleTicketInspectorTest extends TestCase
         'actions' => [],
         'criteria' => [],
         'rules' => [],
+        'slas' => [],
+        'olas' => [],
+        'slms' => [],
+        'suppliers' => [],
+        'groups' => [],
         'categories' => [],
         'entities' => [],
     ];
@@ -147,6 +161,7 @@ final class RuleTicketInspectorTest extends TestCase
        $matchingResult = $this->findRule($result->rules, $matching->getID());
 
        self::assertSame(Evaluation::MATCH, $matchingResult->evaluation);
+       self::assertSame([], $matchingResult->actions);
        self::assertSame($before, $after, 'Inspection must not change Ticket or Rule persistence.');
        self::assertSame('3', (string) $after['ticket']['urgency']);
    }
@@ -254,9 +269,204 @@ final class RuleTicketInspectorTest extends TestCase
        self::assertNotSame([], $inspected->limitations);
    }
 
-   private function createTicket(int $entityId = 0, int $categoryId = 0): \Ticket {
+   public function testActionProviderBatchesSelectedRulesInNativeOrder(): void {
+       $first = $this->createRule('provider-first', \RuleTicket::ONADD, true, 1, [], [
+           ['assign', 'urgency', '4'],
+           ['assign', 'impact', '5'],
+       ]);
+       $excluded = $this->createRule('provider-excluded', \RuleTicket::ONADD, true, 2, [], [
+           ['assign', 'status', '2'],
+       ]);
+
+       $provided = (new RuleActionProvider())->forRuleIds([$first->getID()]);
+       $native = (new \RuleAction())->getRuleActions($first->getID());
+
+       self::assertSame([$first->getID()], array_keys($provided));
+       self::assertArrayNotHasKey($excluded->getID(), $provided);
+       self::assertSame(
+           array_map(static fn (\RuleAction $action): int => (int) $action->fields['id'], $native),
+           array_map(static fn ($action): int => $action->actionId, $provided[$first->getID()])
+       );
+       self::assertSame([0, 1], array_map(static fn ($action): int => $action->order, $provided[$first->getID()]));
+   }
+
+   public function testSupportedScalarRelationAndDeleteActionsRemainReadOnly(): void {
+       $categoryId = $this->createCategory('ACTION');
+       $ticket = $this->createTicket(0, $categoryId);
+       $requesterId = (int) \Session::getLoginUserID();
+       $rule = $this->createRule('supported-actions', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [
+           ['assign', 'urgency', '3'],
+           ['assign', 'impact', '5'],
+           ['assign', 'itilcategories_id', (string) $categoryId],
+           ['assign', '_users_id_requester', (string) $requesterId],
+           ['assign', '_users_id_assign', (string) $requesterId],
+           ['delete', 'time_to_resolve', '1'],
+       ]);
+
+       $before = $this->snapshot($ticket->getID(), $rule->getID());
+       $result = (new RuleTicketInspector())->inspect(
+           $ticket,
+           \RuleTicket::ONADD,
+           new InspectionOptions(1000, true)
+       );
+       $after = $this->snapshot($ticket->getID(), $rule->getID());
+       $inspected = $this->findRule($result->rules, $rule->getID());
+
+       self::assertSame(ActionEvaluation::REFLECTED, $this->findAction($inspected->actions, 'urgency')->evaluation);
+       self::assertSame(ActionEvaluation::NOT_REFLECTED, $this->findAction($inspected->actions, 'impact')->evaluation);
+       self::assertSame(
+           ActionEvaluation::REFLECTED,
+           $this->findAction($inspected->actions, 'itilcategories_id')->evaluation
+       );
+       self::assertSame(
+           ActionEvaluation::REFLECTED,
+           $this->findAction($inspected->actions, '_users_id_requester')->evaluation
+       );
+       self::assertSame(
+           ActionEvaluation::NOT_REFLECTED,
+           $this->findAction($inspected->actions, '_users_id_assign')->evaluation
+       );
+       self::assertSame(
+           ActionEvaluation::REFLECTED,
+           $this->findAction($inspected->actions, 'time_to_resolve')->evaluation
+       );
+       self::assertSame($before, $after, 'Action inspection must not change persistence or actor relations.');
+   }
+
+   public function testAllSupportedActorRelationsUseCurrentMembership(): void {
+       $groupId = $this->createGroup();
+       $supplierId = $this->createSupplier();
+       $userId = (int) \Session::getLoginUserID();
+       $ticket = $this->createTicket(0, 0, [
+           '_actors' => [
+               'requester' => [
+                   ['itemtype' => 'User', 'items_id' => $userId],
+                   ['itemtype' => 'Group', 'items_id' => $groupId],
+               ],
+               'assign' => [
+                   ['itemtype' => 'User', 'items_id' => $userId],
+                   ['itemtype' => 'Group', 'items_id' => $groupId],
+                   ['itemtype' => 'Supplier', 'items_id' => $supplierId],
+               ],
+               'observer' => [
+                   ['itemtype' => 'User', 'items_id' => $userId],
+                   ['itemtype' => 'Group', 'items_id' => $groupId],
+               ],
+           ],
+       ]);
+       $rule = $this->createRule('actor-actions', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [
+           ['assign', '_users_id_requester', (string) $userId],
+           ['append', '_groups_id_requester', (string) $groupId],
+           ['append', '_users_id_assign', (string) $userId],
+           ['assign', '_groups_id_assign', (string) $groupId],
+           ['append', '_suppliers_id_assign', (string) $supplierId],
+           ['assign', '_users_id_observer', (string) $userId],
+           ['append', '_groups_id_observer', (string) $groupId],
+       ]);
+
+       $inspected = $this->findRule(
+           (new RuleTicketInspector())->inspect(
+               $ticket,
+               \RuleTicket::ONADD,
+               new InspectionOptions(1000, true)
+           )->rules,
+           $rule->getID()
+       );
+
+       self::assertCount(7, $inspected->actions);
+      foreach ($inspected->actions as $action) {
+          self::assertSame(ActionSupport::SUPPORTED, $action->support);
+          self::assertSame(ActionEvaluation::REFLECTED, $action->evaluation);
+      }
+   }
+
+   public function testSlaAndOlaIdsAreComparedWithoutClaimingDerivedDates(): void {
+       $slmId = $this->createSlm();
+       $slaId = $this->createAgreement(\SLA::class, 'slas', $slmId);
+       $olaId = $this->createAgreement(\OLA::class, 'olas', $slmId);
+       $ticket = $this->createTicket(0, 0, [
+           'slas_id_ttr' => $slaId,
+           'olas_id_ttr' => $olaId,
+       ]);
+       $rule = $this->createRule('agreements', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [
+           ['assign', 'slas_id_ttr', (string) $slaId],
+           ['assign', 'olas_id_ttr', (string) $olaId],
+       ]);
+
+       $inspected = $this->findRule(
+           (new RuleTicketInspector())->inspect(
+               $ticket,
+               \RuleTicket::ONADD,
+               new InspectionOptions(1000, true)
+           )->rules,
+           $rule->getID()
+       );
+
+       self::assertSame(ActionEvaluation::REFLECTED, $this->findAction($inspected->actions, 'slas_id_ttr')->evaluation);
+       self::assertSame(ActionEvaluation::REFLECTED, $this->findAction($inspected->actions, 'olas_id_ttr')->evaluation);
+       self::assertContains(
+           'Action reflection describes only the current Ticket snapshot, not historical causality.',
+           $this->findInspectionLimitations($ticket, \RuleTicket::ONADD)
+       );
+   }
+
+   public function testDynamicUnsupportedUpdateAndSequentialResultsRemainIndependent(): void {
+       $ticket = $this->createTicket();
+       $update = $this->createRule('update-actions', \RuleTicket::ONUPDATE, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [
+           ['assign', 'urgency', '3'],
+           ['compute', 'priority', '1'],
+           ['regex_result', '_affect_itilcategory_by_code', '#0'],
+           ['append', 'task_template', '1'],
+           ['assign', 'assign_project', '1'],
+       ]);
+       $first = $this->createRule('sequence-first', \RuleTicket::ONADD, true, 2, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'urgency', '5']]);
+       $second = $this->createRule('sequence-second', \RuleTicket::ONADD, true, 3, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'urgency', '3']]);
+
+       $updateResult = (new RuleTicketInspector())->inspect(
+           $ticket,
+           \RuleTicket::ONUPDATE,
+           new InspectionOptions(1000, true)
+       );
+       $inspectedUpdate = $this->findRule($updateResult->rules, $update->getID());
+       self::assertSame(Evaluation::INDETERMINATE, $inspectedUpdate->evaluation);
+       self::assertSame(ActionEvaluation::REFLECTED, $this->findAction($inspectedUpdate->actions, 'urgency')->evaluation);
+       self::assertSame(ActionSupport::INDETERMINATE_BY_DESIGN, $this->findAction($inspectedUpdate->actions, 'priority')->support);
+       self::assertSame(ActionSupport::INDETERMINATE_BY_DESIGN, $this->findAction($inspectedUpdate->actions, '_affect_itilcategory_by_code')->support);
+       self::assertSame(ActionSupport::INDETERMINATE_BY_DESIGN, $this->findAction($inspectedUpdate->actions, 'task_template')->support);
+       self::assertSame(ActionSupport::UNSUPPORTED, $this->findAction($inspectedUpdate->actions, 'assign_project')->support);
+
+       $addResult = (new RuleTicketInspector())->inspect(
+           $ticket,
+           \RuleTicket::ONADD,
+           new InspectionOptions(1000, true)
+       );
+       self::assertSame(
+           ActionEvaluation::NOT_REFLECTED,
+           $this->findAction($this->findRule($addResult->rules, $first->getID())->actions, 'urgency')->evaluation
+       );
+       self::assertSame(
+           ActionEvaluation::REFLECTED,
+           $this->findAction($this->findRule($addResult->rules, $second->getID())->actions, 'urgency')->evaluation
+       );
+       self::assertStringContainsString('not historical', implode(' ', $addResult->limitations));
+   }
+
+    /** @param array<string, mixed> $overrides */
+   private function createTicket(int $entityId = 0, int $categoryId = 0, array $overrides = []): \Ticket {
        $ticket = new \Ticket();
-       $ticketId = (int) $ticket->add([
+       $input = [
            'name' => $this->prefix,
            'content' => 'Phase 3 read-only inspection fixture',
            'entities_id' => $entityId,
@@ -268,10 +478,14 @@ final class RuleTicketInspectorTest extends TestCase
            'requesttypes_id' => 1,
            '_users_id_requester' => (int) \Session::getLoginUserID(),
            '_skip_rules' => true,
-       ]);
-      if ($ticketId > 0) {
+       ];
+       if (array_key_exists('_actors', $overrides)) {
+          unset($input['_users_id_requester']);
+       }
+       $ticketId = (int) $ticket->add(array_replace($input, $overrides));
+       if ($ticketId > 0) {
           $this->track('tickets', $ticketId);
-      }
+       }
        self::assertGreaterThan(0, $ticketId);
 
        $loaded = new \Ticket();
@@ -281,7 +495,7 @@ final class RuleTicketInspectorTest extends TestCase
 
     /**
      * @param list<array{string, int, string}> $criteria
-     * @param list<array{string, string, string}> $actions
+     * @param list<array{string, string, mixed}> $actions
      */
    private function createRule(
         string $suffix,
@@ -368,6 +582,65 @@ final class RuleTicketInspectorTest extends TestCase
        return $entityId;
    }
 
+   private function createGroup(): int {
+       $group = new \Group();
+       $groupId = (int) $group->add([
+           'name' => $this->prefix . '-group',
+           'entities_id' => 0,
+           'is_requester' => 1,
+           'is_assign' => 1,
+           'is_watcher' => 1,
+       ]);
+      if ($groupId > 0) {
+          $this->track('groups', $groupId);
+      }
+       self::assertGreaterThan(0, $groupId);
+       return $groupId;
+   }
+
+   private function createSupplier(): int {
+       $supplier = new \Supplier();
+       $supplierId = (int) $supplier->add([
+           'name' => $this->prefix . '-supplier',
+           'entities_id' => 0,
+       ]);
+      if ($supplierId > 0) {
+          $this->track('suppliers', $supplierId);
+      }
+       self::assertGreaterThan(0, $supplierId);
+       return $supplierId;
+   }
+
+   private function createSlm(): int {
+       $slm = new \SLM();
+       $slmId = (int) $slm->add([
+           'name' => $this->prefix . '-slm',
+           'calendars_id' => 0,
+       ]);
+      if ($slmId > 0) {
+          $this->track('slms', $slmId);
+      }
+       self::assertGreaterThan(0, $slmId);
+       return $slmId;
+   }
+
+    /** @param class-string<\SLA|\OLA> $class */
+   private function createAgreement(string $class, string $type, int $slmId): int {
+       $agreement = new $class();
+       $agreementId = (int) $agreement->add([
+           'name' => $this->prefix . '-' . $type,
+           'slms_id' => $slmId,
+           'type' => \SLM::TTR,
+           'number_time' => 4,
+           'definition_time' => 'hour',
+       ]);
+      if ($agreementId > 0) {
+          $this->track($type, $agreementId);
+      }
+       self::assertGreaterThan(0, $agreementId);
+       return $agreementId;
+   }
+
     /**
      * @param list<\GlpiPlugin\Clarus\Inspector\RuleInspection> $rules
      */
@@ -381,6 +654,26 @@ final class RuleTicketInspectorTest extends TestCase
        self::fail('Expected rule was not present in the inspection result.');
    }
 
+    /** @param list<ActionInspection> $actions */
+   private function findAction(array $actions, string $field): ActionInspection {
+      foreach ($actions as $action) {
+         if ($action->field === $field) {
+             return $action;
+         }
+      }
+
+       self::fail('Expected action was not present in the inspection result.');
+   }
+
+    /** @return list<string> */
+   private function findInspectionLimitations(\Ticket $ticket, int $condition): array {
+       return (new RuleTicketInspector())->inspect(
+           $ticket,
+           $condition,
+           new InspectionOptions(1000, true)
+       )->limitations;
+   }
+
     /** @return array<string, mixed> */
    private function snapshot(int $ticketId, int $ruleId): array {
        $ticket = new \Ticket();
@@ -390,6 +683,11 @@ final class RuleTicketInspectorTest extends TestCase
 
        return [
            'ticket' => $ticket->fields,
+           'actors' => [
+               'requester' => $ticket->getActorsForType(\CommonITILActor::REQUESTER),
+               'assign' => $ticket->getActorsForType(\CommonITILActor::ASSIGN),
+               'observer' => $ticket->getActorsForType(\CommonITILActor::OBSERVER),
+           ],
            'rule' => $rule->fields,
            'criteria' => array_map(
                static fn (\RuleCriteria $criterion): array => $criterion->fields,
@@ -417,7 +715,12 @@ final class RuleTicketInspectorTest extends TestCase
            'tickets' => \Ticket::class,
            'actions' => \RuleAction::class,
             'criteria' => \RuleCriteria::class,
-            'rules' => \RuleTicket::class,
+           'rules' => \RuleTicket::class,
+            'slas' => \SLA::class,
+            'olas' => \OLA::class,
+            'slms' => \SLM::class,
+            'suppliers' => \Supplier::class,
+            'groups' => \Group::class,
             'categories' => \ITILCategory::class,
             'entities' => \Entity::class,
         ] as $type => $class) {
@@ -453,7 +756,12 @@ final class RuleTicketInspectorTest extends TestCase
            'actions' => [],
            'criteria' => [],
            'rules' => [],
-           'categories' => [],
+            'slas' => [],
+            'olas' => [],
+            'slms' => [],
+            'suppliers' => [],
+            'groups' => [],
+            'categories' => [],
            'entities' => [],
        ];
    }

@@ -10,7 +10,9 @@ final class RuleTicketInspector
 {
    public function __construct(
         private readonly TicketContextBuilder $contextBuilder = new TicketContextBuilder(),
-        private readonly RuleTicketCandidateProvider $candidateProvider = new RuleTicketCandidateProvider()
+        private readonly RuleTicketCandidateProvider $candidateProvider = new RuleTicketCandidateProvider(),
+        private readonly RuleActionProvider $actionProvider = new RuleActionProvider(),
+        private readonly RuleTicketActionAnalyzer $actionAnalyzer = new RuleTicketActionAnalyzer()
     ) {
    }
 
@@ -31,9 +33,21 @@ final class RuleTicketInspector
        $candidates = $this->candidateProvider->candidates($ticket, $condition);
        $candidateCount = count($candidates);
        $selected = array_slice($candidates, 0, $options->ruleLimit);
+       $actionsByRule = $options->includeActions
+           ? $this->actionProvider->forRuleIds(array_map(
+               static fn (\RuleTicket $rule): int => NativeField::integer($rule->fields['id'] ?? 0),
+               $selected
+           ))
+           : [];
        $rules = [];
       foreach ($selected as $rule) {
-          $rules[] = $this->inspectRule($rule, $context, $condition);
+          $ruleInspection = $this->inspectRule($rule, $context, $condition);
+         if ($options->includeActions) {
+             $ruleInspection = $ruleInspection->withActions(
+                 $this->actionAnalyzer->analyzeAll($actionsByRule[$ruleInspection->id] ?? [], $context)
+             );
+         }
+          $rules[] = $ruleInspection;
       }
 
        return new InspectionResult(
@@ -46,7 +60,10 @@ final class RuleTicketInspector
            $rules,
            [
                'Results describe the current reconstructable Ticket state, not historical rule execution.',
-               'Configured rule actions are never evaluated or executed.',
+               'Configured rule actions are never executed by inspection.',
+               $options->includeActions
+                   ? 'Action reflection describes only the current Ticket snapshot, not historical causality.'
+                   : 'Configured rule actions were not included in this inspection.',
            ]
        );
    }

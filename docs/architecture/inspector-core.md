@@ -10,9 +10,11 @@ Ticket -> TicketContextBuilder -> RuleTicketCandidateProvider
 ```
 
 It does not call `process()`, `processAllRules()`, or `executeActions()`. Rule
-actions are neither loaded for candidate evaluation nor simulated. A reported
-match describes the current reconstructable Ticket state and is not proof that
-the rule executed historically.
+actions are not loaded by default and are never simulated. With the opt-in
+`InspectionOptions::includeActions`, only actions of evaluated rules are loaded
+read-only and attached to their `RuleInspection`. A reported match or reflected
+action describes the current reconstructable Ticket state and is not proof that
+the rule executed historically. See [action analysis](action-analysis.md).
 
 ## Context and evaluation
 
