@@ -15,6 +15,11 @@ Ticket being inspected.
 `0.1.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it does not simulate or record rule execution.
 
+The Phase 3 inspector core can reconstruct persisted and safely derived Ticket
+context, select native RuleTicket candidates, and report `MATCH`, `NO_MATCH`,
+or `INDETERMINATE` per criterion and rule. `INDETERMINATE` is used whenever a
+historical/transient value cannot be reconstructed without guessing.
+
 ## Installation
 
 Place the plugin directory at `glpi/plugins/clarus`, then install and activate
@@ -42,3 +47,4 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 ## Architecture research
 
 The executable RuleTicket characterization that informs the future inspector is documented in [the Phase 2 technical spike](docs/architecture/rule-ticket-technical-spike.md).
+The implemented read-only pipeline and its limits are documented in [the Inspector core architecture](docs/architecture/inspector-core.md).

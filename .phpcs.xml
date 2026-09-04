@@ -4,6 +4,7 @@
   <rule ref="./vendor/glpi-project/coding-standard/GlpiStandard"/>
   <file>hook.php</file>
   <file>setup.php</file>
+  <file>src</file>
   <file>tests</file>
   <file>tools</file>
   <exclude-pattern>vendor/*</exclude-pattern>

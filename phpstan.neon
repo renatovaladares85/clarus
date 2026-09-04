@@ -1,11 +1,15 @@
 parameters:
     level: max
+    treatPhpDocTypesAsCertain: false
     paths:
         - hook.php
         - setup.php
+        - src
         - tests
         - tools
     stubFiles:
+        - stubs/glpi.php
+    scanFiles:
         - stubs/glpi.php
     dynamicConstantNames:
         GLPI_VERSION: string
