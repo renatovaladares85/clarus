@@ -74,8 +74,8 @@ final class RuleTicketCharacterizationTest extends TestCase
        self::assertNotContains($inactive->getID(), $addIds);
        self::assertNotContains($update->getID(), $addIds);
        self::assertLessThan(
-           array_search($parentRecursive->getID(), $addIds, true),
-           array_search($childRule->getID(), $addIds, true)
+           array_search($childRule->getID(), $addIds, true),
+           array_search($parentRecursive->getID(), $addIds, true)
        );
 
        self::assertContains($update->getID(), $this->collectionIds($childId, \RuleTicket::ONUPDATE));
