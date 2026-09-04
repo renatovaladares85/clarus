@@ -11,6 +11,7 @@ final class RuleInspection
     /**
      * @param list<CriterionInspection> $criteria
      * @param list<string> $limitations
+     * @param list<ActionInspection> $actions
      */
    public function __construct(
         public readonly int $id,
@@ -22,7 +23,25 @@ final class RuleInspection
         public readonly string $matchingMode,
         public readonly array $criteria,
         public readonly Evaluation $evaluation,
-        public readonly array $limitations = []
+        public readonly array $limitations = [],
+        public readonly array $actions = []
     ) {
+   }
+
+    /** @param list<ActionInspection> $actions */
+   public function withActions(array $actions): self {
+       return new self(
+           $this->id,
+           $this->name,
+           $this->condition,
+           $this->entityId,
+           $this->recursive,
+           $this->ranking,
+           $this->matchingMode,
+           $this->criteria,
+           $this->evaluation,
+           $this->limitations,
+           $actions
+       );
    }
 }
