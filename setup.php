@@ -23,6 +23,9 @@ function plugin_init_clarus(): void {
     \Plugin::registerClass(\GlpiPlugin\Clarus\Profile::class, [
         'addtabon' => \Profile::class,
     ]);
+    \Plugin::registerClass(\GlpiPlugin\Clarus\TicketTab::class, [
+        'addtabon' => \Ticket::class,
+    ]);
 }
 
 /**

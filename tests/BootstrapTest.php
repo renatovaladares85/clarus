@@ -4,6 +4,7 @@
 
 namespace GlpiPlugin\Clarus\Tests;
 
+use GlpiPlugin\Clarus\TicketTab;
 use PHPUnit\Framework\TestCase;
 
 final class BootstrapTest extends TestCase
@@ -28,6 +29,20 @@ final class BootstrapTest extends TestCase
        self::assertSame('11.0.0', $metadata['requirements']['glpi']['max']);
        self::assertSame('8.1.0', $metadata['requirements']['php']['min']);
        self::assertSame('8.4.0', $metadata['requirements']['php']['max']);
+   }
+
+   public function testPluginRegistersTheProfileAndTicketTabs(): void {
+      \Plugin::$registeredClasses = [];
+      plugin_init_clarus();
+
+      self::assertSame(
+         ['addtabon' => \Profile::class],
+         \Plugin::registeredAttributes(\GlpiPlugin\Clarus\Profile::class)
+      );
+      self::assertSame(
+         ['addtabon' => \Ticket::class],
+         \Plugin::registeredAttributes(TicketTab::class)
+      );
    }
 
 }

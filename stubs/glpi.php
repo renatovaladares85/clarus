@@ -122,6 +122,12 @@ class Plugin
         self::$registeredClasses[$itemtype] = $attributes;
         return true;
     }
+
+    /** @return array<string, mixed>|null */
+    public static function registeredAttributes(string $itemtype): ?array
+    {
+        return self::$registeredClasses[$itemtype] ?? null;
+    }
 }
 
 class Html
@@ -145,14 +151,15 @@ class CommonITILActor
    public const OBSERVER = 3;
 }
 
-class Ticket
+class Ticket extends CommonDBTM
 {
     /** @var array<string, mixed> */
     public array $fields;
 
-    public bool $viewable = false;
+   public bool $viewable = false;
 
    public function isNewItem(): bool {
+       return $this->getID() <= 0;
    }
 
     /**
@@ -160,9 +167,11 @@ class Ticket
      * @return list<array<string, mixed>>
      */
    public function getActorsForType(int $actorType = 1, array $params = []): array {
+       return [];
    }
 
    public function getID(): int {
+       return parent::getID();
    }
 
    public function canViewItem(): bool {
