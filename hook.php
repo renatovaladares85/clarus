@@ -5,17 +5,17 @@
 /**
  * Install Clarus.
  *
- * No database object is created during the foundation phase.
+ * The profile right is registered for every profile with the native zero mask.
  */
 function plugin_clarus_install(): bool {
-    return true;
+    return \GlpiPlugin\Clarus\Profile::registerRights();
 }
 
 /**
  * Uninstall Clarus.
  *
- * The foundation phase owns no persistent data.
+ * Only Clarus-owned profile rights are removed.
  */
 function plugin_clarus_uninstall(): bool {
-    return true;
+    return \GlpiPlugin\Clarus\Profile::unregisterRights();
 }

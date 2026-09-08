@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 final class BootstrapTest extends TestCase
 {
    public function testPluginMetadataIsDefined(): void {
-       self::assertSame('0.1.0', PLUGIN_CLARUS_VERSION);
+       self::assertSame('0.2.0', PLUGIN_CLARUS_VERSION);
        self::assertSame('10.0.20', PLUGIN_CLARUS_MIN_GLPI_VERSION);
        self::assertSame('11.0.0', PLUGIN_CLARUS_MAX_GLPI_VERSION);
        self::assertSame('8.1.0', PLUGIN_CLARUS_MIN_PHP_VERSION);
@@ -29,4 +29,5 @@ final class BootstrapTest extends TestCase
        self::assertSame('8.1.0', $metadata['requirements']['php']['min']);
        self::assertSame('8.4.0', $metadata['requirements']['php']['max']);
    }
+
 }

@@ -12,7 +12,7 @@ Ticket being inspected.
 
 ## Development status
 
-`0.1.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
+`0.2.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it does not simulate or record rule execution.
 
 The Phase 3 inspector core can reconstruct persisted and safely derived Ticket
@@ -30,9 +30,10 @@ it through **Setup > Plugins**. Do not rename the directory.
 
 ## Security model
 
-Inspection will require both native GLPI access to the specific Ticket and a
-Clarus profile right. A matching rule is not evidence that the rule executed
-historically.
+Inspection requires both native GLPI access to the specific Ticket and the
+`plugin_clarus_inspect` Profile right with the `READ` mask. It is denied by
+default, including for Super-Admin, until explicitly granted. A matching rule
+is not evidence that the rule executed historically.
 
 ## Development checks
 
@@ -52,3 +53,5 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 The executable RuleTicket characterization that informs the future inspector is documented in [the Phase 2 technical spike](docs/architecture/rule-ticket-technical-spike.md).
 The implemented read-only pipeline and its limits are documented in [the Inspector core architecture](docs/architecture/inspector-core.md).
 The supported action semantics and their read-only limits are documented in [the action analysis architecture](docs/architecture/action-analysis.md).
+The Profile right, lifecycle, and future UI authorization contract are documented
+in [the permissions architecture](docs/architecture/permissions.md).
