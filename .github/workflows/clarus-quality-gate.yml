@@ -518,13 +518,17 @@ jobs:
             glpi_dir=/var/www/glpi
           fi
           phase4_ref=7edb7115ef84a645525619eeb704e010fa98b0ec
-          python3 vendor/glpi-project/tools/tools/plugin-release \
-            --assume-yes --dont-check --nogithub --nosign \
-            --release 0.1.0 --commit "$phase4_ref" --extra phase5-upgrade
-          phase4_package="$(find /var/www/glpi/plugins/clarus-tests/dist -type f -name '*.tar.bz2' -print -quit)"
-          test -n "$phase4_package"
+          phase4_files=()
+          while IFS= read -r file; do
+            if printf '%s\n' "$file" | grep --quiet --extended-regexp --file <(git show "$phase4_ref:.ignore-release"); then
+              continue
+            fi
+            phase4_files+=("$file")
+          done < <(git ls-tree -r --name-only "$phase4_ref")
+          test "${#phase4_files[@]}" -gt 0
+          git archive --format=tar --prefix=clarus/ "$phase4_ref" "${phase4_files[@]}" | bzip2 > /tmp/clarus-phase4.tar.bz2
           mkdir -p /tmp/clarus-phase4-artifact
-          tar -xjf "$phase4_package" -C /tmp/clarus-phase4-artifact
+          tar -xjf /tmp/clarus-phase4.tar.bz2 -C /tmp/clarus-phase4-artifact
           test -d /tmp/clarus-phase4-artifact/clarus
           mv /tmp/clarus-phase4-artifact/clarus "$glpi_dir/plugins/clarus"
       - name: Install and activate the pre-Phase 5 artifact
