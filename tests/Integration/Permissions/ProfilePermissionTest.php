@@ -8,6 +8,7 @@ namespace GlpiPlugin\Clarus\Tests\Integration\Permissions;
 
 use GlpiPlugin\Clarus\Authorization;
 use GlpiPlugin\Clarus\Profile as ClarusProfile;
+use GlpiPlugin\Clarus\TicketTab;
 use PHPUnit\Framework\TestCase;
 
 /** @group glpi-integration */
@@ -20,6 +21,9 @@ final class ProfilePermissionTest extends TestCase
     /** @var array<string, list<int>> */
    private array $created = [
         'tickets' => [],
+        'actions' => [],
+        'criteria' => [],
+        'rules' => [],
         'entities' => [],
         'profile_users' => [],
         'profiles' => [],
@@ -49,6 +53,9 @@ final class ProfilePermissionTest extends TestCase
 
       foreach ([
            'tickets' => \Ticket::class,
+           'actions' => \RuleAction::class,
+           'criteria' => \RuleCriteria::class,
+           'rules' => \RuleTicket::class,
            'profile_users' => \Profile_User::class,
            'profiles' => \Profile::class,
            'entities' => \Entity::class,
@@ -114,6 +121,10 @@ final class ProfilePermissionTest extends TestCase
        self::assertTrue((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
        self::assertFalse((bool) $ticket->canViewItem());
        self::assertFalse(Authorization::canInspectTicket($ticket));
+       self::assertSame('', (new TicketTab())->getTabNameForItem($ticket));
+       ob_start();
+       self::assertFalse(TicketTab::displayTabContentForItem($ticket));
+       self::assertSame('', ob_get_clean());
 
        $profileUser = new \Profile_User();
        self::assertTrue($profileUser->getFromDB($this->created['profile_users'][0]));
@@ -125,6 +136,51 @@ final class ProfilePermissionTest extends TestCase
        $this->loginAsProfile($profileId);
        self::assertTrue((bool) $ticket->canViewItem());
        self::assertTrue(Authorization::canInspectTicket($ticket));
+   }
+
+   public function testAuthorizedTicketTabRendersCurrentStateDiagnosticsReadOnly(): void {
+       $profileId = $this->createRestrictedProfile(false);
+       $ticket = $this->createTicket(0);
+       $addRule = $this->createRule(
+           'add',
+           \RuleTicket::ONADD,
+           (string) $ticket->fields['name'],
+           [['assign', 'urgency', '3']]
+       );
+       $this->createRule(
+           'update',
+           \RuleTicket::ONUPDATE,
+           (string) $ticket->fields['name'],
+           [['assign', 'urgency', '3']]
+       );
+       $tab = new TicketTab();
+
+       $this->loginAsProfile($profileId);
+       self::assertSame('', $tab->getTabNameForItem($ticket));
+       ob_start();
+       self::assertFalse(TicketTab::displayTabContentForItem($ticket));
+       self::assertSame('', ob_get_clean());
+
+       \ProfileRight::updateProfileRights($profileId, [ClarusProfile::RIGHT_INSPECT => READ]);
+       $this->loginAsProfile($profileId);
+       self::assertSame('Rule inspection', $tab->getTabNameForItem($ticket));
+       $before = $this->ticketFields($ticket->getID());
+
+       ob_start();
+       self::assertTrue(TicketTab::displayTabContentForItem($ticket));
+       $output = (string) ob_get_clean();
+
+       self::assertStringContainsString('Current-state diagnostic only', $output);
+       self::assertStringContainsString('REFLECTED', $output);
+       self::assertStringContainsString('UPDATE eligibility depends on the original change set', $output);
+       self::assertStringContainsString('INDETERMINATE', $output);
+       self::assertStringContainsString('not proof of historical rule execution', $output);
+       self::assertStringNotContainsString('Clarus Phase 5 authorization fixture', $output);
+       self::assertSame($before, $this->ticketFields($ticket->getID()));
+
+       $reloadedRule = new \RuleTicket();
+       self::assertTrue($reloadedRule->getRuleWithCriteriasAndActions($addRule->getID(), true, true));
+       self::assertSame('3', (string) $reloadedRule->actions[0]->fields['value']);
    }
 
    public function testUninstallAndReinstallRemoveAndRecreateOnlyTheClarusRight(): void {
@@ -196,6 +252,58 @@ final class ProfilePermissionTest extends TestCase
        self::assertTrue($loaded->getFromDB($ticketId));
 
        return $loaded;
+   }
+
+   /** @param list<array{string, string, string}> $actions */
+   private function createRule(string $suffix, int $condition, string $name, array $actions): \RuleTicket {
+       $rule = new \RuleTicket();
+       $ruleId = (int) $rule->add([
+           'name' => 'clarus-phase6-' . $suffix . '-' . str_replace('.', '', uniqid('', true)),
+           'entities_id' => 0,
+           'sub_type' => \RuleTicket::class,
+           'condition' => $condition,
+           'is_active' => 1,
+           'is_recursive' => 1,
+           'match' => \Rule::AND_MATCHING,
+           'ranking' => 1,
+       ]);
+       self::assertGreaterThan(0, $ruleId);
+       $this->created['rules'][] = $ruleId;
+
+       $criterion = new \RuleCriteria();
+       $criterionId = (int) $criterion->add([
+           'rules_id' => $ruleId,
+           'criteria' => 'name',
+           'condition' => \Rule::PATTERN_IS,
+           'pattern' => $name,
+       ]);
+       self::assertGreaterThan(0, $criterionId);
+       $this->created['criteria'][] = $criterionId;
+
+       foreach ($actions as [$actionType, $field, $value]) {
+           $action = new \RuleAction();
+           $actionId = (int) $action->add([
+               'rules_id' => $ruleId,
+               'action_type' => $actionType,
+               'field' => $field,
+               'value' => $value,
+           ]);
+           self::assertGreaterThan(0, $actionId);
+           $this->created['actions'][] = $actionId;
+       }
+
+       $loaded = new \RuleTicket();
+       self::assertTrue($loaded->getRuleWithCriteriasAndActions($ruleId, true, true));
+
+       return $loaded;
+   }
+
+   /** @return array<string, mixed> */
+   private function ticketFields(int $ticketId): array {
+       $ticket = new \Ticket();
+       self::assertTrue($ticket->getFromDB($ticketId));
+
+       return $ticket->fields;
    }
 
    private function loginAsProfile(int $profileId): void {
