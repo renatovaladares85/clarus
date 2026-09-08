@@ -71,6 +71,10 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('INDETERMINATE', $html);
       self::assertStringContainsString('REFLECTED', $html);
       self::assertStringContainsString('Results were truncated', $html);
+      self::assertStringContainsString('<details class="mb-2">', $html);
+      self::assertStringContainsString('<dt class="col-sm-4">Condition</dt>', $html);
+      self::assertStringContainsString('<dd class="col-sm-8">ONUPDATE</dd>', $html);
+      self::assertStringNotContainsString('\\"', $html);
       self::assertStringContainsString('&lt;rule&gt;', $html);
       self::assertStringNotContainsString('secret-pattern', $html);
       self::assertStringNotContainsString('secret-observed-value', $html);
