@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-define('PLUGIN_CLARUS_VERSION', '0.1.0');
+define('PLUGIN_CLARUS_VERSION', '0.2.0');
 define('PLUGIN_CLARUS_MIN_GLPI_VERSION', '10.0.20');
 define('PLUGIN_CLARUS_MAX_GLPI_VERSION', '11.0.0');
 define('PLUGIN_CLARUS_MIN_PHP_VERSION', '8.1.0');
@@ -19,6 +19,10 @@ function plugin_init_clarus(): void {
 
     /** @var array<string, array<string, bool>> $PLUGIN_HOOKS */
     $PLUGIN_HOOKS['csrf_compliant']['clarus'] = true;
+
+    \Plugin::registerClass(\GlpiPlugin\Clarus\Profile::class, [
+        'addtabon' => \Profile::class,
+    ]);
 }
 
 /**

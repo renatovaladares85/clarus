@@ -450,6 +450,184 @@ jobs:
           }
           PHP
           php /tmp/check-uninstall.php
+
+  permissions-upgrade:
+    name: Permissions upgrade / GLPI ${{ matrix.glpi-version }} / PHP ${{ matrix.php-version }}
+    needs: release-artifact
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - glpi-version: 10.0.20
+            php-version: '8.1'
+            db-version: '5.7'
+          - glpi-version: 10.0.x
+            php-version: '8.3'
+            db-version: '8.4'
+    container:
+      image: ghcr.io/glpi-project/githubactions-glpi-apache:php-${{ matrix.php-version }}-glpi-10.0.x
+      options: >-
+        --volume ${{ github.workspace }}:/var/www/glpi/plugins:rw
+        --user github-actions-runner
+    services:
+      db:
+        image: ghcr.io/glpi-project/githubactions-mysql:${{ matrix.db-version }}
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: glpi
+        options: >-
+          --shm-size=1g
+          --health-cmd="mysqladmin ping -h localhost -uroot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    defaults:
+      run:
+        shell: sudo --set-home --user=www-data --preserve-env bash --noprofile --norc -eo pipefail {0}
+        working-directory: /var/www/glpi/plugins/clarus-tests
+    steps:
+      - name: Checkout test source and Phase 4 history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          path: clarus-tests
+      - name: Grant the runtime user write access
+        shell: bash
+        run: sudo setfacl --recursive --modify u:www-data:rwx /var/www/glpi/plugins
+      - name: Install test dependencies
+        run: |
+          git config --global --add safe.directory /var/www/glpi/plugins/clarus-tests
+          composer install --ansi --no-interaction --no-progress --prefer-dist
+      - name: Prepare the requested GLPI runtime
+        run: |
+          if [ '${{ matrix.glpi-version }}' = '10.0.20' ]; then
+            curl --fail --location --silent --show-error --output /tmp/glpi-10.0.20.tgz https://github.com/glpi-project/glpi/releases/download/10.0.20/glpi-10.0.20.tgz
+            mkdir -p /tmp/glpi-release
+            tar -xzf /tmp/glpi-10.0.20.tgz -C /tmp/glpi-release
+            mv /tmp/glpi-release/glpi /tmp/glpi-10.0.20
+            grep -Fx "define('GLPI_VERSION', '10.0.20');" /tmp/glpi-10.0.20/inc/define.php
+          else
+            test -f /var/www/glpi/inc/includes.php
+          fi
+      - name: Build and install the pre-Phase 5 production artifact
+        run: |
+          if [ '${{ matrix.glpi-version }}' = '10.0.20' ]; then
+            glpi_dir=/tmp/glpi-10.0.20
+          else
+            glpi_dir=/var/www/glpi
+          fi
+          phase4_ref=7edb7115ef84a645525619eeb704e010fa98b0ec
+          mkdir -p /tmp/clarus-phase4-source/clarus
+          git -C /var/www/glpi/plugins/clarus-tests archive "$phase4_ref" | tar -x -C /tmp/clarus-phase4-source/clarus
+          mv /tmp/clarus-phase4-source/clarus "$glpi_dir/plugins/clarus"
+          (
+            cd "$glpi_dir/plugins/clarus"
+            composer install --ansi --no-interaction --no-progress --prefer-dist
+          )
+          php "$glpi_dir/bin/console" tools:plugin:release --plugin=clarus --dest=/tmp/clarus-phase4.tar.bz2 --no-interaction --force
+          mkdir -p /tmp/clarus-phase4-artifact
+          tar -xjf /tmp/clarus-phase4.tar.bz2 -C /tmp/clarus-phase4-artifact
+          test -d /tmp/clarus-phase4-artifact/clarus
+          mv "$glpi_dir/plugins/clarus" /tmp/clarus-phase4-build-source
+          mv /tmp/clarus-phase4-artifact/clarus "$glpi_dir/plugins/clarus"
+      - name: Install and activate the pre-Phase 5 artifact
+        run: |
+          if [ '${{ matrix.glpi-version }}' = '10.0.20' ]; then
+            glpi_dir=/tmp/glpi-10.0.20
+          else
+            glpi_dir=/var/www/glpi
+          fi
+          cd "$glpi_dir"
+          bin/console database:install --ansi --no-interaction --db-name=glpi --db-host=db --db-user=root --db-password='' --strict-configuration
+          php bin/console config:set url_base 'http://localhost'
+          php bin/console config:set url_base_api 'http://localhost/apirest.php'
+          bin/console plugin:install --ansi --no-interaction --username=glpi clarus
+          bin/console plugin:activate --ansi --no-interaction clarus
+      - name: Download and verify the Phase 5 production artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: clarus-release-package
+          path: release-artifact
+      - name: Upgrade the installed artifact to Phase 5
+        run: |
+          if [ '${{ matrix.glpi-version }}' = '10.0.20' ]; then
+            glpi_dir=/tmp/glpi-10.0.20
+          else
+            glpi_dir=/var/www/glpi
+          fi
+          package_path="$(find "$GITHUB_WORKSPACE/release-artifact" -type f -name '*.tar.bz2' -print -quit)"
+          checksum_path="$(find "$GITHUB_WORKSPACE/release-artifact" -type f -name '*.tar.bz2.sha256' -print -quit)"
+          test -n "$package_path"
+          test -n "$checksum_path"
+          (cd "$(dirname "$package_path")" && sha256sum --check "$(basename "$checksum_path")")
+          mkdir -p /tmp/clarus-phase5-artifact
+          tar -xjf "$package_path" -C /tmp/clarus-phase5-artifact
+          test -d /tmp/clarus-phase5-artifact/clarus
+          mv "$glpi_dir/plugins/clarus" /tmp/clarus-phase4-installed
+          mv /tmp/clarus-phase5-artifact/clarus "$glpi_dir/plugins/clarus"
+          cd "$glpi_dir"
+          bin/console plugin:install --ansi --no-interaction --username=glpi clarus
+          bin/console plugin:activate --ansi --no-interaction clarus
+      - name: Assert default denial after artifact upgrade
+        run: |
+          if [ '${{ matrix.glpi-version }}' = '10.0.20' ]; then
+            glpi_dir=/tmp/glpi-10.0.20
+          else
+            glpi_dir=/var/www/glpi
+          fi
+          cd "$glpi_dir"
+          php -r '
+            require "inc/includes.php";
+            global $DB;
+            $right = "plugin_clarus_inspect";
+            $rows = $DB->request(["COUNT" => "count", "FROM" => "glpi_profilerights", "WHERE" => ["name" => $right]]);
+            $count = 0;
+            foreach ($rows as $row) {
+                $count = (int) $row["count"];
+            }
+            $granted = 0;
+            foreach ($DB->request(["COUNT" => "count", "FROM" => "glpi_profilerights", "WHERE" => ["name" => $right, ["NOT" => ["rights" => 0]]]]) as $row) {
+                $granted = (int) $row["count"];
+            }
+            if ($count === 0 || $granted !== 0) {
+                fwrite(STDERR, "The upgraded right was not registered with default denial.\n");
+                exit(1);
+            }
+            foreach ($DB->request(["COUNT" => "count", "FROM" => "glpi_profilerights", "INNER JOIN" => ["glpi_profiles" => ["FKEY" => ["glpi_profilerights" => "profiles_id", "glpi_profiles" => "id"]]], "WHERE" => ["name" => $right, "glpi_profiles.name" => "Super-Admin", "rights" => 0]]) as $row) {
+                if ((int) $row["count"] !== 1) {
+                    fwrite(STDERR, "Super-Admin was not explicitly denied after upgrade.\n");
+                    exit(1);
+                }
+            }
+          '
+      - name: Run real permission integration tests
+        run: >-
+          GLPI_ROOT=${{ matrix.glpi-version == '10.0.20' && '/tmp/glpi-10.0.20' || '/var/www/glpi' }} php vendor/bin/phpunit
+          --configuration phpunit.glpi.xml
+          --group glpi-integration
+          --fail-on-skipped
+          --colors=always
+      - name: Deactivate, uninstall and verify the exact right is removed
+        run: |
+          if [ '${{ matrix.glpi-version }}' = '10.0.20' ]; then
+            glpi_dir=/tmp/glpi-10.0.20
+          else
+            glpi_dir=/var/www/glpi
+          fi
+          cd "$glpi_dir"
+          bin/console plugin:deactivate --ansi --no-interaction clarus
+          bin/console plugin:uninstall --ansi --no-interaction clarus
+          php -r '
+            require "inc/includes.php";
+            global $DB;
+            foreach ($DB->request(["COUNT" => "count", "FROM" => "glpi_profilerights", "WHERE" => ["name" => "plugin_clarus_inspect"]]) as $row) {
+                if ((int) $row["count"] !== 0) {
+                    fwrite(STDERR, "The Clarus inspection right remains after uninstall.\n");
+                    exit(1);
+                }
+            }
+          '
   final-gate:
     name: Clarus Quality Gate
     if: ${{ always() }}
@@ -461,6 +639,7 @@ jobs:
       - unsupported-php
       - release-artifact
       - artifact-lifecycle
+      - permissions-upgrade
     runs-on: ubuntu-latest
     steps:
       - name: Require every prerequisite to succeed
