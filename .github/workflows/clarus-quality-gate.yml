@@ -518,18 +518,14 @@ jobs:
             glpi_dir=/var/www/glpi
           fi
           phase4_ref=7edb7115ef84a645525619eeb704e010fa98b0ec
-          mkdir -p /tmp/clarus-phase4-source/clarus
-          git -C /var/www/glpi/plugins/clarus-tests archive "$phase4_ref" | tar -x -C /tmp/clarus-phase4-source/clarus
-          mv /tmp/clarus-phase4-source/clarus "$glpi_dir/plugins/clarus"
-          (
-            cd "$glpi_dir/plugins/clarus"
-            composer install --ansi --no-interaction --no-progress --prefer-dist
-          )
-          php "$glpi_dir/bin/console" tools:plugin:release --plugin=clarus --dest=/tmp/clarus-phase4.tar.bz2 --no-interaction --force
+          python3 vendor/glpi-project/tools/tools/plugin-release \
+            --assume-yes --dont-check --nogithub --nosign \
+            --release 0.1.0 --commit "$phase4_ref" --extra phase5-upgrade
+          phase4_package="$(find /var/www/glpi/plugins/clarus-tests/dist -type f -name '*.tar.bz2' -print -quit)"
+          test -n "$phase4_package"
           mkdir -p /tmp/clarus-phase4-artifact
-          tar -xjf /tmp/clarus-phase4.tar.bz2 -C /tmp/clarus-phase4-artifact
+          tar -xjf "$phase4_package" -C /tmp/clarus-phase4-artifact
           test -d /tmp/clarus-phase4-artifact/clarus
-          mv "$glpi_dir/plugins/clarus" /tmp/clarus-phase4-build-source
           mv /tmp/clarus-phase4-artifact/clarus "$glpi_dir/plugins/clarus"
       - name: Install and activate the pre-Phase 5 artifact
         run: |

@@ -78,7 +78,7 @@ final class ProfilePermissionTest extends TestCase
 
    public function testInstallRegistersOneDeniedRightForTheBootstrapSuperAdminProfile(): void {
        self::assertSame(0, $this->bootstrapRight);
-       self::assertFalse(\Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
+       self::assertFalse((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
        self::assertTrue(plugin_clarus_install());
        self::assertSame(0, $this->rightValue($this->bootstrapProfileId));
        self::assertSame(1, $this->rightRowCount($this->bootstrapProfileId));
@@ -89,18 +89,18 @@ final class ProfilePermissionTest extends TestCase
        $ticket = $this->createTicket(0);
 
        $this->loginAsProfile($profileId);
-       self::assertTrue($ticket->canViewItem());
+       self::assertTrue((bool) $ticket->canViewItem());
        self::assertFalse(Authorization::canInspectTicket($ticket));
 
        \ProfileRight::updateProfileRights($profileId, [ClarusProfile::RIGHT_INSPECT => READ]);
        $this->loginAsProfile($profileId);
-       self::assertTrue(\Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
-       self::assertTrue($ticket->canViewItem());
+       self::assertTrue((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
+       self::assertTrue((bool) $ticket->canViewItem());
        self::assertTrue(Authorization::canInspectTicket($ticket));
 
        \ProfileRight::updateProfileRights($profileId, [ClarusProfile::RIGHT_INSPECT => 0]);
        $this->loginAsProfile($profileId);
-       self::assertFalse(\Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
+       self::assertFalse((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
        self::assertFalse(Authorization::canInspectTicket($ticket));
    }
 
@@ -111,8 +111,8 @@ final class ProfilePermissionTest extends TestCase
 
        \ProfileRight::updateProfileRights($profileId, [ClarusProfile::RIGHT_INSPECT => READ]);
        $this->loginAsProfile($profileId);
-       self::assertTrue(\Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
-       self::assertFalse($ticket->canViewItem());
+       self::assertTrue((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
+       self::assertFalse((bool) $ticket->canViewItem());
        self::assertFalse(Authorization::canInspectTicket($ticket));
 
        $profileUser = new \Profile_User();
@@ -123,7 +123,7 @@ final class ProfilePermissionTest extends TestCase
        ]));
 
        $this->loginAsProfile($profileId);
-       self::assertTrue($ticket->canViewItem());
+       self::assertTrue((bool) $ticket->canViewItem());
        self::assertTrue(Authorization::canInspectTicket($ticket));
    }
 
