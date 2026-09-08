@@ -18,6 +18,11 @@ use PHPUnit\Framework\TestCase;
 
 final class InspectionRendererTest extends TestCase
 {
+   protected function tearDown(): void {
+      unset($GLOBALS['clarusTranslations']);
+      parent::tearDown();
+   }
+
    public function testRendersCurrentStateSemanticsWithoutUnsafeValues(): void {
       $criterion = new CriterionInspection(
          'content',
@@ -67,13 +72,13 @@ final class InspectionRendererTest extends TestCase
       $html = (new InspectionRenderer())->render($result);
 
       self::assertStringContainsString('Current-state diagnostic only', $html);
-      self::assertStringContainsString('ONUPDATE', $html);
-      self::assertStringContainsString('INDETERMINATE', $html);
-      self::assertStringContainsString('REFLECTED', $html);
+      self::assertStringContainsString('On ticket update (ONUPDATE)', $html);
+      self::assertStringContainsString('Indeterminate', $html);
+      self::assertStringContainsString('Reflected in current state', $html);
       self::assertStringContainsString('Results were truncated', $html);
       self::assertStringContainsString('<details class="mb-2">', $html);
       self::assertStringContainsString('<dt class="col-sm-4">Condition</dt>', $html);
-      self::assertStringContainsString('<dd class="col-sm-8">ONUPDATE</dd>', $html);
+      self::assertStringContainsString('<dd class="col-sm-8">On ticket update (ONUPDATE)</dd>', $html);
       self::assertStringNotContainsString('\\"', $html);
       self::assertStringContainsString('&lt;rule&gt;', $html);
       self::assertStringNotContainsString('secret-pattern', $html);
@@ -81,5 +86,22 @@ final class InspectionRendererTest extends TestCase
       self::assertStringNotContainsString('secret-configured-value', $html);
       self::assertStringNotContainsString('secret-current-value', $html);
       self::assertStringContainsString('not proof of historical rule execution', $html);
+   }
+
+   public function testRendersClarusOwnedLabelsThroughTheGettextDomain(): void {
+      $GLOBALS['clarusTranslations'] = ['clarus' => [
+         'Rule inspection' => 'Inspeção de regras',
+         'Current-state diagnostic only; it is not proof of historical rule execution.'
+            => 'Diagnóstico do estado atual; não prova a execução histórica de regras.',
+         'On ticket creation (ONADD)' => 'Na criação do chamado (ONADD)',
+         'Matches current state' => 'Corresponde ao estado atual',
+      ]];
+      $result = new InspectionResult(12, \RuleTicket::ONADD, 1, 0, 0, false, []);
+
+      $html = (new InspectionRenderer())->render($result);
+
+      self::assertStringContainsString('Inspeção de regras', $html);
+      self::assertStringContainsString('Diagnóstico do estado atual', $html);
+      self::assertStringContainsString('Na criação do chamado (ONADD)', $html);
    }
 }

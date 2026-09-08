@@ -8,3 +8,4 @@ phpunit\.xml
 \.phpcs\.xml
 stubs/
 composer\.lock
+tools/extract-locales\.sh

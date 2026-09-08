@@ -31,6 +31,15 @@
     "phpcs": "phpcs",
     "phpstan": "phpstan analyze --memory-limit=2G --no-progress",
     "test": "phpunit --exclude-group glpi-integration --colors=always",
+    "locales:extract": "bash tools/extract-locales.sh",
+    "locales:update": [
+      "@locales:extract",
+      "msgmerge --update --no-fuzzy-matching --backup=none locales/pt_BR.po locales/clarus.pot"
+    ],
+    "locales:compile": [
+      "msgfmt --check --output-file=locales/en_GB.mo locales/en_GB.po",
+      "msgfmt --check --output-file=locales/pt_BR.mo locales/pt_BR.po"
+    ],
     "qa": [
       "@composer-validate",
       "@composer-audit",
@@ -38,6 +47,7 @@
       "@cs:check",
       "@phpcs",
       "@phpstan",
+      "@locales:compile",
       "@test"
     ]
   },

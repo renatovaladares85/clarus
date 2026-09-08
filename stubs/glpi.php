@@ -9,7 +9,7 @@ const PURGE = 16;
 
 function __(string $string, ?string $domain = null): string
 {
-    return $string;
+    return $GLOBALS['clarusTranslations'][$domain][$string] ?? $string;
 }
 
 function _sx(string $context, string $string): string
@@ -183,6 +183,11 @@ class RuleCriteria
 {
     /** @var array<string, mixed> */
    public array $fields;
+
+   public static function getConditionByID(int $condition, string $itemtype, string $criterion): string
+   {
+       return $condition === 2 ? 'contains' : '';
+   }
 }
 
 class DBmysql
@@ -206,6 +211,11 @@ class RuleAction
     /** @return list<RuleAction> */
    public function getRuleActions(int $ruleId): array {
    }
+
+   public static function getActionByID(string $actionType): string
+   {
+       return $actionType === 'assign' ? 'Assign' : '';
+   }
 }
 
 class RuleTicket
@@ -219,8 +229,16 @@ class RuleTicket
     /** @var list<RuleCriteria> */
    public array $criterias;
 
-    /** @return array<string, array<string, mixed>> */
-   public function getCriterias(): array {
+   /** @return array<string, array{name: string}> */
+   public function getCriterias(): array
+   {
+       return ['content' => ['name' => 'Description']];
+   }
+
+   /** @return array<string, array{name: string}> */
+   public function getActions(): array
+   {
+       return ['urgency' => ['name' => 'Urgency']];
    }
 
     /**
