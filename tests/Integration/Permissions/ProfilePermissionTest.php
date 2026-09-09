@@ -171,9 +171,9 @@ final class ProfilePermissionTest extends TestCase
        $output = (string) ob_get_clean();
 
        self::assertStringContainsString('Current-state diagnostic only', $output);
-       self::assertStringContainsString('REFLECTED', $output);
+       self::assertStringContainsString('Reflected in current state', $output);
        self::assertStringContainsString('UPDATE eligibility depends on the original change set', $output);
-       self::assertStringContainsString('INDETERMINATE', $output);
+       self::assertStringContainsString('Indeterminate', $output);
        self::assertStringContainsString('not proof of historical rule execution', $output);
        self::assertStringNotContainsString('Clarus Phase 5 authorization fixture', $output);
        self::assertSame($before, $this->ticketFields($ticket->getID()));
