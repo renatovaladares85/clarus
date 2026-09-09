@@ -172,7 +172,7 @@ final class ProfilePermissionTest extends TestCase
 
        self::assertStringContainsString('Current-state diagnostic only', $output);
        self::assertStringContainsString('Reflected in current state', $output);
-       self::assertStringContainsString('UPDATE eligibility depends on the original change set', $output);
+       self::assertStringContainsString('Update eligibility depends on the original change set', $output);
        self::assertStringContainsString('Indeterminate', $output);
        self::assertStringContainsString('not proof of historical rule execution', $output);
        self::assertStringNotContainsString('Clarus Phase 5 authorization fixture', $output);
