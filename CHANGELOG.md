@@ -4,6 +4,8 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Add gettext localization for the Clarus Ticket inspection UI, including
+  English and Brazilian Portuguese catalogs and reproducible catalog tooling.
 - Add the authorized Ticket Rule inspection tab with server-rendered current-state
   diagnostics, read-only action reflection, and explicit ADD/UPDATE limitations.
 - Add the deny-by-default `plugin_clarus_inspect` Profile right and the

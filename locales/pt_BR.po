@@ -1,0 +1,312 @@
+# Portuguese translations for Clarus package.
+# Copyright (C) 2026 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Automatically generated, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Clarus\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-08 18:13-0300\n"
+"PO-Revision-Date: 2026-09-08 18:10-0300\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: src/Inspector/InspectionRenderer.php:14 src/Profile.php:52
+#: src/TicketTab.php:24
+msgid "Rule inspection"
+msgstr "Inspeção de regras"
+
+#: src/Inspector/InspectionRenderer.php:16
+msgid ""
+"Current-state diagnostic only; it is not proof of historical rule execution."
+msgstr ""
+"Diagnóstico somente do estado atual; não prova a execução histórica de "
+"regras."
+
+#: src/Inspector/InspectionRenderer.php:19
+#: src/Inspector/InspectionRenderer.php:49
+msgid "Condition"
+msgstr "Condição"
+
+#: src/Inspector/InspectionRenderer.php:20
+msgid "Candidates"
+msgstr "Candidatas"
+
+#: src/Inspector/InspectionRenderer.php:21
+msgid "Evaluated"
+msgstr "Avaliadas"
+
+#: src/Inspector/InspectionRenderer.php:22
+msgid "Configured limit"
+msgstr "Limite configurado"
+
+#: src/Inspector/InspectionRenderer.php:27
+msgid "Results were truncated at the configured rule limit."
+msgstr "Os resultados foram truncados no limite configurado de regras."
+
+#: src/Inspector/InspectionRenderer.php:42
+#, php-format
+msgid "Rule #%d — %s"
+msgstr "Regra #%d — %s"
+
+#: src/Inspector/InspectionRenderer.php:44
+msgid "Unnamed"
+msgstr "Sem nome"
+
+#: src/Inspector/InspectionRenderer.php:50
+#: src/Inspector/InspectionRenderer.php:74
+#: src/Inspector/InspectionRenderer.php:101
+msgid "Evaluation"
+msgstr "Avaliação"
+
+#: src/Inspector/InspectionRenderer.php:51
+msgid "Ranking"
+msgstr "Classificação"
+
+#: src/Inspector/InspectionRenderer.php:52
+msgid "Entity"
+msgstr "Entidade"
+
+#: src/Inspector/InspectionRenderer.php:53
+msgid "Recursive"
+msgstr "Recursiva"
+
+#: src/Inspector/InspectionRenderer.php:54
+msgid "Matching mode"
+msgstr "Modo de correspondência"
+
+#: src/Inspector/InspectionRenderer.php:70
+msgid "Criteria"
+msgstr "Critérios"
+
+#: src/Inspector/InspectionRenderer.php:72
+msgid "Criterion"
+msgstr "Critério"
+
+#: src/Inspector/InspectionRenderer.php:73
+msgid "Operator"
+msgstr "Operador"
+
+#: src/Inspector/InspectionRenderer.php:75
+#: src/Inspector/InspectionRenderer.php:102
+msgid "Limitation"
+msgstr "Limitação"
+
+#: src/Inspector/InspectionRenderer.php:96
+msgid "Configured actions"
+msgstr "Ações configuradas"
+
+#: src/Inspector/InspectionRenderer.php:98
+msgid "Action"
+msgstr "Ação"
+
+#: src/Inspector/InspectionRenderer.php:99
+msgid "Field"
+msgstr "Campo"
+
+#: src/Inspector/InspectionRenderer.php:100
+msgid "Support"
+msgstr "Suporte"
+
+#: src/Inspector/InspectionRenderer.php:140
+msgid "On ticket creation (ONADD)"
+msgstr "Na criação do chamado (ONADD)"
+
+#: src/Inspector/InspectionRenderer.php:141
+msgid "On ticket update (ONUPDATE)"
+msgstr "Na atualização do chamado (ONUPDATE)"
+
+#: src/Inspector/InspectionRenderer.php:142
+#, php-format
+msgid "Unknown condition (%d)"
+msgstr "Condição desconhecida (%d)"
+
+#: src/Inspector/InspectionRenderer.php:148
+msgid "Matches current state"
+msgstr "Corresponde ao estado atual"
+
+#: src/Inspector/InspectionRenderer.php:149
+msgid "Does not match current state"
+msgstr "Não corresponde ao estado atual"
+
+#: src/Inspector/InspectionRenderer.php:150
+#: src/Inspector/InspectionRenderer.php:158
+msgid "Indeterminate"
+msgstr "Indeterminado"
+
+#: src/Inspector/InspectionRenderer.php:156
+msgid "Reflected in current state"
+msgstr "Refletida no estado atual"
+
+#: src/Inspector/InspectionRenderer.php:157
+msgid "Not reflected in current state"
+msgstr "Não refletida no estado atual"
+
+#: src/Inspector/InspectionRenderer.php:164
+msgid "Supported"
+msgstr "Suportada"
+
+#: src/Inspector/InspectionRenderer.php:165
+msgid "Indeterminate by design"
+msgstr "Indeterminada por projeto"
+
+#: src/Inspector/InspectionRenderer.php:166
+msgid "Unsupported"
+msgstr "Não suportada"
+
+#: src/Inspector/InspectionRenderer.php:172
+msgid "All criteria (AND)"
+msgstr "Todos os critérios (AND)"
+
+#: src/Inspector/InspectionRenderer.php:173
+msgid "Any criterion (OR)"
+msgstr "Qualquer critério (OR)"
+
+#: src/Inspector/InspectionRenderer.php:174
+#, php-format
+msgid "Unknown matching mode (%s)"
+msgstr "Modo de correspondência desconhecido (%s)"
+
+#: src/Inspector/InspectionRenderer.php:182
+#, php-format
+msgid "Unknown criterion (%s)"
+msgstr "Critério desconhecido (%s)"
+
+#: src/Inspector/InspectionRenderer.php:190
+#, php-format
+msgid "Unknown operator (%d)"
+msgstr "Operador desconhecido (%d)"
+
+#: src/Inspector/InspectionRenderer.php:198
+#, php-format
+msgid "Unknown action (%s)"
+msgstr "Ação desconhecida (%s)"
+
+#: src/Inspector/InspectionRenderer.php:205
+#, php-format
+msgid "Unknown field (%s)"
+msgstr "Campo desconhecido (%s)"
+
+#: src/Inspector/InspectionRenderer.php:211
+msgid ""
+"This value cannot be reconstructed defensibly from the persisted Ticket "
+"state."
+msgstr ""
+"Este valor não pode ser reconstruído de forma defensável a partir do estado "
+"persistido do chamado."
+
+#: src/Inspector/InspectionRenderer.php:213
+msgid "This criterion is not part of the reconstructable Ticket context."
+msgstr "Este critério não faz parte do contexto reconstruível do chamado."
+
+#: src/Inspector/InspectionRenderer.php:215
+msgid "Native RuleTicket criterion evaluation did not return a result."
+msgstr "A avaliação nativa do critério RuleTicket não retornou resultado."
+
+#: src/Inspector/InspectionRenderer.php:217
+msgid "The rule uses an unsupported native matching mode."
+msgstr "A regra usa um modo nativo de correspondência não suportado."
+
+#: src/Inspector/InspectionRenderer.php:219
+msgid "Native Rule processing rejects rules without criteria."
+msgstr "O processamento nativo de regras rejeita regras sem critérios."
+
+#: src/Inspector/InspectionRenderer.php:221
+msgid ""
+"Update eligibility depends on the original change set, which is not present "
+"on a persisted Ticket."
+msgstr ""
+"A elegibilidade de atualização depende do conjunto original de alterações, "
+"que não está presente em um chamado persistido."
+
+#: src/Inspector/InspectionRenderer.php:223
+msgid ""
+"Results describe the current reconstructable Ticket state, not historical "
+"rule execution."
+msgstr ""
+"Os resultados descrevem o estado atual reconstruível do chamado, não a "
+"execução histórica de regras."
+
+#: src/Inspector/InspectionRenderer.php:225
+msgid "Configured rule actions are never executed by inspection."
+msgstr "As ações configuradas das regras nunca são executadas pela inspeção."
+
+#: src/Inspector/InspectionRenderer.php:227
+msgid ""
+"Action reflection describes only the current Ticket snapshot, not historical "
+"causality."
+msgstr ""
+"A reflexão de ações descreve apenas o retrato atual do chamado, não "
+"causalidade histórica."
+
+#: src/Inspector/InspectionRenderer.php:229
+msgid "Configured rule actions were not included in this inspection."
+msgstr "As ações configuradas das regras não foram incluídas nesta inspeção."
+
+#: src/Inspector/InspectionRenderer.php:231
+msgid "The configured action is invalid and cannot be evaluated."
+msgstr "A ação configurada é inválida e não pode ser avaliada."
+
+#: src/Inspector/InspectionRenderer.php:233
+msgid ""
+"The configured action value is invalid for a safe current-state comparison."
+msgstr ""
+"O valor da ação configurada é inválido para uma comparação segura do estado "
+"atual."
+
+#: src/Inspector/InspectionRenderer.php:235
+msgid "The current Ticket value is unavailable for comparison."
+msgstr "O valor atual do chamado não está disponível para comparação."
+
+#: src/Inspector/InspectionRenderer.php:237
+msgid "The current Ticket value is invalid for comparison."
+msgstr "O valor atual do chamado é inválido para comparação."
+
+#: src/Inspector/InspectionRenderer.php:239
+msgid "The action requires runtime input that cannot be reconstructed."
+msgstr "A ação requer uma entrada de execução que não pode ser reconstruída."
+
+#: src/Inspector/InspectionRenderer.php:241
+msgid "The regular-expression capture result cannot be reconstructed."
+msgstr "O resultado da captura de expressão regular não pode ser reconstruído."
+
+#: src/Inspector/InspectionRenderer.php:243
+msgid "The historical priority matrix input is unavailable."
+msgstr "A entrada histórica da matriz de prioridade não está disponível."
+
+#: src/Inspector/InspectionRenderer.php:245
+msgid "The runtime lookup result cannot be reconstructed."
+msgstr "O resultado da busca em tempo de execução não pode ser reconstruído."
+
+#: src/Inspector/InspectionRenderer.php:247
+msgid "The validation side effect cannot be reconstructed."
+msgstr "O efeito colateral de validação não pode ser reconstruído."
+
+#: src/Inspector/InspectionRenderer.php:249
+msgid "The transient processing state cannot be reconstructed."
+msgstr "O estado transitório de processamento não pode ser reconstruído."
+
+#: src/Inspector/InspectionRenderer.php:251
+msgid "The template execution result cannot be reconstructed."
+msgstr "O resultado da execução de modelo não pode ser reconstruído."
+
+#: src/Inspector/InspectionRenderer.php:253
+msgid "The special relation semantics are not supported by this inspection."
+msgstr "A semântica de relação especial não é suportada por esta inspeção."
+
+#: src/Inspector/InspectionRenderer.php:255
+msgid "The action semantics are not supported by this inspection."
+msgstr "A semântica da ação não é suportada por esta inspeção."
+
+#: src/Profile.php:18
+msgid "Clarus"
+msgstr "Clarus"
+
+#~ msgid "Rule"
+#~ msgstr "Regra"

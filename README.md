@@ -42,6 +42,21 @@ composer install
 composer qa
 ```
 
+### Localization catalogs
+
+Clarus-owned UI strings use the `clarus` gettext domain. Update the source and
+Portuguese catalogs after changing those strings, then compile the normal GLPI
+catalog artifacts:
+
+```bash
+composer run locales:update
+composer run locales:compile
+```
+
+`locales/en_GB.mo` is the English fallback and `locales/pt_BR.mo` is loaded by
+GLPI when Brazilian Portuguese is selected. Native GLPI labels are provided by
+GLPI and are not duplicated in Clarus catalogs.
+
 Integration checks run in GitHub Actions against GLPI 10.0.x. No GLPI core or
 third-party plugin code is modified by Clarus.
 
