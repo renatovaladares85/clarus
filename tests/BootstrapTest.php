@@ -9,6 +9,11 @@ use PHPUnit\Framework\TestCase;
 
 final class BootstrapTest extends TestCase
 {
+   protected function tearDown(): void {
+       \Session::$hasRight = false;
+       parent::tearDown();
+   }
+
    public function testPluginMetadataIsDefined(): void {
        self::assertSame('0.2.0', PLUGIN_CLARUS_VERSION);
        self::assertSame('10.0.20', PLUGIN_CLARUS_MIN_GLPI_VERSION);
@@ -32,7 +37,11 @@ final class BootstrapTest extends TestCase
    }
 
    public function testPluginRegistersTheProfileAndTicketTabs(): void {
+      global $PLUGIN_HOOKS;
+
       \Plugin::$registeredClasses = [];
+      $PLUGIN_HOOKS = [];
+      \Session::$hasRight = true;
       plugin_init_clarus();
 
       self::assertSame(
@@ -43,6 +52,27 @@ final class BootstrapTest extends TestCase
          ['addtabon' => \Ticket::class],
          \Plugin::registeredAttributes(TicketTab::class)
       );
+      /** @var array<string, array<string, mixed>> $hooks */
+      $hooks = $GLOBALS['PLUGIN_HOOKS'];
+      $configHook = $hooks['config_page'];
+      $cssHook = $hooks['add_css'];
+      $javascriptHook = $hooks['add_javascript'];
+      self::assertIsArray($configHook);
+      self::assertIsArray($cssHook);
+      self::assertIsArray($javascriptHook);
+      self::assertSame('front/config.php', $configHook['clarus']);
+      self::assertSame(['css/clarus.css'], $cssHook['clarus']);
+      self::assertSame(['js/inspection.js'], $javascriptHook['clarus']);
+   }
+
+   public function testConfigurationHookIsNotExposedWithoutNativeConfigUpdateRight(): void {
+      global $PLUGIN_HOOKS;
+
+      $PLUGIN_HOOKS = [];
+      \Session::$hasRight = false;
+      plugin_init_clarus();
+
+      self::assertArrayNotHasKey('config_page', $PLUGIN_HOOKS);
    }
 
 }

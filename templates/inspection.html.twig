@@ -1,0 +1,171 @@
+<section class="clarus-inspection" data-clarus-inspection data-page-size="{{ pageSize }}" data-initial-group="{{ initialGroup }}"
+         data-label-showing="{{ labels.showing }}" data-label-of="{{ labels.of }}" data-label-rules="{{ labels.rules }}"
+         data-label-previous="{{ labels.previous }}" data-label-next="{{ labels.next }}">
+  <div class="clarus-inspection__header">
+    <div>
+      <h2 class="clarus-inspection__title">{{ labels.title }}</h2>
+      <p class="text-muted mb-0">{{ labels.description }}</p>
+    </div>
+    <form class="clarus-inspection__refresh" method="post" action="{{ refreshUrl }}" data-clarus-refresh-form>
+      <input type="hidden" name="tickets_id" value="{{ ticketId }}">
+      <input type="hidden" name="_glpi_csrf_token" value="{{ csrfToken }}">
+      <button class="btn btn-primary" type="submit" data-clarus-refresh-button
+              data-idle-label="{{ labels.refresh }}" data-busy-label="{{ labels.refreshing }}">
+        <i class="ti ti-refresh" aria-hidden="true"></i>
+        <span>{{ labels.refresh }}</span>
+      </button>
+    </form>
+  </div>
+
+  <div class="alert alert-danger mt-3{% if error is null %} d-none{% endif %}" role="alert" data-clarus-error>
+    {{ error ?? labels.technicalError }}
+  </div>
+
+  {% if error is null and loaded %}
+    <div class="clarus-inspection__summary card mt-3" aria-label="{{ labels.title }}">
+      <div class="clarus-inspection__metric">
+        <strong>{{ evaluatedCount }}</strong><span>{{ labels.evaluated }}</span>
+      </div>
+      <div class="clarus-inspection__metric clarus-inspection__metric--match">
+        <strong>{{ counts.match }}</strong><span>{{ labels.matchingRules }}</span>
+      </div>
+      <div class="clarus-inspection__metric clarus-inspection__metric--no-match">
+        <strong>{{ counts.no_match }}</strong><span>{{ labels.nonMatchingRules }}</span>
+      </div>
+      <div class="clarus-inspection__metric clarus-inspection__metric--indeterminate">
+        <strong>{{ counts.indeterminate }}</strong><span>{{ labels.indeterminate }}</span>
+      </div>
+    </div>
+
+    {% if truncated %}
+      <div class="alert alert-warning mt-3" role="alert">
+        <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>{{ labels.truncated }}
+        ({{ evaluatedCount }}/{{ candidateCount }})
+      </div>
+    {% endif %}
+
+    {% if rules is not empty %}
+      <div class="clarus-inspection__controls card mt-3">
+        <div class="clarus-inspection__control">
+          <label class="form-label" for="clarus-search-{{ ticketId }}">{{ labels.searchAndFilter }}</label>
+          <input class="form-control" id="clarus-search-{{ ticketId }}" type="search"
+                 placeholder="{{ labels.searchPlaceholder }}" data-clarus-search>
+        </div>
+        <div class="clarus-inspection__control">
+          <label class="form-label" for="clarus-group-{{ ticketId }}">{{ labels.grouping }}</label>
+          <select class="form-select" id="clarus-group-{{ ticketId }}" data-clarus-group>
+            <option value="processing"{% if initialGroup == 'processing' %} selected{% endif %}>{{ labels.groupProcessing }}</option>
+            <option value="result"{% if initialGroup == 'result' %} selected{% endif %}>{{ labels.groupResult }}</option>
+            <option value="entity"{% if initialGroup == 'entity' %} selected{% endif %}>{{ labels.groupEntity }}</option>
+          </select>
+        </div>
+        <div class="clarus-inspection__filters" role="group" aria-label="{{ labels.searchAndFilter }}">
+          <button class="btn active" type="button" data-clarus-filter="all" aria-pressed="true">{{ labels.all }}</button>
+          <button class="btn" type="button" data-clarus-filter="match" aria-pressed="false">{{ labels.matches }}</button>
+          <button class="btn" type="button" data-clarus-filter="no_match" aria-pressed="false">{{ labels.doesNotMatch }}</button>
+          <button class="btn" type="button" data-clarus-filter="indeterminate" aria-pressed="false">{{ labels.indeterminate }}</button>
+        </div>
+      </div>
+
+      <div class="clarus-inspection__results-heading">
+        <h3>{{ labels.results }}</h3>
+        <span class="text-muted" data-clarus-visible-count>{{ evaluatedCount }} {{ labels.rules }}</span>
+      </div>
+
+      <div class="clarus-inspection__rules" data-clarus-rules>
+        {% for rule in rules %}
+          <details class="clarus-rule card" data-clarus-rule data-evaluation="{{ rule.evaluationKey }}"
+                   data-processing-index="{{ rule.processingIndex }}" data-evaluation-order="{{ rule.evaluationOrder }}"
+                   data-entity="{{ rule.entitySort }}" data-search="{{ rule.searchText }}">
+            <summary class="clarus-rule__summary">
+              <span class="clarus-rule__accent clarus-rule__accent--{{ rule.evaluationKey }}" aria-hidden="true"></span>
+              <span class="clarus-rule__identity">
+                <span class="clarus-rule__id">#{{ rule.id }}</span>
+                <strong>{{ rule.name }}</strong>
+                <span class="clarus-rule__metadata">
+                  {{ labels.ranking }} {{ rule.ranking }}
+                  <span aria-hidden="true">•</span> {{ labels.entity }}: {{ rule.entityName }}
+                  <span aria-hidden="true">•</span> {{ rule.condition }}
+                  <span aria-hidden="true">•</span> {{ rule.matchingCriteria }}/{{ rule.criteriaCount }} {{ labels.criteriaMatch }}
+                  <span aria-hidden="true">•</span> {{ rule.actionSummary }}
+                </span>
+              </span>
+              <span class="clarus-rule__badge clarus-rule__badge--{{ rule.evaluationKey }}">{{ rule.evaluationLabel }}</span>
+              <i class="ti ti-chevron-down clarus-rule__chevron" aria-hidden="true"></i>
+            </summary>
+
+            <div class="clarus-rule__details">
+              {% if rule.limitations is not empty %}
+                <ul class="alert alert-secondary" role="list">
+                  {% for limitation in rule.limitations %}<li>{{ limitation }}</li>{% endfor %}
+                </ul>
+              {% endif %}
+
+              <h4>{{ labels.criteria }}</h4>
+              {% if rule.criteria is empty %}
+                <p class="text-muted">{{ labels.empty }}</p>
+              {% else %}
+                <div class="clarus-diagnostic-grid clarus-diagnostic-grid--criteria">
+                  <div class="clarus-diagnostic-grid__header" aria-hidden="true">
+                    <span></span><span>{{ labels.criterion }}</span><span>{{ labels.operator }}</span>
+                    <span>{{ labels.expected }}</span><span>{{ labels.observed }}</span><span>{{ labels.limitation }}</span>
+                  </div>
+                  {% for criterion in rule.criteria %}
+                    <div class="clarus-diagnostic-grid__row">
+                      <span class="clarus-criterion-state clarus-criterion-state--{{ criterion.evaluationKey }}">{{ criterion.state }}</span>
+                      <span data-label="{{ labels.criterion }}">{{ criterion.name }}</span>
+                      <span data-label="{{ labels.operator }}">{{ criterion.operator }}</span>
+                      <span data-label="{{ labels.expected }}">{{ criterion.expected }}</span>
+                      <span data-label="{{ labels.observed }}">{{ criterion.observed }}</span>
+                      <span data-label="{{ labels.limitation }}" class="text-muted">{{ criterion.limitation ?? '—' }}</span>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              <div class="clarus-actions">
+                <h4>{{ labels.configuredActions }}</h4>
+                <div class="alert alert-info py-2" role="note">
+                  <i class="ti ti-info-circle me-1" aria-hidden="true"></i>{{ labels.noActionsExecuted }}
+                  {{ labels.actionReflectionNotice }}
+                </div>
+                {% if not rule.actionsEnabled %}
+                  <p class="text-muted">{{ labels.actionAnalysisDisabled }}</p>
+                {% elseif rule.actions is not empty %}
+                  <div class="clarus-diagnostic-grid clarus-diagnostic-grid--actions">
+                    <div class="clarus-diagnostic-grid__header" aria-hidden="true">
+                      <span>{{ labels.action }}</span><span>{{ labels.field }}</span><span>{{ labels.configuredValue }}</span>
+                      <span>{{ labels.currentValue }}</span><span>{{ labels.support }}</span><span>{{ labels.reflection }}</span>
+                      <span>{{ labels.limitation }}</span>
+                    </div>
+                    {% for action in rule.actions %}
+                      <div class="clarus-diagnostic-grid__row">
+                        <span data-label="{{ labels.action }}">{{ action.type }}</span>
+                        <span data-label="{{ labels.field }}">{{ action.field }}</span>
+                        <span data-label="{{ labels.configuredValue }}">{{ action.configured }}</span>
+                        <span data-label="{{ labels.currentValue }}">{{ action.current }}</span>
+                        <span data-label="{{ labels.support }}">{{ action.support }}</span>
+                        <span data-label="{{ labels.reflection }}">{{ action.evaluation }}</span>
+                        <span data-label="{{ labels.limitation }}" class="text-muted">{{ action.limitation ?? '—' }}</span>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </details>
+        {% endfor %}
+      </div>
+
+      <div class="alert alert-secondary d-none mt-3" role="status" data-clarus-filter-empty>{{ labels.noFilteredResults }}</div>
+      <div class="clarus-inspection__pagination mt-3">
+        <span class="text-muted" data-clarus-page-summary></span>
+        <nav aria-label="{{ labels.results }}"><div class="btn-group" data-clarus-pagination></div></nav>
+      </div>
+    {% else %}
+      <div class="clarus-inspection__empty card mt-3" role="status">{{ labels.empty }}</div>
+    {% endif %}
+  {% elseif error is null %}
+    <div class="clarus-inspection__empty card mt-3" role="status">{{ labels.notLoaded }}</div>
+  {% endif %}
+</section>

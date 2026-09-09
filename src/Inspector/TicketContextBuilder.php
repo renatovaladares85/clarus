@@ -39,7 +39,7 @@ final class TicketContextBuilder
              $values[$key] = ContextValue::available(
                  $ticket->fields[$key],
                  'ticket',
-                 $this->isPresentationSafe($key)
+                 self::isPresentationSafeKey($key)
              );
          }
       }
@@ -137,7 +137,7 @@ final class TicketContextBuilder
       }
    }
 
-   private function isPresentationSafe(string $key): bool {
+   public static function isPresentationSafeKey(string $key): bool {
        return !in_array($key, [
            'name',
            'content',

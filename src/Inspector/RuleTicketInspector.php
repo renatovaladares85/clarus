@@ -75,12 +75,26 @@ final class RuleTicketInspector
 
       if (!in_array($matchingMode, ['AND', 'OR'], true)) {
           $limitations[] = 'Rule has an unsupported native matching mode.';
-          return $this->ruleResult($rule, $matchingMode, [], Evaluation::INDETERMINATE, $limitations);
+          return $this->ruleResult(
+              $rule,
+              $condition,
+              $matchingMode,
+              [],
+              Evaluation::INDETERMINATE,
+              $limitations
+          );
       }
 
       if ($rule->criterias === []) {
           $limitations[] = 'Native Rule processing rejects rules without criteria.';
-          return $this->ruleResult($rule, $matchingMode, [], Evaluation::INDETERMINATE, $limitations);
+          return $this->ruleResult(
+              $rule,
+              $condition,
+              $matchingMode,
+              [],
+              Evaluation::INDETERMINATE,
+              $limitations
+          );
       }
 
        $nativeResults = [];
@@ -124,7 +138,8 @@ final class RuleTicketInspector
                   : Evaluation::NO_MATCH,
               null,
               $contextValue->presentationSafe,
-              $contextValue->presentationSafe ? $contextValue->value : null
+              $contextValue->presentationSafe ? $contextValue->value : null,
+              TicketContextBuilder::isPresentationSafeKey($key)
           );
       }
 
@@ -155,7 +170,7 @@ final class RuleTicketInspector
               'UPDATE eligibility depends on the original change set, which is not present on a persisted Ticket.';
       }
 
-       return $this->ruleResult($rule, $matchingMode, $criterionResults, $overall, $limitations);
+       return $this->ruleResult($rule, $condition, $matchingMode, $criterionResults, $overall, $limitations);
    }
 
     /**
@@ -164,6 +179,7 @@ final class RuleTicketInspector
      */
    private function ruleResult(
         \RuleTicket $rule,
+        int $condition,
         string $matchingMode,
         array $criteria,
         Evaluation $evaluation,
@@ -172,7 +188,7 @@ final class RuleTicketInspector
        return new RuleInspection(
            NativeField::integer($rule->fields['id'] ?? 0),
            NativeField::string($rule->fields['name'] ?? ''),
-           NativeField::integer($rule->fields['condition'] ?? 0),
+           $condition,
            NativeField::integer($rule->fields['entities_id'] ?? 0),
            NativeField::boolean($rule->fields['is_recursive'] ?? false),
            NativeField::integer($rule->fields['ranking'] ?? 0),

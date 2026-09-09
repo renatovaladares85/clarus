@@ -15,7 +15,8 @@ final class CriterionInspection
         public readonly Evaluation $evaluation,
         public readonly ?string $reason = null,
         public readonly bool $hasObservedValue = false,
-        public readonly mixed $observedValue = null
+        public readonly mixed $observedValue = null,
+        public readonly bool $expectedValuePresentationSafe = false
     ) {
    }
 }

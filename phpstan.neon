@@ -2,6 +2,8 @@ parameters:
     level: max
     treatPhpDocTypesAsCertain: false
     paths:
+        - ajax
+        - front
         - hook.php
         - setup.php
         - src
@@ -9,8 +11,10 @@ parameters:
         - tools
     stubFiles:
         - stubs/glpi.php
+        - stubs/phpstan/template_renderer.php
     scanFiles:
         - stubs/glpi.php
+        - stubs/phpstan/template_renderer.php
     dynamicConstantNames:
         GLPI_VERSION: string
     excludePaths:

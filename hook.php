@@ -8,7 +8,13 @@
  * The profile right is registered for every profile with the native zero mask.
  */
 function plugin_clarus_install(): bool {
-    return \GlpiPlugin\Clarus\Profile::registerRights();
+   if (!\GlpiPlugin\Clarus\Profile::registerRights()) {
+       return false;
+   }
+
+    \GlpiPlugin\Clarus\ClarusConfig::installDefaults();
+
+    return true;
 }
 
 /**
@@ -17,5 +23,8 @@ function plugin_clarus_install(): bool {
  * Only Clarus-owned profile rights are removed.
  */
 function plugin_clarus_uninstall(): bool {
-    return \GlpiPlugin\Clarus\Profile::unregisterRights();
+    $rightsRemoved = \GlpiPlugin\Clarus\Profile::unregisterRights();
+    \GlpiPlugin\Clarus\ClarusConfig::remove();
+
+    return $rightsRemoved;
 }

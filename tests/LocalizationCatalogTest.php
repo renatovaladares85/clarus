@@ -18,8 +18,11 @@ final class LocalizationCatalogTest extends TestCase
       self::assertIsString($pot);
       self::assertIsString($ptBr);
       self::assertStringContainsString('msgid "Rule inspection"', $pot);
-      self::assertStringContainsString('not proof of historical rule execution.', $pot);
+      self::assertStringContainsString('No configured action was executed.', $pot);
+      self::assertStringContainsString('Current-state diagnostic only.', $pot);
       self::assertStringContainsString('msgstr "Inspeção de regras"', $ptBr);
+      self::assertStringContainsString('msgstr "Atualizar inspeção"', $ptBr);
+      self::assertStringContainsString('msgstr "Não corresponde"', $ptBr);
    }
 
    public function testCompiledCatalogsHaveTheGettextMagicNumber(): void {
