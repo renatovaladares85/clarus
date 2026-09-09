@@ -54,6 +54,9 @@ jobs:
           - glpi-version: 10.0.x
             php-version: '8.3'
             db-image: mysql:8.4
+          - glpi-version: 10.0.x
+            php-version: '8.4'
+            db-image: mysql:8.4
     uses: glpi-project/plugin-ci-workflows/.github/workflows/continuous-integration.yml@e64f6feaa4e8656df3ac985a35a50e6f3f4a33eb # v1
     with:
       plugin-key: clarus
@@ -275,7 +278,7 @@ jobs:
       matrix:
         include:
           - php-version: '7.4'
-          - php-version: '8.4'
+          - php-version: '8.5'
     container:
       image: ghcr.io/glpi-project/githubactions-glpi-apache:php-${{ matrix.php-version }}-glpi-10.0.x
       options: >-
@@ -310,7 +313,7 @@ jobs:
             echo 'GLPI accepted an unsupported PHP version.' >&2
             exit 1
           fi
-          printf '%s' "$output" | grep -F 'requires PHP >= 8.1.0 and < 8.4.0.'
+          printf '%s' "$output" | grep -F 'requires PHP >= 8.1.0 and < 8.5.0.'
 
   release-artifact:
     name: Release artifact and extracted lifecycle
@@ -387,10 +390,14 @@ jobs:
 
   artifact-lifecycle:
     needs: release-artifact
-    name: Extracted release artifact lifecycle
+    name: Extracted release artifact lifecycle / PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.3', '8.4']
     container:
-      image: ghcr.io/glpi-project/githubactions-glpi-apache:php-8.3-glpi-10.0.x
+      image: ghcr.io/glpi-project/githubactions-glpi-apache:php-${{ matrix.php-version }}-glpi-10.0.x
       options: >-
         --volume ${{ github.workspace }}:/var/www/glpi/plugins:rw
         --user github-actions-runner

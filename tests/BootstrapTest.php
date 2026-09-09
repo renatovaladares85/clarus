@@ -14,7 +14,7 @@ final class BootstrapTest extends TestCase
        self::assertSame('10.0.20', PLUGIN_CLARUS_MIN_GLPI_VERSION);
        self::assertSame('11.0.0', PLUGIN_CLARUS_MAX_GLPI_VERSION);
        self::assertSame('8.1.0', PLUGIN_CLARUS_MIN_PHP_VERSION);
-       self::assertSame('8.4.0', PLUGIN_CLARUS_MAX_PHP_VERSION);
+       self::assertSame('8.5.0', PLUGIN_CLARUS_MAX_PHP_VERSION);
        self::assertTrue(function_exists('plugin_init_clarus'));
        self::assertTrue(function_exists('plugin_clarus_install'));
        self::assertTrue(function_exists('plugin_clarus_uninstall'));
@@ -28,7 +28,7 @@ final class BootstrapTest extends TestCase
        self::assertSame('10.0.20', $metadata['requirements']['glpi']['min']);
        self::assertSame('11.0.0', $metadata['requirements']['glpi']['max']);
        self::assertSame('8.1.0', $metadata['requirements']['php']['min']);
-       self::assertSame('8.4.0', $metadata['requirements']['php']['max']);
+       self::assertSame('8.5.0', $metadata['requirements']['php']['max']);
    }
 
    public function testPluginRegistersTheProfileAndTicketTabs(): void {

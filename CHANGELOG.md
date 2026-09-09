@@ -4,6 +4,7 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Add declared and CI-validated PHP 8.4 support while keeping PHP 8.5 unsupported.
 - Add gettext localization for the Clarus Ticket inspection UI, including
   English and Brazilian Portuguese catalogs and reproducible catalog tooling.
 - Add the authorized Ticket Rule inspection tab with server-rendered current-state
