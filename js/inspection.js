@@ -98,7 +98,7 @@
             conditions: new Set(['onadd', 'onupdate']),
             entities: new Set(),
             group: container.dataset.initialGroup || 'processing',
-            minimumAdherence: 0,
+            minimumAdherence: Number(container.dataset.minimumAdherence || '0'),
             page: 1,
             pageSize: Number.parseInt(container.dataset.pageSize || '25', 10),
             query: '',
@@ -108,7 +108,6 @@
         const allRules = Array.from(rulesHost.querySelectorAll('[data-clarus-rule]'));
         const search = container.querySelector('[data-clarus-search]');
         const group = container.querySelector('[data-clarus-group]');
-        const minimumAdherence = container.querySelector('[data-clarus-minimum-adherence]');
         const resultInputs = Array.from(container.querySelectorAll('[data-clarus-result]'));
         const conditionInputs = Array.from(container.querySelectorAll('[data-clarus-condition]'));
         const entitySelect = container.querySelector('[data-clarus-entity]');
@@ -253,14 +252,6 @@
         if (group) {
             group.addEventListener('change', function () {
                 state.group = group.value;
-                state.page = 1;
-                apply();
-            });
-        }
-        if (minimumAdherence) {
-            state.minimumAdherence = Math.min(100, Math.max(0, Number.parseInt(minimumAdherence.value, 10) || 0));
-            minimumAdherence.addEventListener('input', function () {
-                state.minimumAdherence = Math.min(100, Math.max(0, Number.parseInt(minimumAdherence.value, 10) || 0));
                 state.page = 1;
                 apply();
             });

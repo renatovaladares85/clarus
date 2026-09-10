@@ -27,14 +27,13 @@ final class InspectionOptionsTest extends TestCase
    }
 
     /** @dataProvider invalidLimits */
-   public function testNonPositiveLimitIsRejected(int $limit): void {
+   public function testNegativeLimitIsRejected(int $limit): void {
        $this->expectException(\InvalidArgumentException::class);
        new InspectionOptions($limit);
    }
 
     /** @return iterable<array{int}> */
    public static function invalidLimits(): iterable {
-       yield [0];
        yield [-1];
    }
 }

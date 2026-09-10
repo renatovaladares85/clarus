@@ -52,3 +52,9 @@ loads or executes the Inspector. Hiding a tab or button is not authorization.
 The later inspection UI keeps this boundary on the Ticket tab and repeats it in
 the POST refresh endpoint. Clarus settings use the native `config` right with
 `UPDATE`; that administrative right never bypasses Ticket inspection rights.
+# Inspection content visibility
+
+The `plugin_clarus_inspect` and `plugin_clarus_show_sensitive` rights are
+independent `READ` rights. Both default to denial. The sensitive-content right
+does not grant Ticket access; it only allows the server-side presenter to
+include technically safe diagnostic values after normal authorization succeeds.

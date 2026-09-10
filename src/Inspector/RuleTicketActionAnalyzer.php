@@ -204,8 +204,8 @@ final class RuleTicketActionAnalyzer
            null,
            false,
            null,
-           $current->presentationSafe,
-           $current->presentationSafe ? $current->value : null
+           true,
+           $current->value
        );
    }
 
@@ -225,8 +225,8 @@ final class RuleTicketActionAnalyzer
            null,
            true,
            $expected,
-           $current->presentationSafe,
-           $current->presentationSafe ? $currentValue : null
+           true,
+           $currentValue
        );
    }
 

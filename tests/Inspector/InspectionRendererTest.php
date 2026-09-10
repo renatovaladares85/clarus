@@ -89,12 +89,12 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('data-adherence-numerator="0"', $html);
       self::assertStringContainsString('data-adherence-denominator="1"', $html);
       self::assertStringContainsString('0% (0/1)', $html);
-      self::assertStringContainsString('data-clarus-minimum-adherence', $html);
+      self::assertStringNotContainsString('data-clarus-minimum-adherence', $html);
       self::assertStringContainsString('data-clarus-result', $html);
       self::assertStringContainsString('data-clarus-condition', $html);
       self::assertStringContainsString('data-clarus-entity', $html);
       self::assertStringContainsString('data-clarus-sort-field', $html);
-      self::assertStringContainsString('Some criteria cannot be evaluated safely using this Ticket snapshot.', $html);
+      self::assertStringContainsString('Clarus could not evaluate one or more criteria safely using the data available in the Ticket.', $html);
       self::assertStringNotContainsString('\\"', $html);
       self::assertStringContainsString('&lt;rule&gt;', $html);
       self::assertStringNotContainsString('secret-pattern', $html);

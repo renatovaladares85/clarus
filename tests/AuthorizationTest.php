@@ -17,13 +17,20 @@ final class AuthorizationTest extends TestCase
        parent::tearDown();
    }
 
-   public function testProfileDefinesTheSingleReadRight(): void {
+   public function testProfileDefinesIndependentReadRights(): void {
        self::assertSame('plugin_clarus_inspect', Profile::RIGHT_INSPECT);
+       self::assertSame('plugin_clarus_show_sensitive', Profile::RIGHT_SHOW_SENSITIVE);
        self::assertSame([
            [
                'itemtype' => Profile::class,
                'label'    => 'Rule inspection',
                'field'    => Profile::RIGHT_INSPECT,
+               'rights'   => [READ => 'Read'],
+           ],
+           [
+               'itemtype' => Profile::class,
+               'label'    => 'Show sensitive information',
+               'field'    => Profile::RIGHT_SHOW_SENSITIVE,
                'rights'   => [READ => 'Read'],
            ],
        ], Profile::getAllRights());
@@ -52,8 +59,9 @@ final class AuthorizationTest extends TestCase
        self::assertTrue(Profile::registerRights());
        self::assertSame('', \ProfileRight::getAllPossibleRights()[Profile::RIGHT_INSPECT]);
        self::assertTrue(Profile::registerRights());
-       self::assertCount(1, \ProfileRight::$possibleRights);
+       self::assertCount(2, \ProfileRight::$possibleRights);
        self::assertTrue(Profile::unregisterRights());
        self::assertArrayNotHasKey(Profile::RIGHT_INSPECT, \ProfileRight::$possibleRights);
+       self::assertArrayNotHasKey(Profile::RIGHT_SHOW_SENSITIVE, \ProfileRight::$possibleRights);
    }
 }

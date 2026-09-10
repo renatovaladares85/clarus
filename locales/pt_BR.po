@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Clarus\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-10 14:49-0300\n"
+"POT-Creation-Date: 2026-09-10 15:57-0300\n"
 "PO-Revision-Date: 2026-09-08 18:10-0300\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -42,56 +42,56 @@ msgid "Processing order"
 msgstr "Ordem de processamento"
 
 #: front/config.php:49 front/config.php:54
-#: src/Inspector/InspectionPresenter.php:175
+#: src/Inspector/InspectionPresenter.php:174
 #: src/Inspector/InspectionPresenter.php:243
 msgid "Result"
 msgstr "Resultado"
 
 #: front/config.php:50 front/config.php:60
-#: src/Inspector/InspectionPresenter.php:181
+#: src/Inspector/InspectionPresenter.php:180
 #: src/Inspector/InspectionPresenter.php:244
 #: src/Inspector/InspectionPresenter.php:280
 msgid "Entity"
 msgstr "Entidade"
 
-#: front/config.php:55 src/Inspector/InspectionPresenter.php:176
+#: front/config.php:55 src/Inspector/InspectionPresenter.php:175
 #: src/Inspector/InspectionPresenter.php:282
 msgid "Confirmed adherence"
 msgstr "Aderência confirmada"
 
-#: front/config.php:56 src/Inspector/InspectionPresenter.php:177
+#: front/config.php:56 src/Inspector/InspectionPresenter.php:176
 msgid "Matching criteria"
 msgstr "Critérios correspondentes"
 
-#: front/config.php:57 src/Inspector/InspectionPresenter.php:178
+#: front/config.php:57 src/Inspector/InspectionPresenter.php:177
 msgid "Configured criteria"
 msgstr "Critérios configurados"
 
-#: front/config.php:58 src/Inspector/InspectionPresenter.php:179
+#: front/config.php:58 src/Inspector/InspectionPresenter.php:178
 #: src/Inspector/InspectionPresenter.php:283
 msgid "Indeterminate criteria"
 msgstr "Critérios indeterminados"
 
-#: front/config.php:59 src/Inspector/InspectionPresenter.php:180
+#: front/config.php:59 src/Inspector/InspectionPresenter.php:179
 #: src/Inspector/InspectionPresenter.php:278
 msgid "Ranking"
 msgstr "Classificação"
 
-#: front/config.php:61 src/Inspector/InspectionPresenter.php:182
+#: front/config.php:61 src/Inspector/InspectionPresenter.php:181
 #: src/Inspector/InspectionPresenter.php:279
 msgid "Condition"
 msgstr "Condição"
 
-#: front/config.php:62 src/Inspector/InspectionPresenter.php:183
+#: front/config.php:62 src/Inspector/InspectionPresenter.php:182
 #: src/Inspector/InspectionPresenter.php:265
 msgid "Configured actions"
 msgstr "Ações configuradas"
 
-#: front/config.php:63 src/Inspector/InspectionPresenter.php:184
+#: front/config.php:63 src/Inspector/InspectionPresenter.php:183
 msgid "Rule name"
 msgstr "Nome da regra"
 
-#: front/config.php:64 src/Inspector/InspectionPresenter.php:185
+#: front/config.php:64 src/Inspector/InspectionPresenter.php:184
 msgid "Rule ID"
 msgstr "ID da regra"
 
@@ -100,12 +100,12 @@ msgid "Inspect automatically when opening the tab"
 msgstr "Inspecionar automaticamente ao abrir a aba"
 
 #: front/config.php:74
-msgid "Inspect ONADD rules"
-msgstr "Inspecionar regras ONADD"
+msgid "Select rules on add (ONADD)"
+msgstr "Selecionar regras ao adicionar (ONADD)"
 
 #: front/config.php:79
-msgid "Inspect ONUPDATE rules"
-msgstr "Inspecionar regras ONUPDATE"
+msgid "Select rules on update (ONUPDATE)"
+msgstr "Selecionar regras ao atualizar (ONUPDATE)"
 
 #: front/config.php:84
 msgid "Analyze configured actions"
@@ -137,9 +137,9 @@ msgstr "Agrupamento inicial"
 msgid "Default minimum confirmed adherence"
 msgstr "Aderência confirmada mínima padrão"
 
-#: front/config.php:99
-msgid "Display only. It never changes evaluated or candidate rules."
-msgstr "Somente exibição. Nunca altera regras avaliadas ou candidatas."
+#: front/config.php:99 src/Inspector/InspectionPresenter.php:252
+msgid "Enter a value from 0% to 100%. For example: 80%."
+msgstr ""
 
 #: front/config.php:100
 msgid "Default sort order"
@@ -168,39 +168,35 @@ msgstr "Decrescente"
 msgid "Entity #%d"
 msgstr "Entidade #%d"
 
-#: src/Inspector/InspectionPresenter.php:119
+#: src/Inspector/InspectionPresenter.php:118
 msgid "Unnamed"
 msgstr "Sem nome"
 
-#: src/Inspector/InspectionPresenter.php:137
+#: src/Inspector/InspectionPresenter.php:136
 msgid "configured actions"
 msgstr "ações configuradas"
 
-#: src/Inspector/InspectionPresenter.php:138
+#: src/Inspector/InspectionPresenter.php:137
 #: src/Inspector/InspectionPresenter.php:277
 msgid "Configured action analysis is disabled."
 msgstr "A análise de ações configuradas está desabilitada."
 
-#: src/Inspector/InspectionPresenter.php:199
-#: src/Inspector/InspectionPresenter.php:217
-#: src/Inspector/InspectionPresenter.php:405
-#: src/Inspector/InspectionPresenter.php:413
-#: src/Inspector/InspectionPresenter.php:423
-#: src/Inspector/InspectionPresenter.php:430
-msgid "Omitted for safety"
-msgstr "Omitido por segurança"
+#: src/Inspector/InspectionPresenter.php:198
+#: src/Inspector/InspectionPresenter.php:216
+msgid "Hidden for safety"
+msgstr "Oculto por segurança"
 
-#: src/Inspector/InspectionPresenter.php:203
-#: src/Inspector/InspectionPresenter.php:220
-msgid "Omitted or unavailable"
-msgstr "Omitido ou indisponível"
+#: src/Inspector/InspectionPresenter.php:202
+#: src/Inspector/InspectionPresenter.php:219
+msgid "Hidden or unavailable"
+msgstr ""
 
-#: src/Inspector/InspectionPresenter.php:228 src/Profile.php:52
+#: src/Inspector/InspectionPresenter.php:227 src/Profile.php:53
 #: src/TicketTab.php:24
 msgid "Rule inspection"
 msgstr "Inspeção de regras"
 
-#: src/Inspector/InspectionPresenter.php:229
+#: src/Inspector/InspectionPresenter.php:228
 msgid ""
 "Current-state diagnostic of the last saved Ticket data only. No rule is "
 "executed or changed."
@@ -208,13 +204,18 @@ msgstr ""
 "Diagnóstico somente do último estado salvo do chamado. Nenhuma regra é "
 "executada ou alterada."
 
-#: src/Inspector/InspectionPresenter.php:230
+#: src/Inspector/InspectionPresenter.php:229
 msgid "Unsaved form changes are not included in this diagnostic."
-msgstr "Alterações não salvas no formulário não são incluídas neste diagnóstico."
+msgstr ""
+"Alterações não salvas no formulário não são incluídas neste diagnóstico."
 
-#: src/Inspector/InspectionPresenter.php:231
+#: src/Inspector/InspectionPresenter.php:230
 msgid "Refresh inspection"
 msgstr "Atualizar inspeção"
+
+#: src/Inspector/InspectionPresenter.php:231
+msgid "Run inspection"
+msgstr "Executar inspeção"
 
 #: src/Inspector/InspectionPresenter.php:232
 msgid "Refreshing inspection..."
@@ -244,9 +245,8 @@ msgstr "Não correspondem"
 
 #: src/Inspector/InspectionPresenter.php:238
 #: src/Inspector/InspectionPresenter.php:310
-#: src/Inspector/InspectionPresenter.php:326
-msgid "Indeterminate"
-msgstr "Indeterminado"
+msgid "Not evaluated"
+msgstr "Não avaliada"
 
 #: src/Inspector/InspectionPresenter.php:239
 msgid "Search and filter"
@@ -289,10 +289,6 @@ msgstr "Na atualização do chamado (ONUPDATE)"
 #: src/Inspector/InspectionPresenter.php:251
 msgid "Minimum confirmed adherence"
 msgstr "Aderência confirmada mínima"
-
-#: src/Inspector/InspectionPresenter.php:252
-msgid "Display only. It does not change evaluated or candidate rules."
-msgstr "Somente exibição. Não altera regras avaliadas ou candidatas."
 
 #: src/Inspector/InspectionPresenter.php:253
 msgid "Sort by"
@@ -365,27 +361,27 @@ msgid "criteria match"
 msgstr "critérios correspondem"
 
 #: src/Inspector/InspectionPresenter.php:284
-msgid "Some criteria cannot be evaluated safely using this Ticket snapshot."
+msgid ""
+"Clarus could not evaluate one or more criteria safely using the data "
+"available in the Ticket."
 msgstr ""
-"Alguns critérios não podem ser avaliados com segurança usando este snapshot "
-"do chamado."
+"O Clarus não conseguiu avaliar um ou mais critérios com segurança usando os "
+"dados disponíveis no chamado."
 
 #: src/Inspector/InspectionPresenter.php:285
 msgid "No rules were found for the enabled conditions."
 msgstr "Nenhuma regra foi encontrada para as condições habilitadas."
 
 #: src/Inspector/InspectionPresenter.php:286
-msgid "Automatic inspection is disabled. Use Refresh inspection to run it."
+msgid ""
+"Automatic inspection is disabled. Run an inspection to load current results."
 msgstr ""
-"A inspeção automática está desativada. Use Atualizar inspeção para executá-"
-"la.A inspeção automática está desabilitada. Use Atualizar inspeção para "
-"executá-la."
 
 #: src/Inspector/InspectionPresenter.php:287
 msgid "Results were truncated at the configured rule limit."
 msgstr "Os resultados foram truncados no limite configurado de regras."
 
-#: src/Inspector/InspectionPresenter.php:288 src/TicketTab.php:70
+#: src/Inspector/InspectionPresenter.php:288 src/TicketTab.php:69
 msgid ""
 "The inspection could not be completed. Try again or contact an administrator."
 msgstr ""
@@ -423,6 +419,10 @@ msgstr "Refletida no estado atual"
 #: src/Inspector/InspectionPresenter.php:325
 msgid "Not reflected in current state"
 msgstr "Não refletida no estado atual"
+
+#: src/Inspector/InspectionPresenter.php:326
+msgid "Indeterminate"
+msgstr "Indeterminado"
 
 #: src/Inspector/InspectionPresenter.php:332
 msgid "Supported"
@@ -477,6 +477,13 @@ msgstr "Campo desconhecido (%s)"
 #: src/Inspector/InspectionPresenter.php:393
 msgid "Not set"
 msgstr "Não definido"
+
+#: src/Inspector/InspectionPresenter.php:405
+#: src/Inspector/InspectionPresenter.php:413
+#: src/Inspector/InspectionPresenter.php:423
+#: src/Inspector/InspectionPresenter.php:430
+msgid "Omitted for safety"
+msgstr "Omitido por segurança"
 
 #: src/Inspector/InspectionPresenter.php:436
 msgid ""
@@ -561,9 +568,39 @@ msgstr "A semântica da ação não é suportada por esta inspeção."
 msgid "A diagnostic limitation applies to this item."
 msgstr "Uma limitação de diagnóstico se aplica a este item."
 
-#: src/Profile.php:18
+#: src/Profile.php:19
 msgid "Clarus"
 msgstr "Clarus"
+
+#: src/Profile.php:58
+msgid "Show sensitive information"
+msgstr "Mostrar informações sensíveis"
+
+#~ msgid "Inspect ONADD rules"
+#~ msgstr "Inspecionar regras ONADD"
+
+#~ msgid "Inspect ONUPDATE rules"
+#~ msgstr "Inspecionar regras ONUPDATE"
+
+#~ msgid "Display only. It never changes evaluated or candidate rules."
+#~ msgstr "Somente exibição. Nunca altera regras avaliadas ou candidatas."
+
+#~ msgid "Omitted or unavailable"
+#~ msgstr "Omitido ou indisponível"
+
+#~ msgid "Display only. It does not change evaluated or candidate rules."
+#~ msgstr "Somente exibição. Não altera regras avaliadas ou candidatas."
+
+#~ msgid "Some criteria cannot be evaluated safely using this Ticket snapshot."
+#~ msgstr ""
+#~ "Alguns critérios não podem ser avaliados com segurança usando este "
+#~ "snapshot do chamado."
+
+#~ msgid "Automatic inspection is disabled. Use Refresh inspection to run it."
+#~ msgstr ""
+#~ "A inspeção automática está desativada. Use Atualizar inspeção para "
+#~ "executá-la.A inspeção automática está desabilitada. Use Atualizar "
+#~ "inspeção para executá-la."
 
 #~ msgid "Current-state diagnostic only. No rule is executed or changed."
 #~ msgstr ""

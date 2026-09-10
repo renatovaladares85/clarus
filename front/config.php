@@ -71,12 +71,12 @@ TemplateRenderer::getInstance()->display('@clarus/config.html.twig', [
         ],
         [
             'name' => ClarusConfig::INCLUDE_ONADD,
-            'label' => __('Inspect ONADD rules', 'clarus'),
+            'label' => __('Select rules on add (ONADD)', 'clarus'),
             'checked' => $config[ClarusConfig::INCLUDE_ONADD],
         ],
         [
             'name' => ClarusConfig::INCLUDE_ONUPDATE,
-            'label' => __('Inspect ONUPDATE rules', 'clarus'),
+            'label' => __('Select rules on update (ONUPDATE)', 'clarus'),
             'checked' => $config[ClarusConfig::INCLUDE_ONUPDATE],
         ],
         [
@@ -96,7 +96,7 @@ TemplateRenderer::getInstance()->display('@clarus/config.html.twig', [
         'pageSize' => __('Rules per page', 'clarus'),
         'initialGroup' => __('Initial grouping', 'clarus'),
         'minimumAdherence' => __('Default minimum confirmed adherence', 'clarus'),
-        'minimumAdherenceHint' => __('Display only. It never changes evaluated or candidate rules.', 'clarus'),
+        'minimumAdherenceHint' => __('Enter a value from 0% to 100%. For example: 80%.', 'clarus'),
         'initialSort' => __('Default sort order', 'clarus'),
         'sortLevel' => __('Level %d', 'clarus'),
         'noSort' => __('No additional sort', 'clarus'),

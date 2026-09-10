@@ -12,4 +12,8 @@ final class Authorization
        return \Session::haveRight(Profile::RIGHT_INSPECT, READ)
            && $ticket->canViewItem();
    }
+
+   public static function canViewSensitiveInspectionValues(): bool {
+       return \Session::haveRight(Profile::RIGHT_SHOW_SENSITIVE, READ);
+   }
 }

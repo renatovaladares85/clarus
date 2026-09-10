@@ -12,7 +12,7 @@ Ticket being inspected.
 
 ## Development status
 
-`0.4.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
+`0.5.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it does not simulate or record rule execution.
 
 The Phase 3 inspector core can reconstruct persisted and safely derived Ticket
@@ -56,6 +56,10 @@ Inspection requires both native GLPI access to the specific Ticket and the
 `plugin_clarus_inspect` Profile right with the `READ` mask. It is denied by
 default, including for Super-Admin, until explicitly granted. A matching rule
 is not evidence that the rule executed historically.
+
+`plugin_clarus_show_sensitive` is a separate `READ` right, denied by default.
+It can expose diagnostic values only after server-side authorization; it never
+grants access to a Ticket or weakens output escaping.
 
 ## Development checks
 

@@ -53,16 +53,15 @@ final class TicketTab extends \CommonDBTM
        $error = null;
       if ($loaded) {
          try {
-             $options = new InspectionOptions(
-                 $settings[ClarusConfig::RULE_LIMIT],
-                 $settings[ClarusConfig::INCLUDE_ACTIONS]
-             );
+             $remaining = $settings[ClarusConfig::RULE_LIMIT];
              $inspector = new RuleTicketInspector();
             if ($settings[ClarusConfig::INCLUDE_ONADD]) {
-                $results[] = $inspector->inspect($ticket, \RuleTicket::ONADD, $options);
+                $result = $inspector->inspect($ticket, \RuleTicket::ONADD, new InspectionOptions($remaining, $settings[ClarusConfig::INCLUDE_ACTIONS]));
+                $results[] = $result;
+                $remaining -= $result->evaluatedCount;
             }
             if ($settings[ClarusConfig::INCLUDE_ONUPDATE]) {
-                $results[] = $inspector->inspect($ticket, \RuleTicket::ONUPDATE, $options);
+                $results[] = $inspector->inspect($ticket, \RuleTicket::ONUPDATE, new InspectionOptions($remaining, $settings[ClarusConfig::INCLUDE_ACTIONS]));
             }
          } catch (\Throwable $exception) {
              self::logFailure($exception);
@@ -82,7 +81,8 @@ final class TicketTab extends \CommonDBTM
            $refreshUrl,
            \Session::getNewCSRFToken(),
            $loaded,
-           $error
+           $error,
+           Authorization::canViewSensitiveInspectionValues()
        );
    }
 

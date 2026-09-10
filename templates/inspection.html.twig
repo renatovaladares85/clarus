@@ -1,4 +1,4 @@
-<section class="clarus-inspection" data-clarus-inspection data-page-size="{{ pageSize }}" data-initial-group="{{ initialGroup }}"
+<section class="clarus-inspection" data-clarus-inspection data-page-size="{{ pageSize }}" data-minimum-adherence="{{ minimumAdherence }}" data-initial-group="{{ initialGroup }}"
          data-label-showing="{{ labels.showing }}" data-label-of="{{ labels.of }}" data-label-rules="{{ labels.rules }}"
          data-label-previous="{{ labels.previous }}" data-label-next="{{ labels.next }}"
          data-label-group-result="{{ labels.groupResult }}" data-label-group-entity="{{ labels.groupEntity }}">
@@ -13,7 +13,7 @@
       <button class="btn btn-primary" type="submit" data-clarus-refresh-button
               data-idle-label="{{ labels.refresh }}" data-busy-label="{{ labels.refreshing }}">
         <i class="ti ti-refresh" aria-hidden="true"></i>
-        <span>{{ labels.refresh }}</span>
+        <span>{% if loaded %}{{ labels.refresh }}{% else %}{{ labels.runInspection }}{% endif %}</span>
       </button>
     </form>
   </div>
@@ -63,12 +63,6 @@
             <option value="result"{% if initialGroup == 'result' %} selected{% endif %}>{{ labels.groupResult }}</option>
             <option value="entity"{% if initialGroup == 'entity' %} selected{% endif %}>{{ labels.groupEntity }}</option>
           </select>
-        </div>
-        <div class="clarus-inspection__control">
-          <label class="form-label" for="clarus-minimum-adherence-{{ ticketId }}">{{ labels.minimumAdherence }}</label>
-          <input class="form-control" id="clarus-minimum-adherence-{{ ticketId }}" type="number" min="0" max="100"
-                 value="{{ minimumAdherence }}" data-clarus-minimum-adherence>
-          <div class="form-hint">{{ labels.minimumAdherenceHint }}</div>
         </div>
         <fieldset class="clarus-inspection__filters" aria-label="{{ labels.resultFilter }}">
           <legend>{{ labels.resultFilter }}</legend>

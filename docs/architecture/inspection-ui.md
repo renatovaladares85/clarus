@@ -14,6 +14,11 @@ past. ONUPDATE criteria use the current safe Ticket snapshot just like ONADD;
 they are indeterminate only when a criterion cannot be evaluated safely, not
 merely because an original update change set is unavailable.
 
+The configured rule limit is a single deterministic budget for the complete
+inspection: ONADD consumes it first and ONUPDATE receives the remainder. This
+keeps evaluated results at or below the configured maximum while candidate
+counts and truncation still report rules outside that budget.
+
 Confirmed adherence is a presentation metric: matching criteria divided by all
 configured criteria, rounded to a whole percentage. Indeterminate criteria stay
 in the denominator and are also counted separately. It never replaces the

@@ -137,9 +137,9 @@ final class RuleTicketInspector
                   ? Evaluation::MATCH
                   : Evaluation::NO_MATCH,
               null,
-              $contextValue->presentationSafe,
-              $contextValue->presentationSafe ? $contextValue->value : null,
-              TicketContextBuilder::isPresentationSafeKey($key)
+              true,
+              $contextValue->value,
+              true
           );
       }
 

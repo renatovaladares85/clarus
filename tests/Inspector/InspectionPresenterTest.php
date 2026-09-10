@@ -161,12 +161,29 @@ final class InspectionPresenterTest extends TestCase
 
        self::assertSame('3', $criteria[0]['expected']);
        self::assertSame('3', $criteria[0]['observed']);
-       self::assertSame('Omitted for safety', $criteria[1]['expected']);
-       self::assertSame('Omitted or unavailable', $criteria[1]['observed']);
+       self::assertSame('Hidden for safety', $criteria[1]['expected']);
+       self::assertSame('Hidden or unavailable', $criteria[1]['observed']);
        self::assertSame('3', $actions[0]['configured']);
        self::assertSame('Omitted for safety', $actions[1]['configured']);
        self::assertSame('A diagnostic limitation applies to this item.', $limitations[0]);
        self::assertSame('Entity 9', $presented['entityName']);
+
+       $sensitiveView = $this->presenter()->present(
+           [$result],
+           ClarusConfig::defaults(),
+           12,
+           '/refresh',
+           'token',
+           true,
+           null,
+           true
+       );
+       $sensitiveRules = $sensitiveView['rules'];
+       self::assertIsArray($sensitiveRules);
+       self::assertIsArray($sensitiveRules[0]);
+       self::assertIsArray($sensitiveRules[0]['criteria']);
+       self::assertIsArray($sensitiveRules[0]['criteria'][1]);
+       self::assertSame('secret-pattern', $sensitiveRules[0]['criteria'][1]['expected']);
    }
 
    public function testPresentationKeepsEveryEvaluatedRuleIndependentOfPageSize(): void {
@@ -181,7 +198,7 @@ final class InspectionPresenterTest extends TestCase
        $view = $this->presenter()->present([$result], $settings, 12, '/refresh', 'token', true);
 
        self::assertSame(10, $view['pageSize']);
-       self::assertSame(0, $view['minimumAdherence']);
+       self::assertSame(80, $view['minimumAdherence']);
        $initialSort = $view['initialSort'];
        self::assertIsArray($initialSort);
        self::assertCount(3, $initialSort);
