@@ -95,7 +95,8 @@ final class ProfilePermissionTest extends TestCase
        self::assertTrue(plugin_clarus_install());
        self::assertSame(0, $this->rightValue($this->bootstrapProfileId));
        self::assertSame(0, $this->rightValue($this->bootstrapProfileId, ClarusProfile::RIGHT_SHOW_SENSITIVE));
-       self::assertSame(2, $this->rightRowCount($this->bootstrapProfileId));
+       self::assertSame(1, $this->rightRowCount($this->bootstrapProfileId, ClarusProfile::RIGHT_INSPECT));
+       self::assertSame(1, $this->rightRowCount($this->bootstrapProfileId, ClarusProfile::RIGHT_SHOW_SENSITIVE));
    }
 
    public function testGrantAndRevokeControlTicketInspection(): void {
@@ -218,12 +219,14 @@ final class ProfilePermissionTest extends TestCase
 
    public function testUninstallAndReinstallRemoveAndRecreateOnlyTheClarusRights(): void {
        self::assertTrue(plugin_clarus_uninstall());
-       self::assertSame(0, $this->rightRowCount($this->bootstrapProfileId));
+       self::assertSame(0, $this->rightRowCount($this->bootstrapProfileId, ClarusProfile::RIGHT_INSPECT));
+       self::assertSame(0, $this->rightRowCount($this->bootstrapProfileId, ClarusProfile::RIGHT_SHOW_SENSITIVE));
 
        self::assertTrue(plugin_clarus_install());
        self::assertSame(0, $this->rightValue($this->bootstrapProfileId));
        self::assertSame(0, $this->rightValue($this->bootstrapProfileId, ClarusProfile::RIGHT_SHOW_SENSITIVE));
-       self::assertSame(2, $this->rightRowCount($this->bootstrapProfileId));
+       self::assertSame(1, $this->rightRowCount($this->bootstrapProfileId, ClarusProfile::RIGHT_INSPECT));
+       self::assertSame(1, $this->rightRowCount($this->bootstrapProfileId, ClarusProfile::RIGHT_SHOW_SENSITIVE));
    }
 
    private function createRestrictedProfile(bool $recursive, bool $canConfigure = false): int {
@@ -357,7 +360,7 @@ final class ProfilePermissionTest extends TestCase
        return (int) ($rights[$right] ?? -1);
    }
 
-   private function rightRowCount(int $profileId): int {
+   private function rightRowCount(int $profileId, string $right): int {
        global $DB;
 
       foreach ($DB->request([
@@ -365,7 +368,7 @@ final class ProfilePermissionTest extends TestCase
            'FROM' => \ProfileRight::getTable(),
            'WHERE' => [
                'profiles_id' => $profileId,
-               \ProfileRight::getTable() . '.name' => array_keys(ClarusProfile::getAllRights()),
+               'name' => $right,
            ],
        ]) as $row) {
           return (int) $row['count'];
