@@ -109,7 +109,8 @@
         const search = container.querySelector('[data-clarus-search]');
         const group = container.querySelector('[data-clarus-group]');
         const resultInputs = Array.from(container.querySelectorAll('[data-clarus-result]'));
-        const conditionInputs = Array.from(container.querySelectorAll('[data-clarus-condition]'));
+        const resultAll = container.querySelector('[data-clarus-result-all]');
+        const conditionSelect = container.querySelector('[data-clarus-condition]');
         const entitySelect = container.querySelector('[data-clarus-entity]');
         const sortFields = Array.from(container.querySelectorAll('[data-clarus-sort-field]'));
         const sortDirections = Array.from(container.querySelectorAll('[data-clarus-sort-direction]'));
@@ -230,7 +231,16 @@
 
         function refreshSet(inputs, set) {
             set.clear();
-            inputs.filter((input) => input.checked).forEach((input) => set.add(input.value));
+            inputs.filter((input) => input.getAttribute('aria-pressed') === 'true').forEach((input) => set.add(input.value));
+        }
+
+        function refreshConditions() {
+            state.conditions.clear();
+            if (!conditionSelect) {
+                return;
+            }
+
+            Array.from(conditionSelect.selectedOptions).forEach((option) => state.conditions.add(option.value));
         }
 
         function refreshEntities() {
@@ -256,16 +266,32 @@
                 apply();
             });
         }
-        resultInputs.forEach((input) => input.addEventListener('change', function () {
+        resultInputs.forEach((input) => input.addEventListener('click', function () {
+            input.setAttribute('aria-pressed', input.getAttribute('aria-pressed') !== 'true' ? 'true' : 'false');
             refreshSet(resultInputs, state.results);
+            if (resultAll) {
+                resultAll.setAttribute('aria-pressed', state.results.size === resultInputs.length ? 'true' : 'false');
+            }
             state.page = 1;
             apply();
         }));
-        conditionInputs.forEach((input) => input.addEventListener('change', function () {
-            refreshSet(conditionInputs, state.conditions);
-            state.page = 1;
-            apply();
-        }));
+        if (resultAll) {
+            resultAll.addEventListener('click', function () {
+                const next = resultAll.getAttribute('aria-pressed') !== 'true';
+                resultAll.setAttribute('aria-pressed', next ? 'true' : 'false');
+                resultInputs.forEach((input) => input.setAttribute('aria-pressed', next ? 'true' : 'false'));
+                refreshSet(resultInputs, state.results);
+                state.page = 1;
+                apply();
+            });
+        }
+        if (conditionSelect) {
+            conditionSelect.addEventListener('change', function () {
+                refreshConditions();
+                state.page = 1;
+                apply();
+            });
+        }
         if (entitySelect) {
             entitySelect.addEventListener('change', function () {
                 refreshEntities();

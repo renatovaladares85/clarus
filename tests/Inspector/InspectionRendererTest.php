@@ -81,7 +81,7 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('Current-state diagnostic of the last saved Ticket data only', $html);
       self::assertStringContainsString('Unsaved form changes are not included in this diagnostic.', $html);
       self::assertStringContainsString('On ticket update (ONUPDATE)', $html);
-      self::assertStringContainsString('Indeterminate', $html);
+      self::assertStringContainsString('Not evaluated', $html);
       self::assertStringContainsString('Reflected in current state', $html);
       self::assertStringContainsString('Results were truncated', $html);
       self::assertStringContainsString('class="clarus-rule card"', $html);
@@ -91,6 +91,7 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('0% (0/1)', $html);
       self::assertStringNotContainsString('data-clarus-minimum-adherence', $html);
       self::assertStringContainsString('data-clarus-result', $html);
+      self::assertStringContainsString('data-clarus-result-all', $html);
       self::assertStringContainsString('data-clarus-condition', $html);
       self::assertStringContainsString('data-clarus-entity', $html);
       self::assertStringContainsString('data-clarus-sort-field', $html);

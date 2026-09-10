@@ -139,7 +139,7 @@ msgstr "Aderência confirmada mínima padrão"
 
 #: front/config.php:99 src/Inspector/InspectionPresenter.php:252
 msgid "Enter a value from 0% to 100%. For example: 80%."
-msgstr ""
+msgstr "Informe um valor de 0% a 100%. Ex.: 80%."
 
 #: front/config.php:100
 msgid "Default sort order"
@@ -189,7 +189,7 @@ msgstr "Oculto por segurança"
 #: src/Inspector/InspectionPresenter.php:202
 #: src/Inspector/InspectionPresenter.php:219
 msgid "Hidden or unavailable"
-msgstr ""
+msgstr "Oculto ou indisponível"
 
 #: src/Inspector/InspectionPresenter.php:227 src/Profile.php:53
 #: src/TicketTab.php:24
@@ -375,7 +375,7 @@ msgstr "Nenhuma regra foi encontrada para as condições habilitadas."
 #: src/Inspector/InspectionPresenter.php:286
 msgid ""
 "Automatic inspection is disabled. Run an inspection to load current results."
-msgstr ""
+msgstr "A inspeção automática está desativada. Execute uma inspeção para carregar os resultados atuais."
 
 #: src/Inspector/InspectionPresenter.php:287
 msgid "Results were truncated at the configured rule limit."

@@ -18,6 +18,8 @@ final class ProfilePermissionTest extends TestCase
 
    private int $bootstrapRight;
 
+   private int $bootstrapSensitiveRight;
+
     /** @var array<string, list<int>> */
    private array $created = [
         'tickets' => [],
@@ -36,6 +38,7 @@ final class ProfilePermissionTest extends TestCase
        $this->bootstrapProfileId = (int) ($_SESSION['glpiactiveprofile']['id'] ?? 0);
        self::assertGreaterThan(0, $this->bootstrapProfileId);
        $this->bootstrapRight = $this->rightValue($this->bootstrapProfileId);
+       $this->bootstrapSensitiveRight = $this->rightValue($this->bootstrapProfileId, ClarusProfile::RIGHT_SHOW_SENSITIVE);
    }
 
    protected function tearDown(): void {
@@ -45,6 +48,7 @@ final class ProfilePermissionTest extends TestCase
           $this->loginAsProfile($this->bootstrapProfileId);
           \ProfileRight::updateProfileRights($this->bootstrapProfileId, [
               ClarusProfile::RIGHT_INSPECT => $this->bootstrapRight,
+              ClarusProfile::RIGHT_SHOW_SENSITIVE => $this->bootstrapSensitiveRight,
           ]);
           $this->loginAsProfile($this->bootstrapProfileId);
       } catch (\Throwable $throwable) {
@@ -83,12 +87,15 @@ final class ProfilePermissionTest extends TestCase
       }
    }
 
-   public function testInstallRegistersOneDeniedRightForTheBootstrapSuperAdminProfile(): void {
+   public function testInstallRegistersDeniedRightsForTheBootstrapSuperAdminProfile(): void {
        self::assertSame(0, $this->bootstrapRight);
+       self::assertSame(0, $this->bootstrapSensitiveRight);
        self::assertFalse((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
+       self::assertFalse(Authorization::canViewSensitiveInspectionValues());
        self::assertTrue(plugin_clarus_install());
        self::assertSame(0, $this->rightValue($this->bootstrapProfileId));
-       self::assertSame(1, $this->rightRowCount($this->bootstrapProfileId));
+       self::assertSame(0, $this->rightValue($this->bootstrapProfileId, ClarusProfile::RIGHT_SHOW_SENSITIVE));
+       self::assertSame(2, $this->rightRowCount($this->bootstrapProfileId));
    }
 
    public function testGrantAndRevokeControlTicketInspection(): void {
@@ -104,11 +111,17 @@ final class ProfilePermissionTest extends TestCase
        self::assertTrue((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
        self::assertTrue((bool) $ticket->canViewItem());
        self::assertTrue(Authorization::canInspectTicket($ticket));
+       self::assertFalse(Authorization::canViewSensitiveInspectionValues());
+
+       \ProfileRight::updateProfileRights($profileId, [ClarusProfile::RIGHT_SHOW_SENSITIVE => READ]);
+       $this->loginAsProfile($profileId);
+       self::assertTrue(Authorization::canViewSensitiveInspectionValues());
 
        \ProfileRight::updateProfileRights($profileId, [ClarusProfile::RIGHT_INSPECT => 0]);
        $this->loginAsProfile($profileId);
        self::assertFalse((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
        self::assertFalse(Authorization::canInspectTicket($ticket));
+       self::assertTrue(Authorization::canViewSensitiveInspectionValues());
    }
 
    public function testTicketEntityAccessRemainsNativeAndCanBeRecursive(): void {
@@ -200,15 +213,17 @@ final class ProfilePermissionTest extends TestCase
        $this->loginAsProfile($inspectionProfileId);
        self::assertFalse((bool) \Session::haveRight('config', UPDATE));
        self::assertTrue((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
+       self::assertFalse(Authorization::canViewSensitiveInspectionValues());
    }
 
-   public function testUninstallAndReinstallRemoveAndRecreateOnlyTheClarusRight(): void {
+   public function testUninstallAndReinstallRemoveAndRecreateOnlyTheClarusRights(): void {
        self::assertTrue(plugin_clarus_uninstall());
        self::assertSame(0, $this->rightRowCount($this->bootstrapProfileId));
 
        self::assertTrue(plugin_clarus_install());
        self::assertSame(0, $this->rightValue($this->bootstrapProfileId));
-       self::assertSame(1, $this->rightRowCount($this->bootstrapProfileId));
+       self::assertSame(0, $this->rightValue($this->bootstrapProfileId, ClarusProfile::RIGHT_SHOW_SENSITIVE));
+       self::assertSame(2, $this->rightRowCount($this->bootstrapProfileId));
    }
 
    private function createRestrictedProfile(bool $recursive, bool $canConfigure = false): int {
@@ -224,6 +239,7 @@ final class ProfilePermissionTest extends TestCase
            'ticket' => \Ticket::READMY,
            'config' => $canConfigure ? UPDATE : 0,
            ClarusProfile::RIGHT_INSPECT => 0,
+           ClarusProfile::RIGHT_SHOW_SENSITIVE => 0,
        ]);
 
        $profileUser = new \Profile_User();
@@ -335,10 +351,10 @@ final class ProfilePermissionTest extends TestCase
        self::assertSame($profileId, (int) ($_SESSION['glpiactiveprofile']['id'] ?? 0));
    }
 
-   private function rightValue(int $profileId): int {
-       $rights = \ProfileRight::getProfileRights($profileId, [ClarusProfile::RIGHT_INSPECT]);
+   private function rightValue(int $profileId, string $right = ClarusProfile::RIGHT_INSPECT): int {
+       $rights = \ProfileRight::getProfileRights($profileId, [$right]);
 
-       return (int) ($rights[ClarusProfile::RIGHT_INSPECT] ?? -1);
+       return (int) ($rights[$right] ?? -1);
    }
 
    private function rightRowCount(int $profileId): int {
@@ -349,7 +365,7 @@ final class ProfilePermissionTest extends TestCase
            'FROM' => \ProfileRight::getTable(),
            'WHERE' => [
                'profiles_id' => $profileId,
-               'name' => ClarusProfile::RIGHT_INSPECT,
+               'name' => array_keys(ClarusProfile::getAllRights()),
            ],
        ]) as $row) {
           return (int) $row['count'];

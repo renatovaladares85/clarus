@@ -66,14 +66,19 @@
         </div>
         <fieldset class="clarus-inspection__filters" aria-label="{{ labels.resultFilter }}">
           <legend>{{ labels.resultFilter }}</legend>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="match" checked data-clarus-result><span class="form-check-label">{{ labels.matches }}</span></label>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="no_match" checked data-clarus-result><span class="form-check-label">{{ labels.doesNotMatch }}</span></label>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="indeterminate" checked data-clarus-result><span class="form-check-label">{{ labels.indeterminate }}</span></label>
+          <div class="btn-group" role="group" aria-label="{{ labels.resultFilter }}">
+            <button class="btn btn-outline-secondary" type="button" data-clarus-result-all aria-pressed="true">{{ labels.all }}</button>
+            <button class="btn btn-outline-secondary" type="button" value="match" data-clarus-result aria-pressed="true">{{ labels.matches }}</button>
+            <button class="btn btn-outline-secondary" type="button" value="no_match" data-clarus-result aria-pressed="true">{{ labels.doesNotMatch }}</button>
+            <button class="btn btn-outline-secondary" type="button" value="indeterminate" data-clarus-result aria-pressed="true">{{ labels.indeterminate }}</button>
+          </div>
         </fieldset>
         <fieldset class="clarus-inspection__filters" aria-label="{{ labels.conditionFilter }}">
           <legend>{{ labels.conditionFilter }}</legend>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="onadd" checked data-clarus-condition><span class="form-check-label">{{ labels.onadd }}</span></label>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="onupdate" checked data-clarus-condition><span class="form-check-label">{{ labels.onupdate }}</span></label>
+          <select class="form-select" multiple data-clarus-condition aria-label="{{ labels.conditionFilter }}">
+            <option value="onadd" selected>{{ labels.onadd }}</option>
+            <option value="onupdate" selected>{{ labels.onupdate }}</option>
+          </select>
         </fieldset>
         <fieldset class="clarus-inspection__filters" aria-label="{{ labels.entityFilter }}">
           <legend>{{ labels.entityFilter }}</legend>

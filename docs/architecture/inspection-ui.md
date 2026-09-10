@@ -29,12 +29,12 @@ engine `INDETERMINATE` result.
 ## Rendering and presentation safety
 
 `InspectionPresenter` converts immutable Inspector DTOs into a view model before
-Twig receives them. Rule metadata and translated labels are escaped by Twig.
-Criterion values require both the Inspector safety flag and an explicit central
-allowlist of reviewed Ticket fields. New or unknown criterion keys are denied
-by default. Action values require the analyzer safety flag and a supported
-numeric representation. Other values are replaced by neutral omission text;
-objects and arbitrary structures never reach the template.
+Twig receives it. Rule metadata and translated labels are escaped by Twig.
+Potentially sensitive expected, observed, and configured-action values are
+omitted unless the active profile has `plugin_clarus_show_sensitive` with
+`READ`; the Inspector safety flags are still required. New or unknown criterion
+keys remain denied by default. Objects and arbitrary structures never reach the
+template.
 
 `InspectionRenderer` uses GLPI's `TemplateRenderer` and the `@clarus` Twig
 namespace. Bootstrap and Tabler supplied by GLPI provide the base components.
