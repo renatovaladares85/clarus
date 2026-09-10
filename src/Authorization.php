@@ -14,6 +14,6 @@ final class Authorization
    }
 
    public static function canViewSensitiveInspectionValues(): bool {
-       return \Session::haveRight(Profile::RIGHT_SHOW_SENSITIVE, READ);
+       return (bool) \Session::haveRight(Profile::RIGHT_SHOW_SENSITIVE, READ);
    }
 }

@@ -365,7 +365,7 @@ final class ProfilePermissionTest extends TestCase
            'FROM' => \ProfileRight::getTable(),
            'WHERE' => [
                'profiles_id' => $profileId,
-               'name' => array_keys(ClarusProfile::getAllRights()),
+               \ProfileRight::getTable() . '.name' => array_keys(ClarusProfile::getAllRights()),
            ],
        ]) as $row) {
           return (int) $row['count'];
