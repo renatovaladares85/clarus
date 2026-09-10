@@ -188,7 +188,7 @@ final class ProfilePermissionTest extends TestCase
        self::assertStringContainsString('Reflected in current state', $output);
        self::assertStringContainsString('Confirmed adherence', $output);
        self::assertStringNotContainsString('Update eligibility depends on the original change set', $output);
-       self::assertStringContainsString('Indeterminate', $output);
+       self::assertStringContainsString('Not evaluated', $output);
        self::assertStringContainsString('No configured action was executed', $output);
        self::assertStringContainsString('data-clarus-inspection', $output);
        self::assertStringNotContainsString('PARTIAL_MATCH', $output);
