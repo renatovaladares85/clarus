@@ -170,7 +170,8 @@ final class ProfilePermissionTest extends TestCase
        self::assertTrue(TicketTab::displayTabContentForItem($ticket));
        $output = (string) ob_get_clean();
 
-       self::assertStringContainsString('Current-state diagnostic only', $output);
+       self::assertStringContainsString('Current-state diagnostic of the last saved Ticket data only', $output);
+       self::assertStringContainsString('Unsaved form changes are not included in this diagnostic.', $output);
        self::assertStringContainsString('Reflected in current state', $output);
        self::assertStringContainsString('Confirmed adherence', $output);
        self::assertStringNotContainsString('Update eligibility depends on the original change set', $output);
@@ -186,6 +187,21 @@ final class ProfilePermissionTest extends TestCase
        self::assertSame('3', (string) $reloadedRule->actions[0]->fields['value']);
    }
 
+   public function testConfigurationAccessUsesTheNativeRightIndependentlyOfInspection(): void {
+       self::assertTrue((bool) \Session::haveRight('config', UPDATE));
+
+       $configProfileId = $this->createRestrictedProfile(false, true);
+       $this->loginAsProfile($configProfileId);
+       self::assertTrue((bool) \Session::haveRight('config', UPDATE));
+       self::assertFalse((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
+
+       $inspectionProfileId = $this->createRestrictedProfile(false);
+       \ProfileRight::updateProfileRights($inspectionProfileId, [ClarusProfile::RIGHT_INSPECT => READ]);
+       $this->loginAsProfile($inspectionProfileId);
+       self::assertFalse((bool) \Session::haveRight('config', UPDATE));
+       self::assertTrue((bool) \Session::haveRight(ClarusProfile::RIGHT_INSPECT, READ));
+   }
+
    public function testUninstallAndReinstallRemoveAndRecreateOnlyTheClarusRight(): void {
        self::assertTrue(plugin_clarus_uninstall());
        self::assertSame(0, $this->rightRowCount($this->bootstrapProfileId));
@@ -195,7 +211,7 @@ final class ProfilePermissionTest extends TestCase
        self::assertSame(1, $this->rightRowCount($this->bootstrapProfileId));
    }
 
-   private function createRestrictedProfile(bool $recursive): int {
+   private function createRestrictedProfile(bool $recursive, bool $canConfigure = false): int {
        $profile = new \Profile();
        $profileId = (int) $profile->add([
            'name' => 'clarus-phase5-' . str_replace('.', '', uniqid('', true)),
@@ -206,6 +222,7 @@ final class ProfilePermissionTest extends TestCase
 
        \ProfileRight::updateProfileRights($profileId, [
            'ticket' => \Ticket::READMY,
+           'config' => $canConfigure ? UPDATE : 0,
            ClarusProfile::RIGHT_INSPECT => 0,
        ]);
 

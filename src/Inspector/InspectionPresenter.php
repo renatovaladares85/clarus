@@ -56,15 +56,22 @@ final class InspectionPresenter
        $processingIndex = 0;
        $actionsEnabled = (bool) $settings[ClarusConfig::INCLUDE_ACTIONS];
        $counts = ['match' => 0, 'no_match' => 0, 'indeterminate' => 0];
+       $entityOptions = [];
       foreach ($results as $result) {
           $candidateCount += $result->candidateCount;
           $evaluatedCount += $result->evaluatedCount;
           $truncated = $truncated || $result->truncated;
          foreach ($result->rules as $rule) {
              $rules[] = $this->rule($rule, $processingIndex++, $actionsEnabled);
+             $entityOptions[$rule->entityId] = [
+                 'id' => $rule->entityId,
+                 'name' => $this->entityName($rule->entityId),
+             ];
              ++$counts[$this->evaluationKey($rule->evaluation)];
          }
       }
+
+       uasort($entityOptions, static fn (array $left, array $right): int => $left['name'] <=> $right['name']);
 
        return [
            'ticketId' => $ticketId,
@@ -77,6 +84,7 @@ final class InspectionPresenter
            'evaluatedCount' => $evaluatedCount,
            'counts' => $counts,
            'rules' => $rules,
+           'entityOptions' => array_values($entityOptions),
            'pageSize' => $settings[ClarusConfig::PAGE_SIZE],
            'initialGroup' => $settings[ClarusConfig::INITIAL_GROUP],
            'minimumAdherence' => $settings[ClarusConfig::MIN_ADHERENCE],
@@ -117,6 +125,8 @@ final class InspectionPresenter
            'matchingCriteria' => $matchingCriteria,
            'criteriaCount' => $criteriaCount,
            'indeterminateCriteria' => $indeterminateCriteria,
+           'adherenceNumerator' => $matchingCriteria,
+           'adherenceDenominator' => $criteriaCount,
            'adherencePercent' => $adherencePercent,
            'adherenceLabel' => sprintf('%d%% (%d/%d)', $adherencePercent, $matchingCriteria, $criteriaCount),
            'actions' => array_map(fn (ActionInspection $action): array => $this->action($action), $rule->actions),
@@ -130,6 +140,7 @@ final class InspectionPresenter
            'evaluationOrder' => ['match' => 0, 'no_match' => 1, 'indeterminate' => 2][$evaluationKey],
            'processingIndex' => $processingIndex,
            'entitySort' => mb_strtolower($entityName, 'UTF-8'),
+           'entityId' => $rule->entityId,
            'searchText' => mb_strtolower($rule->id . ' ' . $rule->name, 'UTF-8'),
            'limitations' => array_map(fn (string $reason): string => $this->limitation($reason), $rule->limitations),
        ];
@@ -213,7 +224,8 @@ final class InspectionPresenter
    private function labels(): array {
        return [
            'title' => __('Rule inspection', 'clarus'),
-           'description' => __('Current-state diagnostic only. No rule is executed or changed.', 'clarus'),
+           'description' => __('Current-state diagnostic of the last saved Ticket data only. No rule is executed or changed.', 'clarus'),
+           'persistedState' => __('Unsaved form changes are not included in this diagnostic.', 'clarus'),
            'refresh' => __('Refresh inspection', 'clarus'),
            'refreshing' => __('Refreshing inspection...', 'clarus'),
            'evaluated' => __('Evaluated', 'clarus'),
@@ -231,6 +243,7 @@ final class InspectionPresenter
            'grouping' => __('Grouping', 'clarus'),
            'resultFilter' => __('Result filters', 'clarus'),
            'conditionFilter' => __('Condition filters', 'clarus'),
+           'entityFilter' => __('Entity filters', 'clarus'),
            'onadd' => __('On ticket creation (ONADD)', 'clarus'),
            'onupdate' => __('On ticket update (ONUPDATE)', 'clarus'),
            'minimumAdherence' => __('Minimum confirmed adherence', 'clarus'),

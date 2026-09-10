@@ -48,6 +48,8 @@ final class InspectionPresenterTest extends TestCase
        self::assertSame(2, $secondRule['criteriaCount']);
        self::assertSame(0, $secondRule['indeterminateCriteria']);
        self::assertSame(50, $secondRule['adherencePercent']);
+       self::assertSame(1, $secondRule['adherenceNumerator']);
+       self::assertSame(2, $secondRule['adherenceDenominator']);
        self::assertSame('50% (1/2)', $secondRule['adherenceLabel']);
        $evaluationKeys = [];
       foreach ($presentedRules as $presentedRule) {
@@ -74,6 +76,8 @@ final class InspectionPresenterTest extends TestCase
        self::assertIsArray($presented[1]);
        self::assertIsArray($presented[2]);
        self::assertSame('80% (4/5)', $presented[0]['adherenceLabel']);
+       self::assertSame(4, $presented[0]['adherenceNumerator']);
+       self::assertSame(5, $presented[0]['adherenceDenominator']);
        self::assertSame(1, $presented[0]['indeterminateCriteria']);
        self::assertSame(Evaluation::MATCH, $rules[1]->evaluation);
        self::assertSame('33% (1/3)', $presented[1]['adherenceLabel']);

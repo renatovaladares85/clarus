@@ -55,6 +55,17 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bash tools/check-version-bump.sh "$BASE_SHA"
 
+  javascript:
+    name: JavaScript inspection behavior
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Validate syntax and UI behavior
+        run: |
+          node --check js/inspection.js
+          node --test tests-js/inspection.test.js
+
   integration:
     name: GLPI ${{ matrix.glpi-version }} / PHP ${{ matrix.php-version }} / ${{ matrix.db-image }}
     strategy:
@@ -654,6 +665,7 @@ jobs:
     needs:
       - quality
       - version-bump
+      - javascript
       - integration
       - integration-exact
       - rule-ticket-characterization-current

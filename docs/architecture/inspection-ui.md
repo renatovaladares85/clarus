@@ -7,7 +7,8 @@ diagnostic view. It preserves the Inspector engine's three results exactly:
 `MATCH`, `NO_MATCH`, and `INDETERMINATE`. Criterion proportions such as `4/5`
 are explanatory metadata, never a fourth result or a score.
 
-The UI is a current-state diagnostic. It does not call native processing or
+The UI is a current-state diagnostic of the last saved Ticket state. Unsaved
+form changes are not included. It does not call native processing or
 action-execution methods and does not claim that a rule or action ran in the
 past. ONUPDATE criteria use the current safe Ticket snapshot just like ONADD;
 they are indeterminate only when a criterion cannot be evaluated safely, not
@@ -33,10 +34,12 @@ objects and arbitrary structures never reach the template.
 `InspectionRenderer` uses GLPI's `TemplateRenderer` and the `@clarus` Twig
 namespace. Bootstrap and Tabler supplied by GLPI provide the base components.
 Clarus CSS is fully scoped below `.clarus-inspection` or `.clarus-config`.
-Vanilla JavaScript adds search, multi-select result and condition filters, a
+Vanilla JavaScript adds search, multi-select result, condition, and entity filters, a
 display-only adherence threshold, up to three sort levels, grouping,
 presentation-only pagination, and in-place refresh. Filters use OR within each
-group and AND across groups. Sorting has deterministic ranking and ID fallbacks;
+group and AND across groups. Adherence filtering and sorting use the exact
+matching-criteria ratio; whole percentages are display-only. Sorting has
+deterministic ranking and ID fallbacks;
 grouping only adds visual headings and never overrides sort order. All evaluated
 rules remain in the server-rendered result; pagination never changes the engine
 input or output.

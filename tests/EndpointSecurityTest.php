@@ -30,5 +30,13 @@ final class EndpointSecurityTest extends TestCase
        self::assertStringContainsString('$input = $_POST', $source);
        self::assertStringContainsString('Session::checkCSRF($input)', $source);
        self::assertStringContainsString('ClarusConfig::update($input)', $source);
+       self::assertLessThan(
+           strpos($source, "if ((\$_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')"),
+           strpos($source, "Session::checkRight('config', UPDATE)")
+       );
+       self::assertLessThan(
+           strpos($source, 'ClarusConfig::update($input)'),
+           strpos($source, 'Session::checkCSRF($input)')
+       );
    }
 }

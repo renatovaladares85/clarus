@@ -11,6 +11,15 @@
         return Number(rule.dataset[field] || '0');
     }
 
+    function adherenceDenominator(rule) {
+        return Math.max(1, numberValue(rule, 'adherenceDenominator'));
+    }
+
+    function compareAdherence(left, right) {
+        return (numberValue(left, 'adherenceNumerator') * adherenceDenominator(right))
+            - (numberValue(right, 'adherenceNumerator') * adherenceDenominator(left));
+    }
+
     function compareValue(left, right, field) {
         if (['entity', 'name'].includes(field)) {
             return (left.dataset[field] || '').localeCompare(right.dataset[field] || '');
@@ -23,7 +32,55 @@
         if (field === 'result') {
             return numberValue(left, 'evaluationOrder') - numberValue(right, 'evaluationOrder');
         }
+        if (field === 'adherence') {
+            return compareAdherence(left, right);
+        }
         return numberValue(left, field) - numberValue(right, field);
+    }
+
+    function compareRules(left, right, criteria) {
+        for (const criterion of criteria) {
+            const difference = compareValue(left, right, criterion.field);
+            if (difference !== 0) {
+                return criterion.direction === 'desc' ? -difference : difference;
+            }
+        }
+        const rankingDifference = numberValue(left, 'ranking') - numberValue(right, 'ranking');
+        return rankingDifference || numberValue(left, 'id') - numberValue(right, 'id');
+    }
+
+    function matchesFilters(rule, state) {
+        const query = normalize(state.query.trim());
+
+        return state.results.has(rule.dataset.evaluation)
+            && state.conditions.has(rule.dataset.condition)
+            && state.entities.has(rule.dataset.entityId)
+            && (numberValue(rule, 'adherenceNumerator') * 100)
+                >= (state.minimumAdherence * adherenceDenominator(rule))
+            && normalize(rule.dataset.search || '').includes(query);
+    }
+
+    function filterAndSortRules(rules, state, criteria) {
+        return rules.filter((rule) => matchesFilters(rule, state)).sort((left, right) => compareRules(left, right, criteria));
+    }
+
+    function paginate(rules, page, pageSize) {
+        const pageCount = Math.max(1, Math.ceil(rules.length / pageSize));
+        const currentPage = Math.min(page, pageCount);
+        const first = (currentPage - 1) * pageSize;
+
+        return {
+            currentPage,
+            first,
+            last: Math.min(first + pageSize, rules.length),
+            pageCount,
+            rules: rules.slice(first, first + pageSize),
+        };
+    }
+
+    const behavior = {filterAndSortRules, paginate};
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = behavior;
     }
 
     function initialize(container) {
@@ -39,6 +96,7 @@
 
         const state = {
             conditions: new Set(['onadd', 'onupdate']),
+            entities: new Set(),
             group: container.dataset.initialGroup || 'processing',
             minimumAdherence: 0,
             page: 1,
@@ -53,6 +111,7 @@
         const minimumAdherence = container.querySelector('[data-clarus-minimum-adherence]');
         const resultInputs = Array.from(container.querySelectorAll('[data-clarus-result]'));
         const conditionInputs = Array.from(container.querySelectorAll('[data-clarus-condition]'));
+        const entitySelect = container.querySelector('[data-clarus-entity]');
         const sortFields = Array.from(container.querySelectorAll('[data-clarus-sort-field]'));
         const sortDirections = Array.from(container.querySelectorAll('[data-clarus-sort-direction]'));
 
@@ -66,17 +125,6 @@
                 }
                 return criteria;
             }, []);
-        }
-
-        function compareRules(left, right) {
-            for (const criterion of sortCriteria()) {
-                const difference = compareValue(left, right, criterion.field);
-                if (difference !== 0) {
-                    return criterion.direction === 'desc' ? -difference : difference;
-                }
-            }
-            const rankingDifference = numberValue(left, 'ranking') - numberValue(right, 'ranking');
-            return rankingDifference || numberValue(left, 'id') - numberValue(right, 'id');
         }
 
         function groupValue(rule) {
@@ -157,19 +205,12 @@
         }
 
         function apply() {
-            const ordered = [...allRules].sort(compareRules);
-            ordered.forEach((rule) => rulesHost.append(rule));
-            const query = normalize(state.query.trim());
-            const visible = ordered.filter((rule) => state.results.has(rule.dataset.evaluation)
-                && state.conditions.has(rule.dataset.condition)
-                && numberValue(rule, 'adherence') >= state.minimumAdherence
-                && normalize(rule.dataset.search || '').includes(query));
+            const visible = filterAndSortRules(allRules, state, sortCriteria());
+            visible.forEach((rule) => rulesHost.append(rule));
             const visibleSet = new Set(visible);
-            const pageCount = Math.max(1, Math.ceil(visible.length / state.pageSize));
-            state.page = Math.min(state.page, pageCount);
-            const first = (state.page - 1) * state.pageSize;
-            const last = Math.min(first + state.pageSize, visible.length);
-            const pageRules = visible.slice(first, last);
+            const paginationState = paginate(visible, state.page, state.pageSize);
+            state.page = paginationState.currentPage;
+            const {first, last, pageCount, rules: pageRules} = paginationState;
             const pageRuleSet = new Set(pageRules);
 
             allRules.forEach((rule) => {
@@ -192,6 +233,15 @@
             set.clear();
             inputs.filter((input) => input.checked).forEach((input) => set.add(input.value));
         }
+
+        function refreshEntities() {
+            state.entities.clear();
+            if (entitySelect) {
+                Array.from(entitySelect.selectedOptions).forEach((option) => state.entities.add(option.value));
+            }
+        }
+
+        refreshEntities();
 
         if (search) {
             search.addEventListener('input', function () {
@@ -225,6 +275,13 @@
             state.page = 1;
             apply();
         }));
+        if (entitySelect) {
+            entitySelect.addEventListener('change', function () {
+                refreshEntities();
+                state.page = 1;
+                apply();
+            });
+        }
         [...sortFields, ...sortDirections].forEach((input) => input.addEventListener('change', function () {
             state.page = 1;
             apply();
@@ -285,6 +342,10 @@
                 label.textContent = button.dataset.idleLabel;
             }
         }
+    }
+
+    if (typeof document === 'undefined') {
+        return;
     }
 
     document.addEventListener('submit', function (event) {

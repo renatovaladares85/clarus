@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Clarus\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-10 14:08-0300\n"
-"PO-Revision-Date: 2026-09-10 14:08-0300\n"
+"POT-Creation-Date: 2026-09-10 14:49-0300\n"
+"PO-Revision-Date: 2026-09-10 14:49-0300\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: en_GB\n"
@@ -37,61 +37,61 @@ msgstr "The submitted Clarus configuration is invalid."
 msgid "Clarus configuration"
 msgstr "Clarus configuration"
 
-#: front/config.php:48 src/Inspector/InspectionPresenter.php:220
+#: front/config.php:48 src/Inspector/InspectionPresenter.php:242
 msgid "Processing order"
 msgstr "Processing order"
 
 #: front/config.php:49 front/config.php:54
-#: src/Inspector/InspectionPresenter.php:154
-#: src/Inspector/InspectionPresenter.php:221
+#: src/Inspector/InspectionPresenter.php:175
+#: src/Inspector/InspectionPresenter.php:243
 msgid "Result"
 msgstr "Result"
 
 #: front/config.php:50 front/config.php:60
-#: src/Inspector/InspectionPresenter.php:160
-#: src/Inspector/InspectionPresenter.php:222
-#: src/Inspector/InspectionPresenter.php:257
+#: src/Inspector/InspectionPresenter.php:181
+#: src/Inspector/InspectionPresenter.php:244
+#: src/Inspector/InspectionPresenter.php:280
 msgid "Entity"
 msgstr "Entity"
 
-#: front/config.php:55 src/Inspector/InspectionPresenter.php:155
-#: src/Inspector/InspectionPresenter.php:259
+#: front/config.php:55 src/Inspector/InspectionPresenter.php:176
+#: src/Inspector/InspectionPresenter.php:282
 msgid "Confirmed adherence"
 msgstr "Confirmed adherence"
 
-#: front/config.php:56 src/Inspector/InspectionPresenter.php:156
+#: front/config.php:56 src/Inspector/InspectionPresenter.php:177
 msgid "Matching criteria"
 msgstr "Matching criteria"
 
-#: front/config.php:57 src/Inspector/InspectionPresenter.php:157
+#: front/config.php:57 src/Inspector/InspectionPresenter.php:178
 msgid "Configured criteria"
 msgstr "Configured criteria"
 
-#: front/config.php:58 src/Inspector/InspectionPresenter.php:158
-#: src/Inspector/InspectionPresenter.php:260
+#: front/config.php:58 src/Inspector/InspectionPresenter.php:179
+#: src/Inspector/InspectionPresenter.php:283
 msgid "Indeterminate criteria"
 msgstr "Indeterminate criteria"
 
-#: front/config.php:59 src/Inspector/InspectionPresenter.php:159
-#: src/Inspector/InspectionPresenter.php:255
+#: front/config.php:59 src/Inspector/InspectionPresenter.php:180
+#: src/Inspector/InspectionPresenter.php:278
 msgid "Ranking"
 msgstr "Ranking"
 
-#: front/config.php:61 src/Inspector/InspectionPresenter.php:161
-#: src/Inspector/InspectionPresenter.php:256
+#: front/config.php:61 src/Inspector/InspectionPresenter.php:182
+#: src/Inspector/InspectionPresenter.php:279
 msgid "Condition"
 msgstr "Condition"
 
-#: front/config.php:62 src/Inspector/InspectionPresenter.php:162
-#: src/Inspector/InspectionPresenter.php:242
+#: front/config.php:62 src/Inspector/InspectionPresenter.php:183
+#: src/Inspector/InspectionPresenter.php:265
 msgid "Configured actions"
 msgstr "Configured actions"
 
-#: front/config.php:63 src/Inspector/InspectionPresenter.php:163
+#: front/config.php:63 src/Inspector/InspectionPresenter.php:184
 msgid "Rule name"
 msgstr "Rule name"
 
-#: front/config.php:64 src/Inspector/InspectionPresenter.php:164
+#: front/config.php:64 src/Inspector/InspectionPresenter.php:185
 msgid "Rule ID"
 msgstr "Rule ID"
 
@@ -146,322 +146,334 @@ msgstr "Display only. It never changes evaluated or candidate rules."
 msgid "Default sort order"
 msgstr "Default sort order"
 
-#: front/config.php:101 src/Inspector/InspectionPresenter.php:231
+#: front/config.php:101 src/Inspector/InspectionPresenter.php:254
 #, php-format
 msgid "Level %d"
 msgstr "Level %d"
 
-#: front/config.php:102 src/Inspector/InspectionPresenter.php:232
+#: front/config.php:102 src/Inspector/InspectionPresenter.php:255
 msgid "No additional sort"
 msgstr "No additional sort"
 
-#: front/config.php:103 src/Inspector/InspectionPresenter.php:233
+#: front/config.php:103 src/Inspector/InspectionPresenter.php:256
 msgid "Ascending"
 msgstr "Ascending"
 
-#: front/config.php:104 src/Inspector/InspectionPresenter.php:234
+#: front/config.php:104 src/Inspector/InspectionPresenter.php:257
 msgid "Descending"
 msgstr "Descending"
 
 #: src/Inspector/InspectionPresenter.php:33
-#: src/Inspector/InspectionPresenter.php:362
+#: src/Inspector/InspectionPresenter.php:385
 #, php-format
 msgid "Entity #%d"
 msgstr "Entity #%d"
 
-#: src/Inspector/InspectionPresenter.php:109
+#: src/Inspector/InspectionPresenter.php:119
 msgid "Unnamed"
 msgstr "Unnamed"
 
-#: src/Inspector/InspectionPresenter.php:125
+#: src/Inspector/InspectionPresenter.php:137
 msgid "configured actions"
 msgstr "configured actions"
 
-#: src/Inspector/InspectionPresenter.php:126
-#: src/Inspector/InspectionPresenter.php:254
+#: src/Inspector/InspectionPresenter.php:138
+#: src/Inspector/InspectionPresenter.php:277
 msgid "Configured action analysis is disabled."
 msgstr "Configured action analysis is disabled."
 
-#: src/Inspector/InspectionPresenter.php:178
-#: src/Inspector/InspectionPresenter.php:196
-#: src/Inspector/InspectionPresenter.php:382
-#: src/Inspector/InspectionPresenter.php:390
-#: src/Inspector/InspectionPresenter.php:400
-#: src/Inspector/InspectionPresenter.php:407
+#: src/Inspector/InspectionPresenter.php:199
+#: src/Inspector/InspectionPresenter.php:217
+#: src/Inspector/InspectionPresenter.php:405
+#: src/Inspector/InspectionPresenter.php:413
+#: src/Inspector/InspectionPresenter.php:423
+#: src/Inspector/InspectionPresenter.php:430
 msgid "Omitted for safety"
 msgstr "Omitted for safety"
 
-#: src/Inspector/InspectionPresenter.php:182
-#: src/Inspector/InspectionPresenter.php:199
+#: src/Inspector/InspectionPresenter.php:203
+#: src/Inspector/InspectionPresenter.php:220
 msgid "Omitted or unavailable"
 msgstr "Omitted or unavailable"
 
-#: src/Inspector/InspectionPresenter.php:207 src/Profile.php:52
+#: src/Inspector/InspectionPresenter.php:228 src/Profile.php:52
 #: src/TicketTab.php:24
 msgid "Rule inspection"
 msgstr "Rule inspection"
 
-#: src/Inspector/InspectionPresenter.php:208
-msgid "Current-state diagnostic only. No rule is executed or changed."
-msgstr "Current-state diagnostic only. No rule is executed or changed."
+#: src/Inspector/InspectionPresenter.php:229
+msgid ""
+"Current-state diagnostic of the last saved Ticket data only. No rule is "
+"executed or changed."
+msgstr ""
+"Current-state diagnostic of the last saved Ticket data only. No rule is "
+"executed or changed."
 
-#: src/Inspector/InspectionPresenter.php:209
+#: src/Inspector/InspectionPresenter.php:230
+msgid "Unsaved form changes are not included in this diagnostic."
+msgstr "Unsaved form changes are not included in this diagnostic."
+
+#: src/Inspector/InspectionPresenter.php:231
 msgid "Refresh inspection"
 msgstr "Refresh inspection"
 
-#: src/Inspector/InspectionPresenter.php:210
+#: src/Inspector/InspectionPresenter.php:232
 msgid "Refreshing inspection..."
 msgstr "Refreshing inspection..."
 
-#: src/Inspector/InspectionPresenter.php:211
+#: src/Inspector/InspectionPresenter.php:233
 msgid "Evaluated"
 msgstr "Evaluated"
 
-#: src/Inspector/InspectionPresenter.php:212
-#: src/Inspector/InspectionPresenter.php:285
+#: src/Inspector/InspectionPresenter.php:234
+#: src/Inspector/InspectionPresenter.php:308
 msgid "Matches"
 msgstr "Matches"
 
-#: src/Inspector/InspectionPresenter.php:213
+#: src/Inspector/InspectionPresenter.php:235
 msgid "Matching rules"
 msgstr "Matching rules"
 
-#: src/Inspector/InspectionPresenter.php:214
-#: src/Inspector/InspectionPresenter.php:286
+#: src/Inspector/InspectionPresenter.php:236
+#: src/Inspector/InspectionPresenter.php:309
 msgid "Does not match"
 msgstr "Does not match"
 
-#: src/Inspector/InspectionPresenter.php:215
+#: src/Inspector/InspectionPresenter.php:237
 msgid "Non-matching rules"
 msgstr "Non-matching rules"
 
-#: src/Inspector/InspectionPresenter.php:216
-#: src/Inspector/InspectionPresenter.php:287
-#: src/Inspector/InspectionPresenter.php:303
+#: src/Inspector/InspectionPresenter.php:238
+#: src/Inspector/InspectionPresenter.php:310
+#: src/Inspector/InspectionPresenter.php:326
 msgid "Indeterminate"
 msgstr "Indeterminate"
 
-#: src/Inspector/InspectionPresenter.php:217
+#: src/Inspector/InspectionPresenter.php:239
 msgid "Search and filter"
 msgstr "Search and filter"
 
-#: src/Inspector/InspectionPresenter.php:218
+#: src/Inspector/InspectionPresenter.php:240
 msgid "Search by rule name or ID"
 msgstr "Search by rule name or ID"
 
-#: src/Inspector/InspectionPresenter.php:219
+#: src/Inspector/InspectionPresenter.php:241
 msgid "All"
 msgstr "All"
 
-#: src/Inspector/InspectionPresenter.php:223
+#: src/Inspector/InspectionPresenter.php:245
 msgid "Grouping"
 msgstr "Grouping"
 
-#: src/Inspector/InspectionPresenter.php:224
+#: src/Inspector/InspectionPresenter.php:246
 msgid "Result filters"
 msgstr "Result filters"
 
-#: src/Inspector/InspectionPresenter.php:225
+#: src/Inspector/InspectionPresenter.php:247
 msgid "Condition filters"
 msgstr "Condition filters"
 
-#: src/Inspector/InspectionPresenter.php:226
-#: src/Inspector/InspectionPresenter.php:317
+#: src/Inspector/InspectionPresenter.php:248
+msgid "Entity filters"
+msgstr "Entity filters"
+
+#: src/Inspector/InspectionPresenter.php:249
+#: src/Inspector/InspectionPresenter.php:340
 msgid "On ticket creation (ONADD)"
 msgstr "On ticket creation (ONADD)"
 
-#: src/Inspector/InspectionPresenter.php:227
-#: src/Inspector/InspectionPresenter.php:318
+#: src/Inspector/InspectionPresenter.php:250
+#: src/Inspector/InspectionPresenter.php:341
 msgid "On ticket update (ONUPDATE)"
 msgstr "On ticket update (ONUPDATE)"
 
-#: src/Inspector/InspectionPresenter.php:228
+#: src/Inspector/InspectionPresenter.php:251
 msgid "Minimum confirmed adherence"
 msgstr "Minimum confirmed adherence"
 
-#: src/Inspector/InspectionPresenter.php:229
+#: src/Inspector/InspectionPresenter.php:252
 msgid "Display only. It does not change evaluated or candidate rules."
 msgstr "Display only. It does not change evaluated or candidate rules."
 
-#: src/Inspector/InspectionPresenter.php:230
+#: src/Inspector/InspectionPresenter.php:253
 msgid "Sort by"
 msgstr "Sort by"
 
-#: src/Inspector/InspectionPresenter.php:235
+#: src/Inspector/InspectionPresenter.php:258
 msgid "Results"
 msgstr "Results"
 
-#: src/Inspector/InspectionPresenter.php:236
+#: src/Inspector/InspectionPresenter.php:259
 msgid "Criteria"
 msgstr "Criteria"
 
-#: src/Inspector/InspectionPresenter.php:237
+#: src/Inspector/InspectionPresenter.php:260
 msgid "Criterion"
 msgstr "Criterion"
 
-#: src/Inspector/InspectionPresenter.php:238
+#: src/Inspector/InspectionPresenter.php:261
 msgid "Operator"
 msgstr "Operator"
 
-#: src/Inspector/InspectionPresenter.php:239
+#: src/Inspector/InspectionPresenter.php:262
 msgid "Expected"
 msgstr "Expected"
 
-#: src/Inspector/InspectionPresenter.php:240
+#: src/Inspector/InspectionPresenter.php:263
 msgid "Observed"
 msgstr "Observed"
 
-#: src/Inspector/InspectionPresenter.php:241
+#: src/Inspector/InspectionPresenter.php:264
 msgid "Limitation"
 msgstr "Limitation"
 
-#: src/Inspector/InspectionPresenter.php:243
+#: src/Inspector/InspectionPresenter.php:266
 msgid "Action"
 msgstr "Action"
 
-#: src/Inspector/InspectionPresenter.php:244
+#: src/Inspector/InspectionPresenter.php:267
 msgid "Field"
 msgstr "Field"
 
-#: src/Inspector/InspectionPresenter.php:245
+#: src/Inspector/InspectionPresenter.php:268
 msgid "Configured value"
 msgstr "Configured value"
 
-#: src/Inspector/InspectionPresenter.php:246
+#: src/Inspector/InspectionPresenter.php:269
 msgid "Current value"
 msgstr "Current value"
 
-#: src/Inspector/InspectionPresenter.php:247
+#: src/Inspector/InspectionPresenter.php:270
 msgid "Support"
 msgstr "Support"
 
-#: src/Inspector/InspectionPresenter.php:248
+#: src/Inspector/InspectionPresenter.php:271
 msgid "Current-state reflection"
 msgstr "Current-state reflection"
 
-#: src/Inspector/InspectionPresenter.php:249
+#: src/Inspector/InspectionPresenter.php:272
 msgid "No configured action was executed."
 msgstr "No configured action was executed."
 
-#: src/Inspector/InspectionPresenter.php:251
+#: src/Inspector/InspectionPresenter.php:274
 msgid ""
 "Current-state reflection does not prove historical execution or causality."
 msgstr ""
 "Current-state reflection does not prove historical execution or causality."
 
-#: src/Inspector/InspectionPresenter.php:258
+#: src/Inspector/InspectionPresenter.php:281
 msgid "criteria match"
 msgstr "criteria match"
 
-#: src/Inspector/InspectionPresenter.php:261
+#: src/Inspector/InspectionPresenter.php:284
 msgid "Some criteria cannot be evaluated safely using this Ticket snapshot."
 msgstr "Some criteria cannot be evaluated safely using this Ticket snapshot."
 
-#: src/Inspector/InspectionPresenter.php:262
+#: src/Inspector/InspectionPresenter.php:285
 msgid "No rules were found for the enabled conditions."
 msgstr "No rules were found for the enabled conditions."
 
-#: src/Inspector/InspectionPresenter.php:263
+#: src/Inspector/InspectionPresenter.php:286
 msgid "Automatic inspection is disabled. Use Refresh inspection to run it."
 msgstr "Automatic inspection is disabled. Use Refresh inspection to run it."
 
-#: src/Inspector/InspectionPresenter.php:264
+#: src/Inspector/InspectionPresenter.php:287
 msgid "Results were truncated at the configured rule limit."
 msgstr "Results were truncated at the configured rule limit."
 
-#: src/Inspector/InspectionPresenter.php:265 src/TicketTab.php:70
+#: src/Inspector/InspectionPresenter.php:288 src/TicketTab.php:70
 msgid ""
 "The inspection could not be completed. Try again or contact an administrator."
 msgstr ""
 "The inspection could not be completed. Try again or contact an administrator."
 
-#: src/Inspector/InspectionPresenter.php:266
+#: src/Inspector/InspectionPresenter.php:289
 msgid "Showing"
 msgstr "Showing"
 
-#: src/Inspector/InspectionPresenter.php:267
+#: src/Inspector/InspectionPresenter.php:290
 msgid "of"
 msgstr "of"
 
-#: src/Inspector/InspectionPresenter.php:268
+#: src/Inspector/InspectionPresenter.php:291
 msgid "rules"
 msgstr "rules"
 
-#: src/Inspector/InspectionPresenter.php:269
+#: src/Inspector/InspectionPresenter.php:292
 msgid "No rules match the current search and filters."
 msgstr "No rules match the current search and filters."
 
-#: src/Inspector/InspectionPresenter.php:270
+#: src/Inspector/InspectionPresenter.php:293
 msgid "Previous page"
 msgstr "Previous page"
 
-#: src/Inspector/InspectionPresenter.php:271
+#: src/Inspector/InspectionPresenter.php:294
 msgid "Next page"
 msgstr "Next page"
 
-#: src/Inspector/InspectionPresenter.php:301
+#: src/Inspector/InspectionPresenter.php:324
 msgid "Reflected in current state"
 msgstr "Reflected in current state"
 
-#: src/Inspector/InspectionPresenter.php:302
+#: src/Inspector/InspectionPresenter.php:325
 msgid "Not reflected in current state"
 msgstr "Not reflected in current state"
 
-#: src/Inspector/InspectionPresenter.php:309
+#: src/Inspector/InspectionPresenter.php:332
 msgid "Supported"
 msgstr "Supported"
 
-#: src/Inspector/InspectionPresenter.php:310
+#: src/Inspector/InspectionPresenter.php:333
 msgid "Indeterminate by design"
 msgstr "Indeterminate by design"
 
-#: src/Inspector/InspectionPresenter.php:311
+#: src/Inspector/InspectionPresenter.php:334
 msgid "Unsupported"
 msgstr "Unsupported"
 
-#: src/Inspector/InspectionPresenter.php:319
+#: src/Inspector/InspectionPresenter.php:342
 #, php-format
 msgid "Unknown condition (%d)"
 msgstr "Unknown condition (%d)"
 
-#: src/Inspector/InspectionPresenter.php:325
+#: src/Inspector/InspectionPresenter.php:348
 msgid "All criteria (AND)"
 msgstr "All criteria (AND)"
 
-#: src/Inspector/InspectionPresenter.php:326
+#: src/Inspector/InspectionPresenter.php:349
 msgid "Any criterion (OR)"
 msgstr "Any criterion (OR)"
 
-#: src/Inspector/InspectionPresenter.php:327
+#: src/Inspector/InspectionPresenter.php:350
 #, php-format
 msgid "Unknown matching mode (%s)"
 msgstr "Unknown matching mode (%s)"
 
-#: src/Inspector/InspectionPresenter.php:335
+#: src/Inspector/InspectionPresenter.php:358
 #, php-format
 msgid "Unknown criterion (%s)"
 msgstr "Unknown criterion (%s)"
 
-#: src/Inspector/InspectionPresenter.php:341
+#: src/Inspector/InspectionPresenter.php:364
 #, php-format
 msgid "Unknown operator (%d)"
 msgstr "Unknown operator (%d)"
 
-#: src/Inspector/InspectionPresenter.php:347
+#: src/Inspector/InspectionPresenter.php:370
 #, php-format
 msgid "Unknown action (%s)"
 msgstr "Unknown action (%s)"
 
-#: src/Inspector/InspectionPresenter.php:354
+#: src/Inspector/InspectionPresenter.php:377
 #, php-format
 msgid "Unknown field (%s)"
 msgstr "Unknown field (%s)"
 
-#: src/Inspector/InspectionPresenter.php:370
+#: src/Inspector/InspectionPresenter.php:393
 msgid "Not set"
 msgstr "Not set"
 
-#: src/Inspector/InspectionPresenter.php:413
+#: src/Inspector/InspectionPresenter.php:436
 msgid ""
 "This value cannot be reconstructed defensibly from the persisted Ticket "
 "state."
@@ -469,77 +481,77 @@ msgstr ""
 "This value cannot be reconstructed defensibly from the persisted Ticket "
 "state."
 
-#: src/Inspector/InspectionPresenter.php:415
+#: src/Inspector/InspectionPresenter.php:438
 msgid "This criterion is not part of the reconstructable Ticket context."
 msgstr "This criterion is not part of the reconstructable Ticket context."
 
-#: src/Inspector/InspectionPresenter.php:417
+#: src/Inspector/InspectionPresenter.php:440
 msgid "Native RuleTicket criterion evaluation did not return a result."
 msgstr "Native RuleTicket criterion evaluation did not return a result."
 
-#: src/Inspector/InspectionPresenter.php:419
+#: src/Inspector/InspectionPresenter.php:442
 msgid "The rule uses an unsupported native matching mode."
 msgstr "The rule uses an unsupported native matching mode."
 
-#: src/Inspector/InspectionPresenter.php:421
+#: src/Inspector/InspectionPresenter.php:444
 msgid "Native Rule processing rejects rules without criteria."
 msgstr "Native Rule processing rejects rules without criteria."
 
-#: src/Inspector/InspectionPresenter.php:423
+#: src/Inspector/InspectionPresenter.php:446
 msgid "The configured action is invalid and cannot be evaluated."
 msgstr "The configured action is invalid and cannot be evaluated."
 
-#: src/Inspector/InspectionPresenter.php:425
+#: src/Inspector/InspectionPresenter.php:448
 msgid ""
 "The configured action value is invalid for a safe current-state comparison."
 msgstr ""
 "The configured action value is invalid for a safe current-state comparison."
 
-#: src/Inspector/InspectionPresenter.php:427
+#: src/Inspector/InspectionPresenter.php:450
 msgid "The current Ticket value is unavailable for comparison."
 msgstr "The current Ticket value is unavailable for comparison."
 
-#: src/Inspector/InspectionPresenter.php:429
+#: src/Inspector/InspectionPresenter.php:452
 msgid "The current Ticket value is invalid for comparison."
 msgstr "The current Ticket value is invalid for comparison."
 
-#: src/Inspector/InspectionPresenter.php:431
+#: src/Inspector/InspectionPresenter.php:454
 msgid "The action requires runtime input that cannot be reconstructed."
 msgstr "The action requires runtime input that cannot be reconstructed."
 
-#: src/Inspector/InspectionPresenter.php:433
+#: src/Inspector/InspectionPresenter.php:456
 msgid "The regular-expression capture result cannot be reconstructed."
 msgstr "The regular-expression capture result cannot be reconstructed."
 
-#: src/Inspector/InspectionPresenter.php:435
+#: src/Inspector/InspectionPresenter.php:458
 msgid "The historical priority matrix input is unavailable."
 msgstr "The historical priority matrix input is unavailable."
 
-#: src/Inspector/InspectionPresenter.php:437
+#: src/Inspector/InspectionPresenter.php:460
 msgid "The runtime lookup result cannot be reconstructed."
 msgstr "The runtime lookup result cannot be reconstructed."
 
-#: src/Inspector/InspectionPresenter.php:439
+#: src/Inspector/InspectionPresenter.php:462
 msgid "The validation side effect cannot be reconstructed."
 msgstr "The validation side effect cannot be reconstructed."
 
-#: src/Inspector/InspectionPresenter.php:441
+#: src/Inspector/InspectionPresenter.php:464
 msgid "The transient processing state cannot be reconstructed."
 msgstr "The transient processing state cannot be reconstructed."
 
-#: src/Inspector/InspectionPresenter.php:443
+#: src/Inspector/InspectionPresenter.php:466
 msgid "The template execution result cannot be reconstructed."
 msgstr "The template execution result cannot be reconstructed."
 
-#: src/Inspector/InspectionPresenter.php:445
+#: src/Inspector/InspectionPresenter.php:468
 msgid "The special relation semantics are not supported by this inspection."
 msgstr "The special relation semantics are not supported by this inspection."
 
-#: src/Inspector/InspectionPresenter.php:447
+#: src/Inspector/InspectionPresenter.php:470
 msgid "The action semantics are not supported by this inspection."
 msgstr "The action semantics are not supported by this inspection."
 
-#: src/Inspector/InspectionPresenter.php:448
+#: src/Inspector/InspectionPresenter.php:471
 msgid "A diagnostic limitation applies to this item."
 msgstr "A diagnostic limitation applies to this item."
 

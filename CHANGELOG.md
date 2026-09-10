@@ -7,6 +7,10 @@ All notable changes to Clarus are documented in this file.
 - Add confirmed criterion-adherence percentages, indeterminate counts,
   combinable display filters, three-level deterministic sorting, and pagination
   after filtering and ordering to the Ticket inspection UI.
+- Add entity filtering, exact-ratio adherence filtering and ordering, and an
+  explicit last-saved-state notice to the Ticket inspection UI.
+- Add native configuration-right regression coverage and JavaScript UI behavior
+  checks for combined filters, deterministic ordering, and pagination.
 - Add validated `plugin:clarus` defaults for minimum adherence and sort chains,
   and evaluate ONUPDATE criteria from the current safe Ticket snapshot instead
   of treating every update rule as indeterminate.
