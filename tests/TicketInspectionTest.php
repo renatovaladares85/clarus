@@ -76,6 +76,22 @@ final class TicketInspectionTest extends TestCase
       self::assertFalse($results[1]->truncated);
    }
 
+   public function testGlobalBudgetCapsBothConditionsAtOneThousandCandidates(): void {
+      $calls = [];
+      $inspection = new TicketInspection(function (\Ticket $ticket, int $condition, InspectionOptions $options) use (&$calls): InspectionResult {
+         $calls[] = [$condition, $options->ruleLimit];
+
+         return $this->result($ticket, $condition, $options, 700);
+      });
+
+      $results = $inspection->inspect($this->ticket(), $this->settings(1000));
+
+      self::assertSame([[\RuleTicket::ONADD, 1000], [\RuleTicket::ONUPDATE, 300]], $calls);
+      self::assertSame(1400, array_sum(array_map(static fn (InspectionResult $result): int => $result->candidateCount, $results)));
+      self::assertSame(1000, array_sum(array_map(static fn (InspectionResult $result): int => $result->evaluatedCount, $results)));
+      self::assertTrue($results[1]->truncated);
+   }
+
    /** @dataProvider singleConditionProvider */
    public function testSingleEnabledConditionReceivesTheCompleteGlobalBudget(
       bool $includeOnadd,

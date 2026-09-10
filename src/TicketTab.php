@@ -40,7 +40,11 @@ final class TicketTab extends \CommonDBTM
       return true;
    }
 
-   public static function renderInspection(\Ticket $ticket, bool $force = false): string {
+   public static function renderInspection(
+      \Ticket $ticket,
+      bool $force = false,
+      ?TicketInspection $inspection = null
+   ): string {
       if ($ticket->isNewItem() || !Authorization::canInspectTicket($ticket)) {
           return '';
       }
@@ -51,7 +55,7 @@ final class TicketTab extends \CommonDBTM
       $error = null;
       if ($loaded) {
          try {
-            $results = (new TicketInspection())->inspect($ticket, $settings);
+            $results = ($inspection ?? new TicketInspection())->inspect($ticket, $settings);
          } catch (\Throwable $exception) {
              self::logFailure($exception);
              $results = [];

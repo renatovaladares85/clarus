@@ -314,7 +314,7 @@ final class InspectionPresenter
        return match ($evaluation) {
            Evaluation::MATCH => 'PASS',
            Evaluation::NO_MATCH => 'FAIL',
-           Evaluation::INDETERMINATE => 'UNKNOWN',
+           Evaluation::INDETERMINATE => __('Not evaluated', 'clarus'),
        };
    }
 

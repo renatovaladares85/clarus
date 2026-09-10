@@ -108,9 +108,12 @@ class Session
 {
     public static bool $hasRight = false;
 
+    /** @var array<string, bool> */
+    public static array $rights = [];
+
     public static function haveRight(string $module, int $right): bool
     {
-        return self::$hasRight;
+        return self::$rights[$module] ?? self::$hasRight;
     }
 
     public static function getNewCSRFToken(): string

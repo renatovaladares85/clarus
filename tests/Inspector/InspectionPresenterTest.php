@@ -83,6 +83,10 @@ final class InspectionPresenterTest extends TestCase
        self::assertSame('33% (1/3)', $presented[1]['adherenceLabel']);
        self::assertSame('0% (0/0)', $presented[2]['adherenceLabel']);
        self::assertSame('indeterminate', $presented[2]['evaluationKey']);
+       $criteria = $presented[0]['criteria'];
+       self::assertIsArray($criteria);
+       self::assertIsArray($criteria[4]);
+       self::assertSame('Not evaluated', $criteria[4]['state']);
    }
 
    public function testOnlyExplicitlySafeValuesReachTheViewModel(): void {
