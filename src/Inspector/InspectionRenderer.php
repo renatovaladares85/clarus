@@ -25,7 +25,8 @@ final class InspectionRenderer
        string $refreshUrl,
        string $csrfToken,
        bool $loaded = true,
-       ?string $error = null
+       ?string $error = null,
+       bool $canViewSensitiveValues = false
    ): string {
        return TemplateRenderer::getInstance()->render('@clarus/inspection.html.twig', $this->presenter->present(
            $results,
@@ -34,7 +35,8 @@ final class InspectionRenderer
            $refreshUrl,
            $csrfToken,
            $loaded,
-           $error
+           $error,
+           $canViewSensitiveValues
        ));
    }
 }

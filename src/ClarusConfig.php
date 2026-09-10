@@ -132,7 +132,7 @@ final class ClarusConfig
            self::RULE_LIMIT => 1000,
            self::PAGE_SIZE => 25,
            self::INITIAL_GROUP => 'processing',
-           self::MIN_ADHERENCE => 0,
+           self::MIN_ADHERENCE => 80,
            self::INITIAL_SORT => '[{"field":"adherence","direction":"desc"},{"field":"ranking","direction":"asc"}]',
        ];
    }
@@ -167,7 +167,7 @@ final class ClarusConfig
    private static function storedAdherence(mixed $value): int {
        $adherence = self::integer($value);
 
-       return $adherence !== null && $adherence >= 0 && $adherence <= 100 ? $adherence : 0;
+       return $adherence !== null && $adherence >= 0 && $adherence <= 100 ? $adherence : 80;
    }
 
    /** @return list<array{field: string, direction: string}> */

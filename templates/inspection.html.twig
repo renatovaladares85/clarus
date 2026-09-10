@@ -1,4 +1,4 @@
-<section class="clarus-inspection" data-clarus-inspection data-page-size="{{ pageSize }}" data-initial-group="{{ initialGroup }}"
+<section class="clarus-inspection" data-clarus-inspection data-page-size="{{ pageSize }}" data-minimum-adherence="{{ minimumAdherence }}" data-initial-group="{{ initialGroup }}"
          data-label-showing="{{ labels.showing }}" data-label-of="{{ labels.of }}" data-label-rules="{{ labels.rules }}"
          data-label-previous="{{ labels.previous }}" data-label-next="{{ labels.next }}"
          data-label-group-result="{{ labels.groupResult }}" data-label-group-entity="{{ labels.groupEntity }}">
@@ -13,7 +13,7 @@
       <button class="btn btn-primary" type="submit" data-clarus-refresh-button
               data-idle-label="{{ labels.refresh }}" data-busy-label="{{ labels.refreshing }}">
         <i class="ti ti-refresh" aria-hidden="true"></i>
-        <span>{{ labels.refresh }}</span>
+        <span>{% if loaded %}{{ labels.refresh }}{% else %}{{ labels.runInspection }}{% endif %}</span>
       </button>
     </form>
   </div>
@@ -64,33 +64,32 @@
             <option value="entity"{% if initialGroup == 'entity' %} selected{% endif %}>{{ labels.groupEntity }}</option>
           </select>
         </div>
-        <div class="clarus-inspection__control">
-          <label class="form-label" for="clarus-minimum-adherence-{{ ticketId }}">{{ labels.minimumAdherence }}</label>
-          <input class="form-control" id="clarus-minimum-adherence-{{ ticketId }}" type="number" min="0" max="100"
-                 value="{{ minimumAdherence }}" data-clarus-minimum-adherence>
-          <div class="form-hint">{{ labels.minimumAdherenceHint }}</div>
-        </div>
         <fieldset class="clarus-inspection__filters" aria-label="{{ labels.resultFilter }}">
           <legend>{{ labels.resultFilter }}</legend>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="match" checked data-clarus-result><span class="form-check-label">{{ labels.matches }}</span></label>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="no_match" checked data-clarus-result><span class="form-check-label">{{ labels.doesNotMatch }}</span></label>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="indeterminate" checked data-clarus-result><span class="form-check-label">{{ labels.indeterminate }}</span></label>
+          <div class="btn-group" role="group" aria-label="{{ labels.resultFilter }}">
+            <button class="btn btn-outline-secondary" type="button" data-clarus-result-all aria-pressed="true">{{ labels.all }}</button>
+            <button class="btn btn-outline-secondary" type="button" value="match" data-clarus-result aria-pressed="true">{{ labels.matches }}</button>
+            <button class="btn btn-outline-secondary" type="button" value="no_match" data-clarus-result aria-pressed="true">{{ labels.doesNotMatch }}</button>
+            <button class="btn btn-outline-secondary" type="button" value="indeterminate" data-clarus-result aria-pressed="true">{{ labels.indeterminate }}</button>
+          </div>
         </fieldset>
-        <fieldset class="clarus-inspection__filters" aria-label="{{ labels.conditionFilter }}">
-          <legend>{{ labels.conditionFilter }}</legend>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="onadd" checked data-clarus-condition><span class="form-check-label">{{ labels.onadd }}</span></label>
-          <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="onupdate" checked data-clarus-condition><span class="form-check-label">{{ labels.onupdate }}</span></label>
-        </fieldset>
-        <fieldset class="clarus-inspection__filters" aria-label="{{ labels.entityFilter }}">
-          <legend>{{ labels.entityFilter }}</legend>
+        <details class="clarus-inspection__compact-filter">
+          <summary>{{ labels.conditionFilter }}</summary>
+          <select class="form-select" multiple data-clarus-condition aria-label="{{ labels.conditionFilter }}">
+            <option value="onadd" selected>{{ labels.onadd }}</option>
+            <option value="onupdate" selected>{{ labels.onupdate }}</option>
+          </select>
+        </details>
+        <details class="clarus-inspection__compact-filter">
+          <summary>{{ labels.entityFilter }}</summary>
           <select class="form-select" multiple data-clarus-entity aria-label="{{ labels.entityFilter }}">
             {% for entity in entityOptions %}
               <option value="{{ entity.id }}" selected>{{ entity.name }}</option>
             {% endfor %}
           </select>
-        </fieldset>
-        <fieldset class="clarus-inspection__sort" aria-label="{{ labels.sortBy }}">
-          <legend>{{ labels.sortBy }}</legend>
+        </details>
+        <details class="clarus-inspection__sort">
+          <summary>{{ labels.sortBy }}</summary>
           {% for level in initialSort %}
             <div class="clarus-inspection__sort-level">
               <label class="visually-hidden" for="clarus-sort-field-{{ ticketId }}-{{ loop.index }}">{{ labels.sortLevel|format(loop.index) }}</label>
@@ -107,7 +106,7 @@
               </select>
             </div>
           {% endfor %}
-        </fieldset>
+        </details>
       </div>
 
       <div class="clarus-inspection__results-heading">
@@ -161,7 +160,7 @@
                 <div class="clarus-diagnostic-grid clarus-diagnostic-grid--criteria">
                   <div class="clarus-diagnostic-grid__header" aria-hidden="true">
                     <span></span><span>{{ labels.criterion }}</span><span>{{ labels.operator }}</span>
-                    <span>{{ labels.expected }}</span><span>{{ labels.observed }}</span><span>{{ labels.limitation }}</span>
+                    <span>{{ labels.expected }}</span><span>{{ labels.observed }}</span>
                   </div>
                   {% for criterion in rule.criteria %}
                     <div class="clarus-diagnostic-grid__row">
@@ -169,8 +168,10 @@
                       <span data-label="{{ labels.criterion }}">{{ criterion.name }}</span>
                       <span data-label="{{ labels.operator }}">{{ criterion.operator }}</span>
                       <span data-label="{{ labels.expected }}">{{ criterion.expected }}</span>
-                      <span data-label="{{ labels.observed }}">{{ criterion.observed }}</span>
-                      <span data-label="{{ labels.limitation }}" class="text-muted">{{ criterion.limitation ?? '—' }}</span>
+                      <span data-label="{{ labels.observed }}">
+                        {{ criterion.observed }}
+                        {% if criterion.limitation is not null %}<small class="clarus-diagnostic-grid__context text-muted"><i class="ti ti-help-circle" aria-hidden="true"></i>{{ criterion.limitation }}</small>{% endif %}
+                      </span>
                     </div>
                   {% endfor %}
                 </div>
@@ -189,7 +190,6 @@
                     <div class="clarus-diagnostic-grid__header" aria-hidden="true">
                       <span>{{ labels.action }}</span><span>{{ labels.field }}</span><span>{{ labels.configuredValue }}</span>
                       <span>{{ labels.currentValue }}</span><span>{{ labels.support }}</span><span>{{ labels.reflection }}</span>
-                      <span>{{ labels.limitation }}</span>
                     </div>
                     {% for action in rule.actions %}
                       <div class="clarus-diagnostic-grid__row">
@@ -198,8 +198,10 @@
                         <span data-label="{{ labels.configuredValue }}">{{ action.configured }}</span>
                         <span data-label="{{ labels.currentValue }}">{{ action.current }}</span>
                         <span data-label="{{ labels.support }}">{{ action.support }}</span>
-                        <span data-label="{{ labels.reflection }}">{{ action.evaluation }}</span>
-                        <span data-label="{{ labels.limitation }}" class="text-muted">{{ action.limitation ?? '—' }}</span>
+                        <span data-label="{{ labels.reflection }}">
+                          {{ action.evaluation }}
+                          {% if action.limitation is not null %}<small class="clarus-diagnostic-grid__context text-muted"><i class="ti ti-help-circle" aria-hidden="true"></i>{{ action.limitation }}</small>{% endif %}
+                        </span>
                       </div>
                     {% endfor %}
                   </div>

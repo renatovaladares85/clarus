@@ -9,6 +9,7 @@ namespace GlpiPlugin\Clarus;
 final class Profile extends \CommonDBTM
 {
    public const RIGHT_INSPECT = 'plugin_clarus_inspect';
+   public const RIGHT_SHOW_SENSITIVE = 'plugin_clarus_show_sensitive';
 
     /** @var string */
    public static $rightname = 'profile';
@@ -52,19 +53,22 @@ final class Profile extends \CommonDBTM
            'label'    => __('Rule inspection', 'clarus'),
            'field'    => self::RIGHT_INSPECT,
            'rights'   => [READ => __('Read')],
+       ], [
+           'itemtype' => self::class,
+           'label'    => __('Show sensitive information', 'clarus'),
+           'field'    => self::RIGHT_SHOW_SENSITIVE,
+           'rights'   => [READ => __('Read')],
        ]];
    }
 
    public static function registerRights(): bool {
-      if (array_key_exists(self::RIGHT_INSPECT, \ProfileRight::getAllPossibleRights())) {
-          return true;
-      }
+       $missing = array_diff([self::RIGHT_INSPECT, self::RIGHT_SHOW_SENSITIVE], array_keys(\ProfileRight::getAllPossibleRights()));
 
-       return \ProfileRight::addProfileRights([self::RIGHT_INSPECT]);
+       return $missing === [] || \ProfileRight::addProfileRights(array_values($missing));
    }
 
    public static function unregisterRights(): bool {
-       return \ProfileRight::deleteProfileRights([self::RIGHT_INSPECT]);
+       return \ProfileRight::deleteProfileRights([self::RIGHT_INSPECT, self::RIGHT_SHOW_SENSITIVE]);
    }
 
    private static function showForProfile(\Profile $profile): void {

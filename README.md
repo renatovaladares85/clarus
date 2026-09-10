@@ -12,7 +12,7 @@ Ticket being inspected.
 
 ## Development status
 
-`0.4.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
+`0.5.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it does not simulate or record rule execution.
 
 The Phase 3 inspector core can reconstruct persisted and safely derived Ticket
@@ -26,10 +26,10 @@ historical causality.
 The Ticket tab presents ONADD and ONUPDATE diagnostics in one responsive view.
 It evaluates the last saved Ticket state; unsaved form changes are explicitly not included.
 Each card keeps its native semantic result and also shows confirmed adherence as
-`percentage (matching/configured criteria)`; indeterminate criteria remain in
+`percentage (matching/configured criteria)`; not evaluated criteria remain in
 the denominator and are identified separately. An OR rule can therefore match
-with low adherence. Search, multi-select result, condition, and entity filters, a
-display-only minimum-adherence threshold, three-level sorting, grouping, and
+with low adherence. Search, segmented result controls, compact condition and entity
+pickers, configured minimum adherence, three-level sorting, grouping, and
 pagination act only on the already evaluated cards. Expected, observed,
 configured, and current values are shown only when the backend has explicitly
 classified them as presentation-safe.
@@ -56,6 +56,10 @@ Inspection requires both native GLPI access to the specific Ticket and the
 `plugin_clarus_inspect` Profile right with the `READ` mask. It is denied by
 default, including for Super-Admin, until explicitly granted. A matching rule
 is not evidence that the rule executed historically.
+
+`plugin_clarus_show_sensitive` is a separate `READ` right, denied by default.
+It can expose diagnostic values only after server-side authorization; it never
+grants access to a Ticket or weakens output escaping.
 
 ## Development checks
 

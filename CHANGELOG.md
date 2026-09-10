@@ -4,6 +4,10 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Add a separate, deny-by-default sensitive inspection-content Profile right,
+  a global ONADD/ONUPDATE evaluation budget, manual inspection loading, and
+  clarified non-evaluated rule terminology.
+
 - Add confirmed criterion-adherence percentages, indeterminate counts,
   combinable display filters, three-level deterministic sorting, and pagination
   after filtering and ordering to the Ticket inspection UI.

@@ -47,7 +47,8 @@ final class InspectionPresenter
        string $refreshUrl,
        string $csrfToken,
        bool $loaded,
-       ?string $error = null
+       ?string $error = null,
+       bool $canViewSensitiveValues = false
    ): array {
        $rules = [];
        $candidateCount = 0;
@@ -62,7 +63,7 @@ final class InspectionPresenter
           $evaluatedCount += $result->evaluatedCount;
           $truncated = $truncated || $result->truncated;
          foreach ($result->rules as $rule) {
-             $rules[] = $this->rule($rule, $processingIndex++, $actionsEnabled);
+             $rules[] = $this->rule($rule, $processingIndex++, $actionsEnabled, $canViewSensitiveValues);
              $entityOptions[$rule->entityId] = [
                  'id' => $rule->entityId,
                  'name' => $this->entityName($rule->entityId),
@@ -95,8 +96,8 @@ final class InspectionPresenter
    }
 
    /** @return array<string, mixed> */
-   private function rule(RuleInspection $rule, int $processingIndex, bool $actionsEnabled): array {
-       $criteria = array_map(fn (CriterionInspection $criterion): array => $this->criterion($criterion), $rule->criteria);
+   private function rule(RuleInspection $rule, int $processingIndex, bool $actionsEnabled, bool $canViewSensitiveValues): array {
+       $criteria = array_map(fn (CriterionInspection $criterion): array => $this->criterion($criterion, $canViewSensitiveValues), $rule->criteria);
        $matchingCriteria = count(array_filter(
            $rule->criteria,
            static fn (CriterionInspection $criterion): bool => $criterion->evaluation === Evaluation::MATCH
@@ -129,7 +130,7 @@ final class InspectionPresenter
            'adherenceDenominator' => $criteriaCount,
            'adherencePercent' => $adherencePercent,
            'adherenceLabel' => sprintf('%d%% (%d/%d)', $adherencePercent, $matchingCriteria, $criteriaCount),
-           'actions' => array_map(fn (ActionInspection $action): array => $this->action($action), $rule->actions),
+           'actions' => array_map(fn (ActionInspection $action): array => $this->action($action, $canViewSensitiveValues), $rule->actions),
            'actionCount' => count($rule->actions),
            'actionSummary' => $actionsEnabled
                ? sprintf('%d %s', count($rule->actions), __('configured actions', 'clarus'))
@@ -174,7 +175,7 @@ final class InspectionPresenter
            'adherence' => __('Confirmed adherence', 'clarus'),
            'matches' => __('Matching criteria', 'clarus'),
            'criteria' => __('Configured criteria', 'clarus'),
-           'indeterminate' => __('Indeterminate criteria', 'clarus'),
+           'indeterminate' => __('Not evaluated criteria', 'clarus'),
            'ranking' => __('Ranking', 'clarus'),
            'entity' => __('Entity', 'clarus'),
            'condition' => __('Condition', 'clarus'),
@@ -185,37 +186,37 @@ final class InspectionPresenter
    }
 
    /** @return array<string, mixed> */
-   private function criterion(CriterionInspection $criterion): array {
+   private function criterion(CriterionInspection $criterion, bool $canViewSensitiveValues): array {
        return [
            'name' => $this->criterionName($criterion->key),
            'operator' => $this->operator($criterion->operator, $criterion->key),
            'state' => $this->criterionState($criterion->evaluation),
            'evaluationKey' => $this->evaluationKey($criterion->evaluation),
            'expected' => $criterion->expectedValuePresentationSafe
-               && TicketContextBuilder::isPresentationSafeKey($criterion->key)
+               && (TicketContextBuilder::isPresentationSafeKey($criterion->key) || $canViewSensitiveValues)
                ? $this->safeValue($criterion->pattern)
-               : __('Omitted for safety', 'clarus'),
+               : __('Hidden for safety', 'clarus'),
            'observed' => $criterion->hasObservedValue
-               && TicketContextBuilder::isPresentationSafeKey($criterion->key)
+               && (TicketContextBuilder::isPresentationSafeKey($criterion->key) || $canViewSensitiveValues)
                ? $this->safeValue($criterion->observedValue)
-               : __('Omitted or unavailable', 'clarus'),
+               : __('Hidden or unavailable', 'clarus'),
            'limitation' => $criterion->reason === null ? null : $this->limitation($criterion->reason),
        ];
    }
 
    /** @return array<string, mixed> */
-   private function action(ActionInspection $action): array {
+   private function action(ActionInspection $action, bool $canViewSensitiveValues): array {
        return [
            'type' => $this->actionType($action->actionType),
            'field' => $this->actionField($action->field),
            'support' => $this->actionSupport($action->support),
            'evaluation' => $this->actionEvaluation($action->evaluation),
-           'configured' => $action->configuredValuePresentationSafe
+           'configured' => $action->configuredValuePresentationSafe && $canViewSensitiveValues
                ? $this->safeActionValue($action->configuredValue)
-               : __('Omitted for safety', 'clarus'),
-           'current' => $action->currentValuePresentationSafe
+               : __('Hidden for safety', 'clarus'),
+           'current' => $action->currentValuePresentationSafe && $canViewSensitiveValues
                ? $this->safeActionValue($action->currentValue)
-               : __('Omitted or unavailable', 'clarus'),
+               : __('Hidden or unavailable', 'clarus'),
            'limitation' => $action->reason === null ? null : $this->limitation($action->reason),
        ];
    }
@@ -227,13 +228,14 @@ final class InspectionPresenter
            'description' => __('Current-state diagnostic of the last saved Ticket data only. No rule is executed or changed.', 'clarus'),
            'persistedState' => __('Unsaved form changes are not included in this diagnostic.', 'clarus'),
            'refresh' => __('Refresh inspection', 'clarus'),
+           'runInspection' => __('Run inspection', 'clarus'),
            'refreshing' => __('Refreshing inspection...', 'clarus'),
            'evaluated' => __('Evaluated', 'clarus'),
            'matches' => __('Matches', 'clarus'),
            'matchingRules' => __('Matching rules', 'clarus'),
            'doesNotMatch' => __('Does not match', 'clarus'),
            'nonMatchingRules' => __('Non-matching rules', 'clarus'),
-           'indeterminate' => __('Indeterminate', 'clarus'),
+           'indeterminate' => __('Not evaluated', 'clarus'),
            'searchAndFilter' => __('Search and filter', 'clarus'),
            'searchPlaceholder' => __('Search by rule name or ID', 'clarus'),
            'all' => __('All', 'clarus'),
@@ -247,7 +249,7 @@ final class InspectionPresenter
            'onadd' => __('On ticket creation (ONADD)', 'clarus'),
            'onupdate' => __('On ticket update (ONUPDATE)', 'clarus'),
            'minimumAdherence' => __('Minimum confirmed adherence', 'clarus'),
-           'minimumAdherenceHint' => __('Display only. It does not change evaluated or candidate rules.', 'clarus'),
+           'minimumAdherenceHint' => __('Enter a value from 0% to 100%. For example: 80%.', 'clarus'),
            'sortBy' => __('Sort by', 'clarus'),
            'sortLevel' => __('Level %d', 'clarus'),
            'noSort' => __('No additional sort', 'clarus'),
@@ -259,7 +261,6 @@ final class InspectionPresenter
            'operator' => __('Operator', 'clarus'),
            'expected' => __('Expected', 'clarus'),
            'observed' => __('Observed', 'clarus'),
-           'limitation' => __('Limitation', 'clarus'),
            'configuredActions' => __('Configured actions', 'clarus'),
            'action' => __('Action', 'clarus'),
            'field' => __('Field', 'clarus'),
@@ -278,10 +279,10 @@ final class InspectionPresenter
            'entity' => __('Entity', 'clarus'),
            'criteriaMatch' => __('criteria match', 'clarus'),
            'confirmedAdherence' => __('Confirmed adherence', 'clarus'),
-           'indeterminateCriteria' => __('Indeterminate criteria', 'clarus'),
-           'cannotSafelyEvaluate' => __('Some criteria cannot be evaluated safely using this Ticket snapshot.', 'clarus'),
+           'indeterminateCriteria' => __('Not evaluated criteria', 'clarus'),
+           'cannotSafelyEvaluate' => __('Clarus could not evaluate one or more criteria safely using the data available in the Ticket.', 'clarus'),
            'empty' => __('No rules were found for the enabled conditions.', 'clarus'),
-           'notLoaded' => __('Automatic inspection is disabled. Use Refresh inspection to run it.', 'clarus'),
+           'notLoaded' => __('Automatic inspection is disabled. Run an inspection to load current results.', 'clarus'),
            'truncated' => __('Results were truncated at the configured rule limit.', 'clarus'),
            'technicalError' => __('The inspection could not be completed. Try again or contact an administrator.', 'clarus'),
            'showing' => __('Showing', 'clarus'),
@@ -305,7 +306,7 @@ final class InspectionPresenter
        return match ($evaluation) {
            Evaluation::MATCH => __('Matches', 'clarus'),
            Evaluation::NO_MATCH => __('Does not match', 'clarus'),
-           Evaluation::INDETERMINATE => __('Indeterminate', 'clarus'),
+           Evaluation::INDETERMINATE => __('Not evaluated', 'clarus'),
        };
    }
 
@@ -313,7 +314,7 @@ final class InspectionPresenter
        return match ($evaluation) {
            Evaluation::MATCH => 'PASS',
            Evaluation::NO_MATCH => 'FAIL',
-           Evaluation::INDETERMINATE => 'UNKNOWN',
+           Evaluation::INDETERMINATE => __('Not evaluated', 'clarus'),
        };
    }
 

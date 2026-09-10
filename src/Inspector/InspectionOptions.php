@@ -14,8 +14,8 @@ final class InspectionOptions
         public readonly int $ruleLimit = self::DEFAULT_LIMIT,
         public readonly bool $includeActions = false
     ) {
-      if ($ruleLimit < 1) {
-          throw new \InvalidArgumentException('Rule inspection limit must be a positive integer.');
+      if ($ruleLimit < 0) {
+          throw new \InvalidArgumentException('Rule inspection limit must not be negative.');
       }
    }
 }

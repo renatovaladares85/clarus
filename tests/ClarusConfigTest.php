@@ -34,7 +34,7 @@ final class ClarusConfigTest extends TestCase
        self::assertSame(50, ClarusConfig::get()[ClarusConfig::PAGE_SIZE]);
        self::assertSame('preserved', \Config::$values[ClarusConfig::CONTEXT]['unrelated_key']);
        self::assertTrue(ClarusConfig::get()[ClarusConfig::INCLUDE_ACTIONS]);
-       self::assertSame(0, ClarusConfig::get()[ClarusConfig::MIN_ADHERENCE]);
+       self::assertSame(80, ClarusConfig::get()[ClarusConfig::MIN_ADHERENCE]);
        self::assertSame([
            ['field' => 'adherence', 'direction' => 'desc'],
            ['field' => 'ranking', 'direction' => 'asc'],
@@ -165,7 +165,7 @@ final class ClarusConfigTest extends TestCase
        self::assertStringContainsString('name="_glpi_csrf_token" value="csrf-token"', $html);
        self::assertStringContainsString('name="inspection_rule_limit" value="1000"', $html);
        self::assertStringContainsString('name="inspection_page_size"', $html);
-       self::assertStringContainsString('name="inspection_min_adherence" value="0"', $html);
+       self::assertStringContainsString('name="inspection_min_adherence" value="80"', $html);
        self::assertStringContainsString('name="inspection_sort_1_field"', $html);
        self::assertStringNotContainsString('Module active', $html);
    }
@@ -183,7 +183,7 @@ final class ClarusConfigTest extends TestCase
            ClarusConfig::RULE_LIMIT => '1000',
            ClarusConfig::PAGE_SIZE => '25',
            ClarusConfig::INITIAL_GROUP => 'processing',
-           ClarusConfig::MIN_ADHERENCE => '0',
+           ClarusConfig::MIN_ADHERENCE => '80',
            'inspection_sort_1_field' => 'adherence',
            'inspection_sort_1_direction' => 'desc',
            'inspection_sort_2_field' => 'ranking',

@@ -14,8 +14,13 @@ past. ONUPDATE criteria use the current safe Ticket snapshot just like ONADD;
 they are indeterminate only when a criterion cannot be evaluated safely, not
 merely because an original update change set is unavailable.
 
+The configured rule limit is a single deterministic budget for the complete
+inspection: ONADD consumes it first and ONUPDATE receives the remainder. This
+keeps evaluated results at or below the configured maximum while candidate
+counts and truncation still report rules outside that budget.
+
 Confirmed adherence is a presentation metric: matching criteria divided by all
-configured criteria, rounded to a whole percentage. Indeterminate criteria stay
+configured criteria, rounded to a whole percentage. Not evaluated criteria stay
 in the denominator and are also counted separately. It never replaces the
 three-state engine result; in particular, an OR rule can be `MATCH` with a low
 adherence percentage. Rules without criteria show `0% (0/0)` and retain their
@@ -24,18 +29,19 @@ engine `INDETERMINATE` result.
 ## Rendering and presentation safety
 
 `InspectionPresenter` converts immutable Inspector DTOs into a view model before
-Twig receives them. Rule metadata and translated labels are escaped by Twig.
-Criterion values require both the Inspector safety flag and an explicit central
-allowlist of reviewed Ticket fields. New or unknown criterion keys are denied
-by default. Action values require the analyzer safety flag and a supported
-numeric representation. Other values are replaced by neutral omission text;
-objects and arbitrary structures never reach the template.
+Twig receives it. Rule metadata and translated labels are escaped by Twig.
+Potentially sensitive expected, observed, and configured-action values are
+omitted unless the active profile has `plugin_clarus_show_sensitive` with
+`READ`; the Inspector safety flags are still required. New or unknown criterion
+keys remain denied by default. Objects and arbitrary structures never reach the
+template.
 
 `InspectionRenderer` uses GLPI's `TemplateRenderer` and the `@clarus` Twig
 namespace. Bootstrap and Tabler supplied by GLPI provide the base components.
 Clarus CSS is fully scoped below `.clarus-inspection` or `.clarus-config`.
-Vanilla JavaScript adds search, multi-select result, condition, and entity filters, a
-display-only adherence threshold, up to three sort levels, grouping,
+Vanilla JavaScript adds search, segmented result controls, compact condition and entity
+pickers, the configured adherence threshold, up to three sort levels in a collapsed
+editor, grouping,
 presentation-only pagination, and in-place refresh. Filters use OR within each
 group and AND across groups. Adherence filtering and sorting use the exact
 matching-criteria ratio; whole percentages are display-only. Sorting has

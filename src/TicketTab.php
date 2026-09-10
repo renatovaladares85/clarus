@@ -6,9 +6,7 @@ declare(strict_types=1);
 
 namespace GlpiPlugin\Clarus;
 
-use GlpiPlugin\Clarus\Inspector\InspectionOptions;
 use GlpiPlugin\Clarus\Inspector\InspectionRenderer;
-use GlpiPlugin\Clarus\Inspector\RuleTicketInspector;
 
 final class TicketTab extends \CommonDBTM
 {
@@ -42,28 +40,22 @@ final class TicketTab extends \CommonDBTM
       return true;
    }
 
-   public static function renderInspection(\Ticket $ticket, bool $force = false): string {
+   public static function renderInspection(
+      \Ticket $ticket,
+      bool $force = false,
+      ?TicketInspection $inspection = null
+   ): string {
       if ($ticket->isNewItem() || !Authorization::canInspectTicket($ticket)) {
           return '';
       }
 
-       $settings = ClarusConfig::get();
-       $loaded = $force || $settings[ClarusConfig::AUTO_INSPECTION];
-       $results = [];
-       $error = null;
+      $settings = ClarusConfig::get();
+      $loaded = $force || $settings[ClarusConfig::AUTO_INSPECTION];
+      $results = [];
+      $error = null;
       if ($loaded) {
          try {
-             $options = new InspectionOptions(
-                 $settings[ClarusConfig::RULE_LIMIT],
-                 $settings[ClarusConfig::INCLUDE_ACTIONS]
-             );
-             $inspector = new RuleTicketInspector();
-            if ($settings[ClarusConfig::INCLUDE_ONADD]) {
-                $results[] = $inspector->inspect($ticket, \RuleTicket::ONADD, $options);
-            }
-            if ($settings[ClarusConfig::INCLUDE_ONUPDATE]) {
-                $results[] = $inspector->inspect($ticket, \RuleTicket::ONUPDATE, $options);
-            }
+            $results = ($inspection ?? new TicketInspection())->inspect($ticket, $settings);
          } catch (\Throwable $exception) {
              self::logFailure($exception);
              $results = [];
@@ -82,7 +74,8 @@ final class TicketTab extends \CommonDBTM
            $refreshUrl,
            \Session::getNewCSRFToken(),
            $loaded,
-           $error
+           $error,
+           Authorization::canViewSensitiveInspectionValues()
        );
    }
 

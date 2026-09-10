@@ -35,9 +35,8 @@ final class ActionInspectionTest extends TestCase
        );
    }
 
-   public function testUnsafeValuesCannotBeExposed(): void {
-       $this->expectException(\InvalidArgumentException::class);
-       new ActionInspection(
+   public function testSensitiveValuesCanRemainInternalUntilPresentation(): void {
+       $inspection = new ActionInspection(
            1,
            'assign',
            'plugin_field',
@@ -47,5 +46,6 @@ final class ActionInspectionTest extends TestCase
            false,
            'secret'
        );
+       self::assertSame('secret', $inspection->configuredValue);
    }
 }

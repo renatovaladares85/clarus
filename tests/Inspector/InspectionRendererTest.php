@@ -81,7 +81,7 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('Current-state diagnostic of the last saved Ticket data only', $html);
       self::assertStringContainsString('Unsaved form changes are not included in this diagnostic.', $html);
       self::assertStringContainsString('On ticket update (ONUPDATE)', $html);
-      self::assertStringContainsString('Indeterminate', $html);
+      self::assertStringContainsString('Not evaluated', $html);
       self::assertStringContainsString('Reflected in current state', $html);
       self::assertStringContainsString('Results were truncated', $html);
       self::assertStringContainsString('class="clarus-rule card"', $html);
@@ -89,12 +89,19 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('data-adherence-numerator="0"', $html);
       self::assertStringContainsString('data-adherence-denominator="1"', $html);
       self::assertStringContainsString('0% (0/1)', $html);
-      self::assertStringContainsString('data-clarus-minimum-adherence', $html);
+      self::assertStringNotContainsString('data-clarus-minimum-adherence', $html);
       self::assertStringContainsString('data-clarus-result', $html);
+      self::assertStringContainsString('data-clarus-result-all', $html);
       self::assertStringContainsString('data-clarus-condition', $html);
       self::assertStringContainsString('data-clarus-entity', $html);
       self::assertStringContainsString('data-clarus-sort-field', $html);
-      self::assertStringContainsString('Some criteria cannot be evaluated safely using this Ticket snapshot.', $html);
+      self::assertStringContainsString('<details class="clarus-inspection__compact-filter">', $html);
+      self::assertStringContainsString('<details class="clarus-inspection__sort">', $html);
+      self::assertStringNotContainsString('<fieldset class="clarus-inspection__sort"', $html);
+      self::assertStringContainsString('Clarus could not evaluate one or more criteria safely using the data available in the Ticket.', $html);
+      self::assertStringContainsString('clarus-diagnostic-grid__context', $html);
+      self::assertStringNotContainsString('>Limitation<', $html);
+      self::assertStringNotContainsString('data-label="Limitation"', $html);
       self::assertStringNotContainsString('\\"', $html);
       self::assertStringContainsString('&lt;rule&gt;', $html);
       self::assertStringNotContainsString('secret-pattern', $html);
@@ -104,6 +111,48 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('No configured action was executed', $html);
       self::assertStringNotContainsString('PARTIAL_MATCH', $html);
       self::assertStringNotContainsString('Partial', $html);
+   }
+
+   public function testNewServerRenderAfterSensitiveAccessIsRevokedExcludesValues(): void {
+      $criterion = new CriterionInspection(
+         'content',
+         2,
+         'secret-pattern',
+         Evaluation::MATCH,
+         null,
+         true,
+         'secret-observed-value',
+         true
+      );
+      $rule = new RuleInspection(7, 'Rule', \RuleTicket::ONADD, 0, false, 1, 'AND', [$criterion], Evaluation::MATCH);
+      $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 1, 1, false, [$rule]);
+      $renderer = new InspectionRenderer();
+
+      $authorized = $renderer->render(
+         [$result],
+         ClarusConfig::defaults(),
+         12,
+         '/plugins/clarus/ajax/inspection.php',
+         'csrf-token',
+         true,
+         null,
+         true
+      );
+      $afterRevocation = $renderer->render(
+         [$result],
+         ClarusConfig::defaults(),
+         12,
+         '/plugins/clarus/ajax/inspection.php',
+         'csrf-token',
+         true,
+         null,
+         false
+      );
+
+      self::assertStringContainsString('secret-pattern', $authorized);
+      self::assertStringContainsString('secret-observed-value', $authorized);
+      self::assertStringNotContainsString('secret-pattern', $afterRevocation);
+      self::assertStringNotContainsString('secret-observed-value', $afterRevocation);
    }
 
    public function testRendersClarusOwnedLabelsThroughTheGettextDomain(): void {

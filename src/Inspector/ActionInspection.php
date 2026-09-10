@@ -29,11 +29,5 @@ final class ActionInspection
       if ($evaluation !== ActionEvaluation::INDETERMINATE && $reason !== null) {
           throw new \InvalidArgumentException('Determinate action evaluation cannot have a reason.');
       }
-      if (!$configuredValuePresentationSafe && $configuredValue !== null) {
-          throw new \InvalidArgumentException('Unsafe configured values cannot be exposed.');
-      }
-      if (!$currentValuePresentationSafe && $currentValue !== null) {
-          throw new \InvalidArgumentException('Unsafe current values cannot be exposed.');
-      }
    }
 }
