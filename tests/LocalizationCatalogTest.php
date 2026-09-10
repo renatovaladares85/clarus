@@ -27,6 +27,7 @@ final class LocalizationCatalogTest extends TestCase
       self::assertStringContainsString('msgstr "Atualizar inspeção"', $ptBr);
       self::assertStringContainsString('msgstr "Não corresponde"', $ptBr);
       self::assertStringContainsString('msgstr "Aderência confirmada"', $ptBr);
+      self::assertStringContainsString('msgstr "Critérios não avaliados"', $ptBr);
       self::assertStringContainsString('msgstr "Filtros de resultado"', $ptBr);
       self::assertStringContainsString('msgstr "Filtros de entidade"', $ptBr);
    }

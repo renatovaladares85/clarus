@@ -55,7 +55,7 @@ TemplateRenderer::getInstance()->display('@clarus/config.html.twig', [
         'adherence' => __('Confirmed adherence', 'clarus'),
         'matches' => __('Matching criteria', 'clarus'),
         'criteria' => __('Configured criteria', 'clarus'),
-        'indeterminate' => __('Indeterminate criteria', 'clarus'),
+        'indeterminate' => __('Not evaluated criteria', 'clarus'),
         'ranking' => __('Ranking', 'clarus'),
         'entity' => __('Entity', 'clarus'),
         'condition' => __('Condition', 'clarus'),

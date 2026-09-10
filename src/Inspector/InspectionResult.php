@@ -22,7 +22,7 @@ final class InspectionResult
         public readonly array $rules,
         public readonly array $limitations = []
     ) {
-      if ($configuredLimit < 1 || $candidateCount < 0 || $evaluatedCount < 0) {
+      if ($configuredLimit < 0 || $candidateCount < 0 || $evaluatedCount < 0) {
           throw new \InvalidArgumentException('Inspection result counts and limit must be valid.');
       }
       if ($evaluatedCount > $candidateCount || $evaluatedCount !== count($rules)) {

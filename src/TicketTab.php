@@ -6,9 +6,7 @@ declare(strict_types=1);
 
 namespace GlpiPlugin\Clarus;
 
-use GlpiPlugin\Clarus\Inspector\InspectionOptions;
 use GlpiPlugin\Clarus\Inspector\InspectionRenderer;
-use GlpiPlugin\Clarus\Inspector\RuleTicketInspector;
 
 final class TicketTab extends \CommonDBTM
 {
@@ -47,22 +45,13 @@ final class TicketTab extends \CommonDBTM
           return '';
       }
 
-       $settings = ClarusConfig::get();
-       $loaded = $force || $settings[ClarusConfig::AUTO_INSPECTION];
-       $results = [];
-       $error = null;
+      $settings = ClarusConfig::get();
+      $loaded = $force || $settings[ClarusConfig::AUTO_INSPECTION];
+      $results = [];
+      $error = null;
       if ($loaded) {
          try {
-             $remaining = $settings[ClarusConfig::RULE_LIMIT];
-             $inspector = new RuleTicketInspector();
-            if ($settings[ClarusConfig::INCLUDE_ONADD]) {
-                $result = $inspector->inspect($ticket, \RuleTicket::ONADD, new InspectionOptions($remaining, $settings[ClarusConfig::INCLUDE_ACTIONS]));
-                $results[] = $result;
-                $remaining -= $result->evaluatedCount;
-            }
-            if ($settings[ClarusConfig::INCLUDE_ONUPDATE]) {
-                $results[] = $inspector->inspect($ticket, \RuleTicket::ONUPDATE, new InspectionOptions($remaining, $settings[ClarusConfig::INCLUDE_ACTIONS]));
-            }
+            $results = (new TicketInspection())->inspect($ticket, $settings);
          } catch (\Throwable $exception) {
              self::logFailure($exception);
              $results = [];

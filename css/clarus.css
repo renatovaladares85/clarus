@@ -64,20 +64,53 @@
     padding: 0;
 }
 
-.clarus-inspection__filters legend,
-.clarus-inspection__sort legend {
+.clarus-inspection__compact-filter,
+.clarus-inspection__sort {
+    margin: 0;
+    min-width: 0;
+}
+
+.clarus-inspection__compact-filter summary,
+.clarus-inspection__sort summary {
+    color: var(--tblr-secondary-color);
+    cursor: pointer;
     float: none;
     font-size: .875rem;
-    margin: 0 0 .25rem;
-    width: auto;
+    font-weight: 600;
+    list-style: none;
+}
+
+.clarus-inspection__compact-filter summary::-webkit-details-marker,
+.clarus-inspection__sort summary::-webkit-details-marker {
+    display: none;
+}
+
+.clarus-inspection__compact-filter summary::after,
+.clarus-inspection__sort summary::after {
+    content: "⌄";
+    display: inline-block;
+    margin-left: .35rem;
+    transition: transform .2s ease;
+}
+
+.clarus-inspection__compact-filter[open] summary,
+.clarus-inspection__sort[open] summary {
+    margin-bottom: .5rem;
+}
+
+.clarus-inspection__compact-filter[open] summary::after,
+.clarus-inspection__sort[open] summary::after {
+    transform: rotate(180deg);
+}
+
+.clarus-inspection__compact-filter .form-select {
+    max-height: 10rem;
 }
 
 .clarus-inspection__sort {
     display: grid;
     gap: .5rem;
     grid-column: 1 / -1;
-    margin: 0;
-    padding: 0;
 }
 
 .clarus-inspection__sort-level {
@@ -216,12 +249,12 @@
 
 .clarus-diagnostic-grid--criteria .clarus-diagnostic-grid__header,
 .clarus-diagnostic-grid--criteria .clarus-diagnostic-grid__row {
-    grid-template-columns: 4.5rem 1.2fr 1fr 1fr 1fr 1.4fr;
+    grid-template-columns: 4.5rem 1.2fr 1fr 1fr 1.4fr;
 }
 
 .clarus-diagnostic-grid--actions .clarus-diagnostic-grid__header,
 .clarus-diagnostic-grid--actions .clarus-diagnostic-grid__row {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .clarus-diagnostic-grid__header {
@@ -233,6 +266,15 @@
 .clarus-diagnostic-grid__row {
     border-top: 1px solid var(--tblr-border-color);
     font-size: .75rem;
+}
+
+.clarus-diagnostic-grid__context {
+    display: block;
+    margin-top: .35rem;
+}
+
+.clarus-diagnostic-grid__context .ti {
+    margin-right: .25rem;
 }
 
 .clarus-criterion-state {

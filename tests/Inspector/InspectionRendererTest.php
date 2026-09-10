@@ -95,7 +95,13 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('data-clarus-condition', $html);
       self::assertStringContainsString('data-clarus-entity', $html);
       self::assertStringContainsString('data-clarus-sort-field', $html);
+      self::assertStringContainsString('<details class="clarus-inspection__compact-filter">', $html);
+      self::assertStringContainsString('<details class="clarus-inspection__sort">', $html);
+      self::assertStringNotContainsString('<fieldset class="clarus-inspection__sort"', $html);
       self::assertStringContainsString('Clarus could not evaluate one or more criteria safely using the data available in the Ticket.', $html);
+      self::assertStringContainsString('clarus-diagnostic-grid__context', $html);
+      self::assertStringNotContainsString('>Limitation<', $html);
+      self::assertStringNotContainsString('data-label="Limitation"', $html);
       self::assertStringNotContainsString('\\"', $html);
       self::assertStringContainsString('&lt;rule&gt;', $html);
       self::assertStringNotContainsString('secret-pattern', $html);
@@ -105,6 +111,48 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('No configured action was executed', $html);
       self::assertStringNotContainsString('PARTIAL_MATCH', $html);
       self::assertStringNotContainsString('Partial', $html);
+   }
+
+   public function testNewServerRenderAfterSensitiveAccessIsRevokedExcludesValues(): void {
+      $criterion = new CriterionInspection(
+         'content',
+         2,
+         'secret-pattern',
+         Evaluation::MATCH,
+         null,
+         true,
+         'secret-observed-value',
+         true
+      );
+      $rule = new RuleInspection(7, 'Rule', \RuleTicket::ONADD, 0, false, 1, 'AND', [$criterion], Evaluation::MATCH);
+      $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 1, 1, false, [$rule]);
+      $renderer = new InspectionRenderer();
+
+      $authorized = $renderer->render(
+         [$result],
+         ClarusConfig::defaults(),
+         12,
+         '/plugins/clarus/ajax/inspection.php',
+         'csrf-token',
+         true,
+         null,
+         true
+      );
+      $afterRevocation = $renderer->render(
+         [$result],
+         ClarusConfig::defaults(),
+         12,
+         '/plugins/clarus/ajax/inspection.php',
+         'csrf-token',
+         true,
+         null,
+         false
+      );
+
+      self::assertStringContainsString('secret-pattern', $authorized);
+      self::assertStringContainsString('secret-observed-value', $authorized);
+      self::assertStringNotContainsString('secret-pattern', $afterRevocation);
+      self::assertStringNotContainsString('secret-observed-value', $afterRevocation);
    }
 
    public function testRendersClarusOwnedLabelsThroughTheGettextDomain(): void {

@@ -20,7 +20,7 @@ keeps evaluated results at or below the configured maximum while candidate
 counts and truncation still report rules outside that budget.
 
 Confirmed adherence is a presentation metric: matching criteria divided by all
-configured criteria, rounded to a whole percentage. Indeterminate criteria stay
+configured criteria, rounded to a whole percentage. Not evaluated criteria stay
 in the denominator and are also counted separately. It never replaces the
 three-state engine result; in particular, an OR rule can be `MATCH` with a low
 adherence percentage. Rules without criteria show `0% (0/0)` and retain their
@@ -39,8 +39,9 @@ template.
 `InspectionRenderer` uses GLPI's `TemplateRenderer` and the `@clarus` Twig
 namespace. Bootstrap and Tabler supplied by GLPI provide the base components.
 Clarus CSS is fully scoped below `.clarus-inspection` or `.clarus-config`.
-Vanilla JavaScript adds search, multi-select result, condition, and entity filters, a
-display-only adherence threshold, up to three sort levels, grouping,
+Vanilla JavaScript adds search, segmented result controls, compact condition and entity
+pickers, the configured adherence threshold, up to three sort levels in a collapsed
+editor, grouping,
 presentation-only pagination, and in-place refresh. Filters use OR within each
 group and AND across groups. Adherence filtering and sorting use the exact
 matching-criteria ratio; whole percentages are display-only. Sorting has
