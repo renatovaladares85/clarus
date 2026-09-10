@@ -440,7 +440,7 @@ final class RuleTicketInspectorTest extends TestCase
            new InspectionOptions(1000, true)
        );
        $inspectedUpdate = $this->findRule($updateResult->rules, $update->getID());
-       self::assertSame(Evaluation::INDETERMINATE, $inspectedUpdate->evaluation);
+       self::assertSame(Evaluation::MATCH, $inspectedUpdate->evaluation);
        self::assertSame(ActionEvaluation::REFLECTED, $this->findAction($inspectedUpdate->actions, 'urgency')->evaluation);
        self::assertSame(ActionSupport::INDETERMINATE_BY_DESIGN, $this->findAction($inspectedUpdate->actions, 'priority')->support);
        self::assertSame(ActionSupport::INDETERMINATE_BY_DESIGN, $this->findAction($inspectedUpdate->actions, '_affect_itilcategory_by_code')->support);
