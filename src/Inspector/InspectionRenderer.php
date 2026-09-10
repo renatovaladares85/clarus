@@ -16,7 +16,7 @@ final class InspectionRenderer
 
    /**
     * @param list<InspectionResult> $results
-    * @param array<string, bool|int|string> $settings
+    * @param array<string, bool|int|string|list<array{field: string, direction: string}>> $settings
     */
    public function render(
        array $results,

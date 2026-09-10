@@ -37,7 +37,36 @@
               {% endfor %}
             </select>
           </div>
+          <div class="col-md-4">
+            <label class="form-label" for="clarus-minimum-adherence">{{ labels.minimumAdherence }}</label>
+            <input class="form-control" id="clarus-minimum-adherence" type="number" min="0" max="100"
+                   name="inspection_min_adherence" value="{{ config.inspection_min_adherence }}" required>
+            <div class="form-hint">{{ labels.minimumAdherenceHint }}</div>
+          </div>
         </div>
+        <fieldset class="mt-3">
+          <legend class="h4">{{ labels.initialSort }}</legend>
+          {% for level in sortLevels %}
+            <div class="row g-2 align-items-end mb-2">
+              <div class="col-md-8">
+                <label class="form-label" for="clarus-sort-field-{{ loop.index }}">{{ labels.sortLevel|format(loop.index) }}</label>
+                <select class="form-select" id="clarus-sort-field-{{ loop.index }}" name="inspection_sort_{{ loop.index }}_field">
+                  <option value="">{{ labels.noSort }}</option>
+                  {% for value, label in sortOptions %}
+                    <option value="{{ value }}"{% if value == level.field %} selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="clarus-sort-direction-{{ loop.index }}">{{ labels.initialSort }}</label>
+                <select class="form-select" id="clarus-sort-direction-{{ loop.index }}" name="inspection_sort_{{ loop.index }}_direction">
+                  <option value="asc"{% if level.direction == 'asc' %} selected{% endif %}>{{ labels.ascending }}</option>
+                  <option value="desc"{% if level.direction == 'desc' %} selected{% endif %}>{{ labels.descending }}</option>
+                </select>
+              </div>
+            </div>
+          {% endfor %}
+        </fieldset>
       </div>
       <div class="card-footer text-end">
         <input type="hidden" name="_glpi_csrf_token" value="{{ csrfToken }}">

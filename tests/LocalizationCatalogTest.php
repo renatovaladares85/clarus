@@ -20,9 +20,13 @@ final class LocalizationCatalogTest extends TestCase
       self::assertStringContainsString('msgid "Rule inspection"', $pot);
       self::assertStringContainsString('No configured action was executed.', $pot);
       self::assertStringContainsString('Current-state diagnostic only.', $pot);
+      self::assertStringContainsString('Confirmed adherence', $pot);
+      self::assertStringContainsString('Some criteria cannot be evaluated safely using this Ticket snapshot.', $pot);
       self::assertStringContainsString('msgstr "Inspeção de regras"', $ptBr);
       self::assertStringContainsString('msgstr "Atualizar inspeção"', $ptBr);
       self::assertStringContainsString('msgstr "Não corresponde"', $ptBr);
+      self::assertStringContainsString('msgstr "Aderência confirmada"', $ptBr);
+      self::assertStringContainsString('msgstr "Filtros de resultado"', $ptBr);
    }
 
    public function testCompiledCatalogsHaveTheGettextMagicNumber(): void {

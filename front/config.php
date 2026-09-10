@@ -31,6 +31,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 $config = ClarusConfig::get();
 $pluginWebDir = \Plugin::getWebDir('clarus');
 $action = (is_string($pluginWebDir) ? $pluginWebDir : '/plugins/clarus') . '/front/config.php';
+$sortLevels = $config[ClarusConfig::INITIAL_SORT];
+while (count($sortLevels) < ClarusConfig::MAX_SORT_LEVELS) {
+    $sortLevels[] = ['field' => '', 'direction' => 'asc'];
+}
 
 \Html::header(__('Clarus configuration', 'clarus'), $action, 'config', 'plugins');
 TemplateRenderer::getInstance()->display('@clarus/config.html.twig', [
@@ -44,6 +48,20 @@ TemplateRenderer::getInstance()->display('@clarus/config.html.twig', [
         'processing' => __('Processing order', 'clarus'),
         'result' => __('Result', 'clarus'),
         'entity' => __('Entity', 'clarus'),
+    ],
+    'sortLevels' => $sortLevels,
+    'sortOptions' => [
+        'result' => __('Result', 'clarus'),
+        'adherence' => __('Confirmed adherence', 'clarus'),
+        'matches' => __('Matching criteria', 'clarus'),
+        'criteria' => __('Configured criteria', 'clarus'),
+        'indeterminate' => __('Indeterminate criteria', 'clarus'),
+        'ranking' => __('Ranking', 'clarus'),
+        'entity' => __('Entity', 'clarus'),
+        'condition' => __('Condition', 'clarus'),
+        'actions' => __('Configured actions', 'clarus'),
+        'name' => __('Rule name', 'clarus'),
+        'id' => __('Rule ID', 'clarus'),
     ],
     'booleanFields' => [
         [
@@ -77,6 +95,13 @@ TemplateRenderer::getInstance()->display('@clarus/config.html.twig', [
         ),
         'pageSize' => __('Rules per page', 'clarus'),
         'initialGroup' => __('Initial grouping', 'clarus'),
+        'minimumAdherence' => __('Default minimum confirmed adherence', 'clarus'),
+        'minimumAdherenceHint' => __('Display only. It never changes evaluated or candidate rules.', 'clarus'),
+        'initialSort' => __('Default sort order', 'clarus'),
+        'sortLevel' => __('Level %d', 'clarus'),
+        'noSort' => __('No additional sort', 'clarus'),
+        'ascending' => __('Ascending', 'clarus'),
+        'descending' => __('Descending', 'clarus'),
         'save' => _sx('button', 'Save'),
     ],
 ]);

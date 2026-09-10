@@ -4,6 +4,12 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Add confirmed criterion-adherence percentages, indeterminate counts,
+  combinable display filters, three-level deterministic sorting, and pagination
+  after filtering and ordering to the Ticket inspection UI.
+- Add validated `plugin:clarus` defaults for minimum adherence and sort chains,
+  and evaluate ONUPDATE criteria from the current safe Ticket snapshot instead
+  of treating every update rule as indeterminate.
 - Redesign the Ticket rule inspection tab with a safe Twig presenter, compact
   result summary, search, three-state filters, grouping, client-side pagination,
   in-place refresh, responsive diagnostic cards, and sanitized failure states.

@@ -7,6 +7,25 @@
         return value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     }
 
+    function numberValue(rule, field) {
+        return Number(rule.dataset[field] || '0');
+    }
+
+    function compareValue(left, right, field) {
+        if (['entity', 'name'].includes(field)) {
+            return (left.dataset[field] || '').localeCompare(right.dataset[field] || '');
+        }
+        if (field === 'condition') {
+            return (left.dataset.condition || '') === (right.dataset.condition || '')
+                ? 0
+                : (left.dataset.condition === 'onadd' ? -1 : 1);
+        }
+        if (field === 'result') {
+            return numberValue(left, 'evaluationOrder') - numberValue(right, 'evaluationOrder');
+        }
+        return numberValue(left, field) - numberValue(right, field);
+    }
+
     function initialize(container) {
         if (container.dataset.clarusInitialized === 'true') {
             return;
@@ -19,27 +38,76 @@
         }
 
         const state = {
-            filter: 'all',
+            conditions: new Set(['onadd', 'onupdate']),
             group: container.dataset.initialGroup || 'processing',
+            minimumAdherence: 0,
             page: 1,
             pageSize: Number.parseInt(container.dataset.pageSize || '25', 10),
             query: '',
+            results: new Set(['match', 'no_match', 'indeterminate']),
         };
 
         const allRules = Array.from(rulesHost.querySelectorAll('[data-clarus-rule]'));
         const search = container.querySelector('[data-clarus-search]');
         const group = container.querySelector('[data-clarus-group]');
+        const minimumAdherence = container.querySelector('[data-clarus-minimum-adherence]');
+        const resultInputs = Array.from(container.querySelectorAll('[data-clarus-result]'));
+        const conditionInputs = Array.from(container.querySelectorAll('[data-clarus-condition]'));
+        const sortFields = Array.from(container.querySelectorAll('[data-clarus-sort-field]'));
+        const sortDirections = Array.from(container.querySelectorAll('[data-clarus-sort-direction]'));
+
+        function sortCriteria() {
+            const seen = new Set();
+            return sortFields.reduce(function (criteria, field, index) {
+                const value = field.value;
+                if (value && !seen.has(value)) {
+                    seen.add(value);
+                    criteria.push({field: value, direction: sortDirections[index]?.value === 'desc' ? 'desc' : 'asc'});
+                }
+                return criteria;
+            }, []);
+        }
 
         function compareRules(left, right) {
+            for (const criterion of sortCriteria()) {
+                const difference = compareValue(left, right, criterion.field);
+                if (difference !== 0) {
+                    return criterion.direction === 'desc' ? -difference : difference;
+                }
+            }
+            const rankingDifference = numberValue(left, 'ranking') - numberValue(right, 'ranking');
+            return rankingDifference || numberValue(left, 'id') - numberValue(right, 'id');
+        }
+
+        function groupValue(rule) {
             if (state.group === 'result') {
-                const resultDifference = Number(left.dataset.evaluationOrder) - Number(right.dataset.evaluationOrder);
-                return resultDifference || Number(left.dataset.processingIndex) - Number(right.dataset.processingIndex);
+                return rule.querySelector('.clarus-rule__badge')?.textContent?.trim() || '';
             }
             if (state.group === 'entity') {
-                const entityDifference = (left.dataset.entity || '').localeCompare(right.dataset.entity || '');
-                return entityDifference || Number(left.dataset.processingIndex) - Number(right.dataset.processingIndex);
+                return rule.dataset.entityLabel || '';
             }
-            return Number(left.dataset.processingIndex) - Number(right.dataset.processingIndex);
+            return '';
+        }
+
+        function renderGroups(pageRules) {
+            rulesHost.querySelectorAll('[data-clarus-group-heading]').forEach((heading) => heading.remove());
+            if (state.group === 'processing') {
+                return;
+            }
+
+            let previous = null;
+            pageRules.forEach((rule) => {
+                const value = groupValue(rule);
+                if (value === previous) {
+                    return;
+                }
+                const heading = document.createElement('h4');
+                heading.className = 'clarus-inspection__group-heading';
+                heading.dataset.clarusGroupHeading = 'true';
+                heading.textContent = value;
+                rule.before(heading);
+                previous = value;
+            });
         }
 
         function renderPagination(pageCount, visibleCount, first, last) {
@@ -89,22 +157,25 @@
         }
 
         function apply() {
-            allRules.sort(compareRules).forEach((rule) => rulesHost.append(rule));
+            const ordered = [...allRules].sort(compareRules);
+            ordered.forEach((rule) => rulesHost.append(rule));
             const query = normalize(state.query.trim());
-            const visible = allRules.filter((rule) => {
-                const matchesFilter = state.filter === 'all' || rule.dataset.evaluation === state.filter;
-                return matchesFilter && normalize(rule.dataset.search || '').includes(query);
-            });
+            const visible = ordered.filter((rule) => state.results.has(rule.dataset.evaluation)
+                && state.conditions.has(rule.dataset.condition)
+                && numberValue(rule, 'adherence') >= state.minimumAdherence
+                && normalize(rule.dataset.search || '').includes(query));
             const visibleSet = new Set(visible);
             const pageCount = Math.max(1, Math.ceil(visible.length / state.pageSize));
             state.page = Math.min(state.page, pageCount);
             const first = (state.page - 1) * state.pageSize;
             const last = Math.min(first + state.pageSize, visible.length);
-            const pageRules = new Set(visible.slice(first, last));
+            const pageRules = visible.slice(first, last);
+            const pageRuleSet = new Set(pageRules);
 
             allRules.forEach((rule) => {
-                rule.hidden = !visibleSet.has(rule) || !pageRules.has(rule);
+                rule.hidden = !visibleSet.has(rule) || !pageRuleSet.has(rule);
             });
+            renderGroups(pageRules);
 
             const empty = container.querySelector('[data-clarus-filter-empty]');
             if (empty) {
@@ -115,6 +186,11 @@
                 count.textContent = `${visible.length} ${container.dataset.labelRules}`;
             }
             renderPagination(pageCount, visible.length, first, last);
+        }
+
+        function refreshSet(inputs, set) {
+            set.clear();
+            inputs.filter((input) => input.checked).forEach((input) => set.add(input.value));
         }
 
         if (search) {
@@ -131,18 +207,28 @@
                 apply();
             });
         }
-        container.querySelectorAll('[data-clarus-filter]').forEach((button) => {
-            button.addEventListener('click', function () {
-                state.filter = button.dataset.clarusFilter || 'all';
+        if (minimumAdherence) {
+            state.minimumAdherence = Math.min(100, Math.max(0, Number.parseInt(minimumAdherence.value, 10) || 0));
+            minimumAdherence.addEventListener('input', function () {
+                state.minimumAdherence = Math.min(100, Math.max(0, Number.parseInt(minimumAdherence.value, 10) || 0));
                 state.page = 1;
-                container.querySelectorAll('[data-clarus-filter]').forEach((candidate) => {
-                    const active = candidate === button;
-                    candidate.classList.toggle('active', active);
-                    candidate.setAttribute('aria-pressed', active ? 'true' : 'false');
-                });
                 apply();
             });
-        });
+        }
+        resultInputs.forEach((input) => input.addEventListener('change', function () {
+            refreshSet(resultInputs, state.results);
+            state.page = 1;
+            apply();
+        }));
+        conditionInputs.forEach((input) => input.addEventListener('change', function () {
+            refreshSet(conditionInputs, state.conditions);
+            state.page = 1;
+            apply();
+        }));
+        [...sortFields, ...sortDirections].forEach((input) => input.addEventListener('change', function () {
+            state.page = 1;
+            apply();
+        }));
         container.addEventListener('click', function (event) {
             const button = event.target.closest('[data-clarus-page]');
             if (!button || button.disabled) {

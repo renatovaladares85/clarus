@@ -12,7 +12,7 @@ Ticket being inspected.
 
 ## Development status
 
-`0.3.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
+`0.4.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it does not simulate or record rule execution.
 
 The Phase 3 inspector core can reconstruct persisted and safely derived Ticket
@@ -24,18 +24,25 @@ are reflected in the current snapshot; it does not execute actions or attribute
 historical causality.
 
 The Ticket tab presents ONADD and ONUPDATE diagnostics in one responsive view.
-It includes a result summary, rule-name/ID search, the three semantic result
-filters, configurable grouping, expandable criteria/actions, and presentation-only
-pagination. Expected, observed, configured, and current values are shown only
-when the backend has explicitly classified them as presentation-safe.
+Each card keeps its native semantic result and also shows confirmed adherence as
+`percentage (matching/configured criteria)`; indeterminate criteria remain in
+the denominator and are identified separately. An OR rule can therefore match
+with low adherence. Search, multi-select result and condition filters, a
+display-only minimum-adherence threshold, three-level sorting, grouping, and
+pagination act only on the already evaluated cards. Expected, observed,
+configured, and current values are shown only when the backend has explicitly
+classified them as presentation-safe.
 
 ## Configuration
 
 Administrators with the native GLPI configuration update right can open Clarus
 from **Setup > Plugins**. Settings control automatic inspection, ONADD/ONUPDATE
 coverage, configured-action analysis, the evaluated-rule limit, rules per page,
-and initial grouping. Settings are stored in GLPI's `plugin:clarus` configuration
-context; Clarus does not create a configuration table.
+initial grouping, default minimum adherence, and a validated default sort chain.
+The threshold and ordering are presentation defaults: they never change native
+candidate selection or engine evaluation. Settings are stored in GLPI's
+`plugin:clarus` configuration context; Clarus does not create a configuration
+table.
 
 ## Installation
 

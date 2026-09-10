@@ -56,7 +56,7 @@ final class InspectionRendererTest extends TestCase
          'AND',
          [$criterion],
          Evaluation::INDETERMINATE,
-         ['UPDATE eligibility depends on the original change set.'],
+         ['Value cannot be reconstructed defensibly from the persisted Ticket state.'],
          [$action]
       );
       $result = new InspectionResult(
@@ -85,6 +85,13 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('Results were truncated', $html);
       self::assertStringContainsString('class="clarus-rule card"', $html);
       self::assertStringContainsString('data-evaluation="indeterminate"', $html);
+      self::assertStringContainsString('data-adherence="0"', $html);
+      self::assertStringContainsString('0% (0/1)', $html);
+      self::assertStringContainsString('data-clarus-minimum-adherence', $html);
+      self::assertStringContainsString('data-clarus-result', $html);
+      self::assertStringContainsString('data-clarus-condition', $html);
+      self::assertStringContainsString('data-clarus-sort-field', $html);
+      self::assertStringContainsString('Some criteria cannot be evaluated safely using this Ticket snapshot.', $html);
       self::assertStringNotContainsString('\\"', $html);
       self::assertStringContainsString('&lt;rule&gt;', $html);
       self::assertStringNotContainsString('secret-pattern', $html);

@@ -166,7 +166,7 @@ final class RuleTicketInspectorTest extends TestCase
        self::assertSame('3', (string) $after['ticket']['urgency']);
    }
 
-   public function testUnavailableHistoricalDataAndUpdateChangeSetAreIndeterminate(): void {
+   public function testUnavailableHistoricalDataIsIndeterminateWhileUpdateCriteriaUseCurrentSnapshot(): void {
        $ticket = $this->createTicket();
        $mailRule = $this->createRule('mail', \RuleTicket::ONADD, true, 1, [
            ['_from', \Rule::PATTERN_IS, 'sender@example.test'],
@@ -182,8 +182,8 @@ final class RuleTicketInspectorTest extends TestCase
 
        $updateResult = (new RuleTicketInspector())->inspect($ticket, \RuleTicket::ONUPDATE);
        $inspectedUpdate = $this->findRule($updateResult->rules, $updateRule->getID());
-       self::assertSame(Evaluation::INDETERMINATE, $inspectedUpdate->evaluation);
-       self::assertNotSame([], $inspectedUpdate->limitations);
+       self::assertSame(Evaluation::MATCH, $inspectedUpdate->evaluation);
+       self::assertSame([], $inspectedUpdate->limitations);
    }
 
    public function testNativeEvaluationCoversNoMatchThreeStateTreeAndArray(): void {
