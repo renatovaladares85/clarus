@@ -49,5 +49,6 @@ The Ticket UI must call `Authorization::canInspectTicket()` before displaying
 the Inspector entrypoint. Any backend endpoint must call it again before it
 loads or executes the Inspector. Hiding a tab or button is not authorization.
 
-Phase 5 does not add a Ticket tab, endpoint, AJAX handler, Inspector settings,
-or persistent rule-limit configuration.
+The later inspection UI keeps this boundary on the Ticket tab and repeats it in
+the POST refresh endpoint. Clarus settings use the native `config` right with
+`UPDATE`; that administrative right never bypasses Ticket inspection rights.

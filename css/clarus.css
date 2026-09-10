@@ -1,0 +1,264 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
+.clarus-inspection {
+    color: var(--tblr-body-color);
+    padding: 1rem;
+}
+
+.clarus-inspection__header,
+.clarus-inspection__pagination,
+.clarus-inspection__results-heading {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.clarus-inspection__title {
+    font-size: 1.25rem;
+    margin: 0 0 .25rem;
+}
+
+.clarus-inspection__summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: hidden;
+}
+
+.clarus-inspection__metric {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+.clarus-inspection__metric + .clarus-inspection__metric {
+    border-left: 1px solid var(--tblr-border-color);
+}
+
+.clarus-inspection__metric strong {
+    font-size: 1.25rem;
+}
+
+.clarus-inspection__metric span {
+    color: var(--tblr-secondary-color);
+    font-size: .75rem;
+}
+
+.clarus-inspection__metric--match strong { color: var(--tblr-success); }
+.clarus-inspection__metric--no-match strong { color: var(--tblr-danger); }
+.clarus-inspection__metric--indeterminate strong { color: var(--tblr-secondary); }
+
+.clarus-inspection__controls {
+    display: grid;
+    gap: .75rem 1rem;
+    grid-template-columns: minmax(14rem, 2fr) minmax(12rem, 1fr);
+    padding: 1rem;
+}
+
+.clarus-inspection__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    grid-column: 1 / -1;
+}
+
+.clarus-inspection__filters .btn {
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 999px;
+    font-size: .75rem;
+    padding: .25rem .75rem;
+}
+
+.clarus-inspection__filters .btn.active {
+    background: var(--tblr-primary-lt);
+    border-color: var(--tblr-primary);
+    color: var(--tblr-primary);
+}
+
+.clarus-inspection__results-heading {
+    margin: 1.25rem 0 .75rem;
+}
+
+.clarus-inspection__results-heading h3 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.clarus-inspection__rules {
+    display: grid;
+    gap: .75rem;
+}
+
+.clarus-rule {
+    overflow: hidden;
+}
+
+.clarus-rule[hidden] {
+    display: none;
+}
+
+.clarus-rule__summary {
+    align-items: center;
+    cursor: pointer;
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: .25rem minmax(0, 1fr) auto auto;
+    list-style: none;
+    min-height: 5rem;
+    padding: .75rem 1rem .75rem 0;
+}
+
+.clarus-rule__summary::-webkit-details-marker { display: none; }
+
+.clarus-rule__accent {
+    align-self: stretch;
+    border-radius: 0 .2rem .2rem 0;
+}
+
+.clarus-rule__accent--match { background: var(--tblr-success); }
+.clarus-rule__accent--no_match { background: var(--tblr-danger); }
+.clarus-rule__accent--indeterminate { background: var(--tblr-secondary); }
+
+.clarus-rule__identity {
+    display: grid;
+    gap: .2rem;
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.clarus-rule__id,
+.clarus-rule__metadata {
+    color: var(--tblr-secondary-color);
+    font-size: .75rem;
+}
+
+.clarus-rule__metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .5rem;
+    grid-column: 2;
+}
+
+.clarus-rule__badge {
+    border: 1px solid;
+    border-radius: 999px;
+    font-size: .7rem;
+    font-weight: 600;
+    padding: .3rem .75rem;
+    white-space: nowrap;
+}
+
+.clarus-rule__badge--match {
+    background: var(--tblr-success-lt);
+    border-color: var(--tblr-success);
+    color: var(--tblr-success);
+}
+
+.clarus-rule__badge--no_match {
+    background: var(--tblr-danger-lt);
+    border-color: var(--tblr-danger);
+    color: var(--tblr-danger);
+}
+
+.clarus-rule__badge--indeterminate {
+    background: var(--tblr-secondary-lt);
+    border-color: var(--tblr-secondary);
+    color: var(--tblr-secondary);
+}
+
+.clarus-rule__chevron { transition: transform .2s ease; }
+.clarus-rule[open] .clarus-rule__chevron { transform: rotate(180deg); }
+
+.clarus-rule__details {
+    border-top: 1px solid var(--tblr-border-color);
+    padding: 1rem;
+}
+
+.clarus-rule__details h4 {
+    font-size: .875rem;
+    margin: 0 0 .75rem;
+}
+
+.clarus-diagnostic-grid__header,
+.clarus-diagnostic-grid__row {
+    align-items: start;
+    display: grid;
+    gap: .75rem;
+    padding: .6rem .25rem;
+}
+
+.clarus-diagnostic-grid--criteria .clarus-diagnostic-grid__header,
+.clarus-diagnostic-grid--criteria .clarus-diagnostic-grid__row {
+    grid-template-columns: 4.5rem 1.2fr 1fr 1fr 1fr 1.4fr;
+}
+
+.clarus-diagnostic-grid--actions .clarus-diagnostic-grid__header,
+.clarus-diagnostic-grid--actions .clarus-diagnostic-grid__row {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.clarus-diagnostic-grid__header {
+    color: var(--tblr-secondary-color);
+    font-size: .7rem;
+    font-weight: 600;
+}
+
+.clarus-diagnostic-grid__row {
+    border-top: 1px solid var(--tblr-border-color);
+    font-size: .75rem;
+}
+
+.clarus-criterion-state {
+    font-size: .65rem;
+    font-weight: 700;
+}
+
+.clarus-criterion-state--match { color: var(--tblr-success); }
+.clarus-criterion-state--no_match { color: var(--tblr-danger); }
+.clarus-criterion-state--indeterminate { color: var(--tblr-secondary); }
+
+.clarus-actions {
+    margin-top: 1.25rem;
+}
+
+.clarus-inspection__empty {
+    color: var(--tblr-secondary-color);
+    padding: 2rem;
+    text-align: center;
+}
+
+.clarus-config {
+    padding-block: 1rem;
+}
+
+@media (max-width: 767.98px) {
+    .clarus-inspection__header,
+    .clarus-inspection__pagination {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .clarus-inspection__refresh .btn { width: 100%; }
+    .clarus-inspection__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .clarus-inspection__controls { grid-template-columns: 1fr; }
+    .clarus-inspection__control,
+    .clarus-inspection__filters { grid-column: 1; }
+
+    .clarus-rule__summary {
+        grid-template-columns: .25rem minmax(0, 1fr) auto;
+    }
+
+    .clarus-rule__badge { grid-column: 2; justify-self: start; }
+    .clarus-rule__chevron { grid-column: 3; grid-row: 1 / 3; }
+
+    .clarus-diagnostic-grid__header { display: none; }
+    .clarus-diagnostic-grid--criteria .clarus-diagnostic-grid__row,
+    .clarus-diagnostic-grid--actions .clarus-diagnostic-grid__row {
+        grid-template-columns: 1fr;
+    }
+
+    .clarus-diagnostic-grid__row span[data-label]::before {
+        color: var(--tblr-secondary-color);
+        content: attr(data-label) ": ";
+        font-weight: 600;
+    }
+}

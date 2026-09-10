@@ -37,13 +37,59 @@ final class TicketTab extends \CommonDBTM
          return false;
       }
 
-      $inspector = new RuleTicketInspector();
-      $renderer = new InspectionRenderer();
-      $options = new InspectionOptions(InspectionOptions::DEFAULT_LIMIT, true);
-
-      echo $renderer->render($inspector->inspect($item, \RuleTicket::ONADD, $options));
-      echo $renderer->render($inspector->inspect($item, \RuleTicket::ONUPDATE, $options));
+      echo self::renderInspection($item);
 
       return true;
+   }
+
+   public static function renderInspection(\Ticket $ticket, bool $force = false): string {
+      if ($ticket->isNewItem() || !Authorization::canInspectTicket($ticket)) {
+          return '';
+      }
+
+       $settings = ClarusConfig::get();
+       $loaded = $force || $settings[ClarusConfig::AUTO_INSPECTION];
+       $results = [];
+       $error = null;
+      if ($loaded) {
+         try {
+             $options = new InspectionOptions(
+                 $settings[ClarusConfig::RULE_LIMIT],
+                 $settings[ClarusConfig::INCLUDE_ACTIONS]
+             );
+             $inspector = new RuleTicketInspector();
+            if ($settings[ClarusConfig::INCLUDE_ONADD]) {
+                $results[] = $inspector->inspect($ticket, \RuleTicket::ONADD, $options);
+            }
+            if ($settings[ClarusConfig::INCLUDE_ONUPDATE]) {
+                $results[] = $inspector->inspect($ticket, \RuleTicket::ONUPDATE, $options);
+            }
+         } catch (\Throwable $exception) {
+             self::logFailure($exception);
+             $results = [];
+             $error = __('The inspection could not be completed. Try again or contact an administrator.', 'clarus');
+         }
+      }
+
+       $pluginWebDir = \Plugin::getWebDir('clarus');
+       $refreshUrl = (is_string($pluginWebDir) ? rtrim($pluginWebDir, '/') : '/plugins/clarus')
+           . '/ajax/inspection.php';
+
+       return (new InspectionRenderer())->render(
+           $results,
+           $settings,
+           $ticket->getID(),
+           $refreshUrl,
+           \Session::getNewCSRFToken(),
+           $loaded,
+           $error
+       );
+   }
+
+   private static function logFailure(\Throwable $exception): void {
+       \Toolbox::logInFile(
+           'php-errors',
+           sprintf("Clarus rule inspection failed: %s\n", $exception->getMessage())
+       );
    }
 }

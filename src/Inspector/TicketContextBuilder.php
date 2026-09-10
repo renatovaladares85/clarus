@@ -20,6 +20,35 @@ final class TicketContextBuilder
    private const RETROSPECTIVE_REASON =
         'Value cannot be reconstructed defensibly from the persisted Ticket state.';
 
+   /**
+    * Reviewed RuleTicket keys whose scalar identifiers or state values may be
+    * rendered by the diagnostic UI. New or unknown criteria are fail-closed.
+    *
+    * @var list<string>
+    */
+   private const PRESENTATION_SAFE_KEYS = [
+       'itilcategories_id',
+       'type',
+       'locations_id',
+       'requesttypes_id',
+       'entities_id',
+       'profiles_id',
+       'urgency',
+       'impact',
+       'priority',
+       'status',
+       'slas_id_ttr',
+       'slas_id_tto',
+       'olas_id_ttr',
+       'olas_id_tto',
+       'global_validation',
+       'validation_percent',
+       'time_to_resolve',
+       'time_to_own',
+       'internal_time_to_resolve',
+       'internal_time_to_own',
+   ];
+
    public function build(\Ticket $ticket): TicketContext {
       if ($ticket->isNewItem()) {
           throw new \InvalidArgumentException('Inspector requires a persisted Ticket.');
@@ -39,7 +68,7 @@ final class TicketContextBuilder
              $values[$key] = ContextValue::available(
                  $ticket->fields[$key],
                  'ticket',
-                 $this->isPresentationSafe($key)
+                 self::isPresentationSafeKey($key)
              );
          }
       }
@@ -137,15 +166,7 @@ final class TicketContextBuilder
       }
    }
 
-   private function isPresentationSafe(string $key): bool {
-       return !in_array($key, [
-           'name',
-           'content',
-           '_from',
-           '_subject',
-           '_reply-to',
-           '_in-reply-to',
-           '_to',
-       ], true);
+   public static function isPresentationSafeKey(string $key): bool {
+       return in_array($key, self::PRESENTATION_SAFE_KEYS, true);
    }
 }

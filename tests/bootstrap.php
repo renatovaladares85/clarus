@@ -4,6 +4,7 @@
 
 if (!class_exists('CommonDBTM')) {
     require dirname(__DIR__) . '/stubs/glpi.php';
+    require dirname(__DIR__) . '/stubs/template_renderer.php';
 }
 
 require dirname(__DIR__) . '/setup.php';

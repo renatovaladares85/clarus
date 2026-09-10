@@ -4,6 +4,11 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Redesign the Ticket rule inspection tab with a safe Twig presenter, compact
+  result summary, search, three-state filters, grouping, client-side pagination,
+  in-place refresh, responsive diagnostic cards, and sanitized failure states.
+- Add administrator-managed Clarus inspection settings in `plugin:clarus`, with
+  idempotent defaults, strict validation, CSRF protection, and lifecycle cleanup.
 - Add declared and CI-validated PHP 8.4 support while keeping PHP 8.5 unsupported.
 - Add gettext localization for the Clarus Ticket inspection UI, including
   English and Brazilian Portuguese catalogs and reproducible catalog tooling.

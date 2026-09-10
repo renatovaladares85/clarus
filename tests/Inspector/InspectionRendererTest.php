@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace GlpiPlugin\Clarus\Tests\Inspector;
 
+use GlpiPlugin\Clarus\ClarusConfig;
 use GlpiPlugin\Clarus\Inspector\ActionEvaluation;
 use GlpiPlugin\Clarus\Inspector\ActionInspection;
 use GlpiPlugin\Clarus\Inspector\ActionSupport;
@@ -69,39 +70,88 @@ final class InspectionRendererTest extends TestCase
          ['Configured rule actions are never executed by inspection.']
       );
 
-      $html = (new InspectionRenderer())->render($result);
+      $html = (new InspectionRenderer())->render(
+         [$result],
+         ClarusConfig::defaults(),
+         12,
+         '/plugins/clarus/ajax/inspection.php',
+         'csrf-token'
+      );
 
       self::assertStringContainsString('Current-state diagnostic only', $html);
       self::assertStringContainsString('On ticket update (ONUPDATE)', $html);
       self::assertStringContainsString('Indeterminate', $html);
       self::assertStringContainsString('Reflected in current state', $html);
       self::assertStringContainsString('Results were truncated', $html);
-      self::assertStringContainsString('<details class="mb-2">', $html);
-      self::assertStringContainsString('<dt class="col-sm-4">Condition</dt>', $html);
-      self::assertStringContainsString('<dd class="col-sm-8">On ticket update (ONUPDATE)</dd>', $html);
+      self::assertStringContainsString('class="clarus-rule card"', $html);
+      self::assertStringContainsString('data-evaluation="indeterminate"', $html);
       self::assertStringNotContainsString('\\"', $html);
       self::assertStringContainsString('&lt;rule&gt;', $html);
       self::assertStringNotContainsString('secret-pattern', $html);
       self::assertStringNotContainsString('secret-observed-value', $html);
       self::assertStringNotContainsString('secret-configured-value', $html);
       self::assertStringNotContainsString('secret-current-value', $html);
-      self::assertStringContainsString('not proof of historical rule execution', $html);
+      self::assertStringContainsString('No configured action was executed', $html);
+      self::assertStringNotContainsString('PARTIAL_MATCH', $html);
+      self::assertStringNotContainsString('Partial', $html);
    }
 
    public function testRendersClarusOwnedLabelsThroughTheGettextDomain(): void {
       $GLOBALS['clarusTranslations'] = ['clarus' => [
          'Rule inspection' => 'Inspeção de regras',
-         'Current-state diagnostic only; it is not proof of historical rule execution.'
-            => 'Diagnóstico do estado atual; não prova a execução histórica de regras.',
+         'Current-state diagnostic only. No rule is executed or changed.'
+            => 'Diagnóstico do estado atual; nenhuma regra é executada ou alterada.',
          'On ticket creation (ONADD)' => 'Na criação do chamado (ONADD)',
-         'Matches current state' => 'Corresponde ao estado atual',
+         'Matches' => 'Corresponde',
       ]];
-      $result = new InspectionResult(12, \RuleTicket::ONADD, 1, 0, 0, false, []);
+      $rule = new RuleInspection(
+         1,
+         'Rule',
+         \RuleTicket::ONADD,
+         0,
+         true,
+         1,
+         'AND',
+         [],
+         Evaluation::MATCH
+      );
+      $result = new InspectionResult(12, \RuleTicket::ONADD, 1, 1, 1, false, [$rule]);
 
-      $html = (new InspectionRenderer())->render($result);
+      $html = (new InspectionRenderer())->render(
+         [$result],
+         ClarusConfig::defaults(),
+         12,
+         '/plugins/clarus/ajax/inspection.php',
+         'csrf-token'
+      );
 
       self::assertStringContainsString('Inspeção de regras', $html);
       self::assertStringContainsString('Diagnóstico do estado atual', $html);
       self::assertStringContainsString('Na criação do chamado (ONADD)', $html);
+      self::assertStringContainsString('Corresponde', $html);
+   }
+
+   public function testRendersEmptyDisabledAndTechnicalErrorAsDistinctStates(): void {
+      $settings = ClarusConfig::defaults();
+      $empty = new InspectionResult(12, \RuleTicket::ONADD, 1000, 0, 0, false, []);
+      $renderer = new InspectionRenderer();
+
+      $emptyHtml = $renderer->render([$empty], $settings, 12, '/refresh', 'token');
+      self::assertStringContainsString('No rules were found for the enabled conditions.', $emptyHtml);
+
+      $disabledHtml = $renderer->render([], $settings, 12, '/refresh', 'token', false);
+      self::assertStringContainsString('Automatic inspection is disabled.', $disabledHtml);
+
+      $errorHtml = $renderer->render(
+         [],
+         $settings,
+         12,
+         '/refresh',
+         'token',
+         true,
+         'The inspection could not be completed. Try again or contact an administrator.'
+      );
+      self::assertStringContainsString('The inspection could not be completed.', $errorHtml);
+      self::assertStringNotContainsString('stack trace', $errorHtml);
    }
 }

@@ -12,7 +12,7 @@ Ticket being inspected.
 
 ## Development status
 
-`0.2.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
+`0.3.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it does not simulate or record rule execution.
 
 The Phase 3 inspector core can reconstruct persisted and safely derived Ticket
@@ -22,6 +22,20 @@ historical/transient value cannot be reconstructed without guessing.
 Action analysis is opt-in and reports only whether supported configured effects
 are reflected in the current snapshot; it does not execute actions or attribute
 historical causality.
+
+The Ticket tab presents ONADD and ONUPDATE diagnostics in one responsive view.
+It includes a result summary, rule-name/ID search, the three semantic result
+filters, configurable grouping, expandable criteria/actions, and presentation-only
+pagination. Expected, observed, configured, and current values are shown only
+when the backend has explicitly classified them as presentation-safe.
+
+## Configuration
+
+Administrators with the native GLPI configuration update right can open Clarus
+from **Setup > Plugins**. Settings control automatic inspection, ONADD/ONUPDATE
+coverage, configured-action analysis, the evaluated-rule limit, rules per page,
+and initial grouping. Settings are stored in GLPI's `plugin:clarus` configuration
+context; Clarus does not create a configuration table.
 
 ## Installation
 
@@ -70,3 +84,5 @@ The implemented read-only pipeline and its limits are documented in [the Inspect
 The supported action semantics and their read-only limits are documented in [the action analysis architecture](docs/architecture/action-analysis.md).
 The Profile right, lifecycle, and future UI authorization contract are documented
 in [the permissions architecture](docs/architecture/permissions.md).
+The Ticket UI, administrative settings, refresh endpoint, and value-presentation
+boundary are documented in [the inspection UI architecture](docs/architecture/inspection-ui.md).

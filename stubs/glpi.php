@@ -53,6 +53,12 @@ class CommonDBTM extends CommonGLPI
         return '/front/profile.form.php';
     }
 
+    public function getFromDB(int $id): bool
+    {
+        $this->fields['id'] = $id;
+        return $id > 0;
+    }
+
     /**
      * @param array<int, array<string, mixed>> $rights
      * @param array<string, mixed> $options
@@ -106,6 +112,24 @@ class Session
     {
         return self::$hasRight;
     }
+
+    public static function getNewCSRFToken(): string
+    {
+        return 'csrf-token';
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function checkCSRF(array $data): void
+    {
+    }
+
+    public static function checkRight(string $module, int $right): void
+    {
+    }
+
+    public static function addMessageAfterRedirect(string $message): void
+    {
+    }
 }
 
 class Plugin
@@ -128,6 +152,73 @@ class Plugin
     {
         return self::$registeredClasses[$itemtype] ?? null;
     }
+
+    public static function getWebDir(string $pluginKey = '', bool $full = true): string|false
+    {
+        return '/plugins/' . $pluginKey;
+    }
+
+    public static function load(string $pluginKey, bool $checkPrerequisites = false): bool
+    {
+        return true;
+    }
+}
+
+class Config
+{
+    /** @var array<string, array<string, mixed>> */
+    public static array $values = [];
+
+    /** @param list<string> $names
+     *  @return array<string, mixed>
+     */
+    public static function getConfigurationValues(string $context, array $names = []): array
+    {
+        $values = self::$values[$context] ?? [];
+        if ($names === []) {
+            return $values;
+        }
+
+        return array_intersect_key($values, array_fill_keys($names, true));
+    }
+
+    /** @param array<string, mixed> $values */
+    public static function setConfigurationValues(string $context, array $values = []): void
+    {
+        self::$values[$context] = array_replace(self::$values[$context] ?? [], $values);
+    }
+
+    /** @param list<string> $names */
+    public static function deleteConfigurationValues(string $context, array $names = []): void
+    {
+        foreach ($names as $name) {
+            unset(self::$values[$context][$name]);
+        }
+    }
+}
+
+class Entity extends CommonDBTM
+{
+    public static function getTable(): string
+    {
+        return 'glpi_entities';
+    }
+}
+
+class Dropdown
+{
+    public static function getDropdownName(string $table, int $id): string
+    {
+        return $id === 0 ? 'Root entity' : 'Entity #' . $id;
+    }
+}
+
+class Toolbox
+{
+    public static function logInFile(string $name, string $text, bool $force = false): bool
+    {
+        return true;
+    }
 }
 
 class Html
@@ -141,6 +232,18 @@ class Html
     public static function closeForm(): bool
     {
         return true;
+    }
+
+    public static function header(string $title, string $url, string $sector = '', string $item = ''): void
+    {
+    }
+
+    public static function footer(): void
+    {
+    }
+
+    public static function redirect(string $url): void
+    {
     }
 }
 

@@ -174,7 +174,9 @@ final class ProfilePermissionTest extends TestCase
        self::assertStringContainsString('Reflected in current state', $output);
        self::assertStringContainsString('Update eligibility depends on the original change set', $output);
        self::assertStringContainsString('Indeterminate', $output);
-       self::assertStringContainsString('not proof of historical rule execution', $output);
+       self::assertStringContainsString('No configured action was executed', $output);
+       self::assertStringContainsString('data-clarus-inspection', $output);
+       self::assertStringNotContainsString('PARTIAL_MATCH', $output);
        self::assertStringNotContainsString('Clarus Phase 5 authorization fixture', $output);
        self::assertSame($before, $this->ticketFields($ticket->getID()));
 
@@ -280,7 +282,7 @@ final class ProfilePermissionTest extends TestCase
        self::assertGreaterThan(0, $criterionId);
        $this->created['criteria'][] = $criterionId;
 
-       foreach ($actions as [$actionType, $field, $value]) {
+      foreach ($actions as [$actionType, $field, $value]) {
            $action = new \RuleAction();
            $actionId = (int) $action->add([
                'rules_id' => $ruleId,
@@ -290,7 +292,7 @@ final class ProfilePermissionTest extends TestCase
            ]);
            self::assertGreaterThan(0, $actionId);
            $this->created['actions'][] = $actionId;
-       }
+      }
 
        $loaded = new \RuleTicket();
        self::assertTrue($loaded->getRuleWithCriteriasAndActions($ruleId, true, true));

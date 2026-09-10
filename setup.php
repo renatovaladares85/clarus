@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-define('PLUGIN_CLARUS_VERSION', '0.2.0');
+define('PLUGIN_CLARUS_VERSION', '0.3.0');
 define('PLUGIN_CLARUS_MIN_GLPI_VERSION', '10.0.20');
 define('PLUGIN_CLARUS_MAX_GLPI_VERSION', '11.0.0');
 define('PLUGIN_CLARUS_MIN_PHP_VERSION', '8.1.0');
@@ -17,8 +17,13 @@ define('PLUGIN_CLARUS_MAX_PHP_VERSION', '8.5.0');
 function plugin_init_clarus(): void {
     global $PLUGIN_HOOKS;
 
-    /** @var array<string, array<string, bool>> $PLUGIN_HOOKS */
+    /** @var array<string, array<string, mixed>> $PLUGIN_HOOKS */
     $PLUGIN_HOOKS['csrf_compliant']['clarus'] = true;
+    $PLUGIN_HOOKS['add_css']['clarus'] = ['css/clarus.css'];
+    $PLUGIN_HOOKS['add_javascript']['clarus'] = ['js/inspection.js'];
+   if (\Session::haveRight('config', UPDATE)) {
+       $PLUGIN_HOOKS['config_page']['clarus'] = 'front/config.php';
+   }
 
     \Plugin::registerClass(\GlpiPlugin\Clarus\Profile::class, [
         'addtabon' => \Profile::class,
@@ -81,7 +86,7 @@ function plugin_clarus_check_prerequisites(): bool {
 }
 
 /**
- * Clarus has no mandatory post-install configuration in the foundation phase.
+ * Clarus configuration is installed with safe defaults.
  */
 function plugin_clarus_check_config(bool $verbose = false): bool {
     return true;
