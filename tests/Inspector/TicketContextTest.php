@@ -9,6 +9,7 @@ namespace GlpiPlugin\Clarus\Tests\Inspector;
 use GlpiPlugin\Clarus\Inspector\ContextState;
 use GlpiPlugin\Clarus\Inspector\ContextValue;
 use GlpiPlugin\Clarus\Inspector\TicketContext;
+use GlpiPlugin\Clarus\Inspector\TicketContextBuilder;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 
@@ -31,5 +32,11 @@ final class TicketContextTest extends TestCase
 
        self::assertTrue((new ReflectionProperty($value, 'value'))->isReadOnly());
        self::assertSame(4, $value->value);
+   }
+
+   public function testPresentationSafetyUsesAnExplicitReviewedAllowlist(): void {
+       self::assertTrue(TicketContextBuilder::isPresentationSafeKey('urgency'));
+       self::assertFalse(TicketContextBuilder::isPresentationSafeKey('content'));
+       self::assertFalse(TicketContextBuilder::isPresentationSafeKey('new_rule_ticket_criterion'));
    }
 }

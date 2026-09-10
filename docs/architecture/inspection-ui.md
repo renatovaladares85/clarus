@@ -16,8 +16,9 @@ not available from a persisted Ticket.
 
 `InspectionPresenter` converts immutable Inspector DTOs into a view model before
 Twig receives them. Rule metadata and translated labels are escaped by Twig.
-Criterion values require both the Inspector safety flag and the central Ticket
-field policy. Action values require the analyzer safety flag and a supported
+Criterion values require both the Inspector safety flag and an explicit central
+allowlist of reviewed Ticket fields. New or unknown criterion keys are denied
+by default. Action values require the analyzer safety flag and a supported
 numeric representation. Other values are replaced by neutral omission text;
 objects and arbitrary structures never reach the template.
 
