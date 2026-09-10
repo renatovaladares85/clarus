@@ -56,7 +56,7 @@ final class InspectionRendererTest extends TestCase
          'AND',
          [$criterion],
          Evaluation::INDETERMINATE,
-         ['UPDATE eligibility depends on the original change set.'],
+         ['Value cannot be reconstructed defensibly from the persisted Ticket state.'],
          [$action]
       );
       $result = new InspectionResult(
@@ -78,13 +78,23 @@ final class InspectionRendererTest extends TestCase
          'csrf-token'
       );
 
-      self::assertStringContainsString('Current-state diagnostic only', $html);
+      self::assertStringContainsString('Current-state diagnostic of the last saved Ticket data only', $html);
+      self::assertStringContainsString('Unsaved form changes are not included in this diagnostic.', $html);
       self::assertStringContainsString('On ticket update (ONUPDATE)', $html);
       self::assertStringContainsString('Indeterminate', $html);
       self::assertStringContainsString('Reflected in current state', $html);
       self::assertStringContainsString('Results were truncated', $html);
       self::assertStringContainsString('class="clarus-rule card"', $html);
       self::assertStringContainsString('data-evaluation="indeterminate"', $html);
+      self::assertStringContainsString('data-adherence-numerator="0"', $html);
+      self::assertStringContainsString('data-adherence-denominator="1"', $html);
+      self::assertStringContainsString('0% (0/1)', $html);
+      self::assertStringContainsString('data-clarus-minimum-adherence', $html);
+      self::assertStringContainsString('data-clarus-result', $html);
+      self::assertStringContainsString('data-clarus-condition', $html);
+      self::assertStringContainsString('data-clarus-entity', $html);
+      self::assertStringContainsString('data-clarus-sort-field', $html);
+      self::assertStringContainsString('Some criteria cannot be evaluated safely using this Ticket snapshot.', $html);
       self::assertStringNotContainsString('\\"', $html);
       self::assertStringContainsString('&lt;rule&gt;', $html);
       self::assertStringNotContainsString('secret-pattern', $html);
@@ -99,8 +109,8 @@ final class InspectionRendererTest extends TestCase
    public function testRendersClarusOwnedLabelsThroughTheGettextDomain(): void {
       $GLOBALS['clarusTranslations'] = ['clarus' => [
          'Rule inspection' => 'Inspeção de regras',
-         'Current-state diagnostic only. No rule is executed or changed.'
-            => 'Diagnóstico do estado atual; nenhuma regra é executada ou alterada.',
+         'Current-state diagnostic of the last saved Ticket data only. No rule is executed or changed.'
+            => 'Diagnóstico do último estado salvo; nenhuma regra é executada ou alterada.',
          'On ticket creation (ONADD)' => 'Na criação do chamado (ONADD)',
          'Matches' => 'Corresponde',
       ]];
@@ -126,7 +136,7 @@ final class InspectionRendererTest extends TestCase
       );
 
       self::assertStringContainsString('Inspeção de regras', $html);
-      self::assertStringContainsString('Diagnóstico do estado atual', $html);
+      self::assertStringContainsString('Diagnóstico do último estado salvo', $html);
       self::assertStringContainsString('Na criação do chamado (ONADD)', $html);
       self::assertStringContainsString('Corresponde', $html);
    }

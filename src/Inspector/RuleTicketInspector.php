@@ -164,12 +164,6 @@ final class RuleTicketInspector
           $overall = $nativeRule->checkCriterias($input) ? Evaluation::MATCH : Evaluation::NO_MATCH;
       }
 
-      if ($condition === \RuleTicket::ONUPDATE) {
-          $overall = Evaluation::INDETERMINATE;
-          $limitations[] =
-              'UPDATE eligibility depends on the original change set, which is not present on a persisted Ticket.';
-      }
-
        return $this->ruleResult($rule, $condition, $matchingMode, $criterionResults, $overall, $limitations);
    }
 

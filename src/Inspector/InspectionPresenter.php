@@ -37,7 +37,7 @@ final class InspectionPresenter
 
    /**
     * @param list<InspectionResult> $results
-    * @param array<string, bool|int|string> $settings
+    * @param array<string, bool|int|string|list<array{field: string, direction: string}>> $settings
     * @return array<string, mixed>
     */
    public function present(
@@ -56,15 +56,22 @@ final class InspectionPresenter
        $processingIndex = 0;
        $actionsEnabled = (bool) $settings[ClarusConfig::INCLUDE_ACTIONS];
        $counts = ['match' => 0, 'no_match' => 0, 'indeterminate' => 0];
+       $entityOptions = [];
       foreach ($results as $result) {
           $candidateCount += $result->candidateCount;
           $evaluatedCount += $result->evaluatedCount;
           $truncated = $truncated || $result->truncated;
          foreach ($result->rules as $rule) {
              $rules[] = $this->rule($rule, $processingIndex++, $actionsEnabled);
+             $entityOptions[$rule->entityId] = [
+                 'id' => $rule->entityId,
+                 'name' => $this->entityName($rule->entityId),
+             ];
              ++$counts[$this->evaluationKey($rule->evaluation)];
          }
       }
+
+       uasort($entityOptions, static fn (array $left, array $right): int => $left['name'] <=> $right['name']);
 
        return [
            'ticketId' => $ticketId,
@@ -77,8 +84,12 @@ final class InspectionPresenter
            'evaluatedCount' => $evaluatedCount,
            'counts' => $counts,
            'rules' => $rules,
+           'entityOptions' => array_values($entityOptions),
            'pageSize' => $settings[ClarusConfig::PAGE_SIZE],
            'initialGroup' => $settings[ClarusConfig::INITIAL_GROUP],
+           'minimumAdherence' => $settings[ClarusConfig::MIN_ADHERENCE],
+           'initialSort' => $this->sortLevels($settings[ClarusConfig::INITIAL_SORT]),
+           'sortOptions' => $this->sortOptions(),
            'labels' => $this->labels(),
        ];
    }
@@ -92,6 +103,14 @@ final class InspectionPresenter
        ));
        $entityName = $this->entityName($rule->entityId);
        $evaluationKey = $this->evaluationKey($rule->evaluation);
+       $criteriaCount = count($criteria);
+       $indeterminateCriteria = count(array_filter(
+           $rule->criteria,
+           static fn (CriterionInspection $criterion): bool => $criterion->evaluation === Evaluation::INDETERMINATE
+       ));
+       $adherencePercent = $criteriaCount === 0
+           ? 0
+           : (int) round(($matchingCriteria / $criteriaCount) * 100, 0, PHP_ROUND_HALF_UP);
 
        return [
            'id' => $rule->id,
@@ -104,8 +123,14 @@ final class InspectionPresenter
            'matchingMode' => $this->matchingMode($rule->matchingMode),
            'criteria' => $criteria,
            'matchingCriteria' => $matchingCriteria,
-           'criteriaCount' => count($criteria),
+           'criteriaCount' => $criteriaCount,
+           'indeterminateCriteria' => $indeterminateCriteria,
+           'adherenceNumerator' => $matchingCriteria,
+           'adherenceDenominator' => $criteriaCount,
+           'adherencePercent' => $adherencePercent,
+           'adherenceLabel' => sprintf('%d%% (%d/%d)', $adherencePercent, $matchingCriteria, $criteriaCount),
            'actions' => array_map(fn (ActionInspection $action): array => $this->action($action), $rule->actions),
+           'actionCount' => count($rule->actions),
            'actionSummary' => $actionsEnabled
                ? sprintf('%d %s', count($rule->actions), __('configured actions', 'clarus'))
                : __('Configured action analysis is disabled.', 'clarus'),
@@ -115,8 +140,47 @@ final class InspectionPresenter
            'evaluationOrder' => ['match' => 0, 'no_match' => 1, 'indeterminate' => 2][$evaluationKey],
            'processingIndex' => $processingIndex,
            'entitySort' => mb_strtolower($entityName, 'UTF-8'),
+           'entityId' => $rule->entityId,
            'searchText' => mb_strtolower($rule->id . ' ' . $rule->name, 'UTF-8'),
            'limitations' => array_map(fn (string $reason): string => $this->limitation($reason), $rule->limitations),
+       ];
+   }
+
+   /**
+    * @param mixed $sort
+   * @return list<array{field: string, direction: string}>
+    */
+   private function sortLevels(mixed $sort): array {
+       $levels = [];
+      if (is_array($sort)) {
+         foreach ($sort as $level) {
+            if (is_array($level) && isset($level['field'], $level['direction'])
+                && is_string($level['field']) && is_string($level['direction'])) {
+                $levels[] = ['field' => $level['field'], 'direction' => $level['direction']];
+            }
+         }
+      }
+      while (count($levels) < ClarusConfig::MAX_SORT_LEVELS) {
+          $levels[] = ['field' => '', 'direction' => 'asc'];
+      }
+
+       return $levels;
+   }
+
+   /** @return array<string, string> */
+   private function sortOptions(): array {
+       return [
+           'result' => __('Result', 'clarus'),
+           'adherence' => __('Confirmed adherence', 'clarus'),
+           'matches' => __('Matching criteria', 'clarus'),
+           'criteria' => __('Configured criteria', 'clarus'),
+           'indeterminate' => __('Indeterminate criteria', 'clarus'),
+           'ranking' => __('Ranking', 'clarus'),
+           'entity' => __('Entity', 'clarus'),
+           'condition' => __('Condition', 'clarus'),
+           'actions' => __('Configured actions', 'clarus'),
+           'name' => __('Rule name', 'clarus'),
+           'id' => __('Rule ID', 'clarus'),
        ];
    }
 
@@ -160,7 +224,8 @@ final class InspectionPresenter
    private function labels(): array {
        return [
            'title' => __('Rule inspection', 'clarus'),
-           'description' => __('Current-state diagnostic only. No rule is executed or changed.', 'clarus'),
+           'description' => __('Current-state diagnostic of the last saved Ticket data only. No rule is executed or changed.', 'clarus'),
+           'persistedState' => __('Unsaved form changes are not included in this diagnostic.', 'clarus'),
            'refresh' => __('Refresh inspection', 'clarus'),
            'refreshing' => __('Refreshing inspection...', 'clarus'),
            'evaluated' => __('Evaluated', 'clarus'),
@@ -175,7 +240,19 @@ final class InspectionPresenter
            'groupProcessing' => __('Processing order', 'clarus'),
            'groupResult' => __('Result', 'clarus'),
            'groupEntity' => __('Entity', 'clarus'),
-           'grouping' => __('Grouping/order', 'clarus'),
+           'grouping' => __('Grouping', 'clarus'),
+           'resultFilter' => __('Result filters', 'clarus'),
+           'conditionFilter' => __('Condition filters', 'clarus'),
+           'entityFilter' => __('Entity filters', 'clarus'),
+           'onadd' => __('On ticket creation (ONADD)', 'clarus'),
+           'onupdate' => __('On ticket update (ONUPDATE)', 'clarus'),
+           'minimumAdherence' => __('Minimum confirmed adherence', 'clarus'),
+           'minimumAdherenceHint' => __('Display only. It does not change evaluated or candidate rules.', 'clarus'),
+           'sortBy' => __('Sort by', 'clarus'),
+           'sortLevel' => __('Level %d', 'clarus'),
+           'noSort' => __('No additional sort', 'clarus'),
+           'ascending' => __('Ascending', 'clarus'),
+           'descending' => __('Descending', 'clarus'),
            'results' => __('Results', 'clarus'),
            'criteria' => __('Criteria', 'clarus'),
            'criterion' => __('Criterion', 'clarus'),
@@ -200,6 +277,9 @@ final class InspectionPresenter
            'condition' => __('Condition', 'clarus'),
            'entity' => __('Entity', 'clarus'),
            'criteriaMatch' => __('criteria match', 'clarus'),
+           'confirmedAdherence' => __('Confirmed adherence', 'clarus'),
+           'indeterminateCriteria' => __('Indeterminate criteria', 'clarus'),
+           'cannotSafelyEvaluate' => __('Some criteria cannot be evaluated safely using this Ticket snapshot.', 'clarus'),
            'empty' => __('No rules were found for the enabled conditions.', 'clarus'),
            'notLoaded' => __('Automatic inspection is disabled. Use Refresh inspection to run it.', 'clarus'),
            'truncated' => __('Results were truncated at the configured rule limit.', 'clarus'),
@@ -360,8 +440,6 @@ final class InspectionPresenter
                => __('The rule uses an unsupported native matching mode.', 'clarus'),
            'Native Rule processing rejects rules without criteria.'
                => __('Native Rule processing rejects rules without criteria.', 'clarus'),
-           'UPDATE eligibility depends on the original change set, which is not present on a persisted Ticket.'
-               => __('Update eligibility depends on the original change set, which is not present on a persisted Ticket.', 'clarus'),
            'invalid_action_configuration'
                => __('The configured action is invalid and cannot be evaluated.', 'clarus'),
            'invalid_configured_value'

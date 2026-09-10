@@ -59,20 +59,48 @@
     display: flex;
     flex-wrap: wrap;
     gap: .5rem;
+    margin: 0;
+    min-width: 0;
+    padding: 0;
+}
+
+.clarus-inspection__filters legend,
+.clarus-inspection__sort legend {
+    float: none;
+    font-size: .875rem;
+    margin: 0 0 .25rem;
+    width: auto;
+}
+
+.clarus-inspection__sort {
+    display: grid;
+    gap: .5rem;
     grid-column: 1 / -1;
+    margin: 0;
+    padding: 0;
 }
 
-.clarus-inspection__filters .btn {
-    border: 1px solid var(--tblr-border-color);
-    border-radius: 999px;
-    font-size: .75rem;
-    padding: .25rem .75rem;
+.clarus-inspection__sort-level {
+    display: grid;
+    gap: .5rem;
+    grid-template-columns: minmax(12rem, 2fr) minmax(8rem, 1fr);
 }
 
-.clarus-inspection__filters .btn.active {
-    background: var(--tblr-primary-lt);
-    border-color: var(--tblr-primary);
-    color: var(--tblr-primary);
+.clarus-inspection__group-heading {
+    color: var(--tblr-secondary-color);
+    font-size: .8rem;
+    margin: .5rem 0 0;
+}
+
+.clarus-rule__indeterminate {
+    align-items: center;
+    color: var(--tblr-secondary-color);
+    display: inline-flex;
+}
+
+.clarus-rule__indeterminate-note {
+    color: var(--tblr-secondary-color);
+    font-size: .8rem;
 }
 
 .clarus-inspection__results-heading {
@@ -241,7 +269,10 @@
     .clarus-inspection__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .clarus-inspection__controls { grid-template-columns: 1fr; }
     .clarus-inspection__control,
-    .clarus-inspection__filters { grid-column: 1; }
+    .clarus-inspection__filters,
+    .clarus-inspection__sort { grid-column: 1; }
+
+    .clarus-inspection__sort-level { grid-template-columns: 1fr; }
 
     .clarus-rule__summary {
         grid-template-columns: .25rem minmax(0, 1fr) auto;

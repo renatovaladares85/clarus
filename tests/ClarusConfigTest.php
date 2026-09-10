@@ -34,6 +34,11 @@ final class ClarusConfigTest extends TestCase
        self::assertSame(50, ClarusConfig::get()[ClarusConfig::PAGE_SIZE]);
        self::assertSame('preserved', \Config::$values[ClarusConfig::CONTEXT]['unrelated_key']);
        self::assertTrue(ClarusConfig::get()[ClarusConfig::INCLUDE_ACTIONS]);
+       self::assertSame(0, ClarusConfig::get()[ClarusConfig::MIN_ADHERENCE]);
+       self::assertSame([
+           ['field' => 'adherence', 'direction' => 'desc'],
+           ['field' => 'ranking', 'direction' => 'asc'],
+       ], ClarusConfig::get()[ClarusConfig::INITIAL_SORT]);
    }
 
    public function testValidatedConfigurationCanBeUpdatedAndRead(): void {
@@ -42,6 +47,11 @@ final class ClarusConfigTest extends TestCase
            ClarusConfig::RULE_LIMIT => '2500',
            ClarusConfig::PAGE_SIZE => '50',
            ClarusConfig::INITIAL_GROUP => 'entity',
+           ClarusConfig::MIN_ADHERENCE => '80',
+           'inspection_sort_1_field' => 'result',
+           'inspection_sort_1_direction' => 'asc',
+           'inspection_sort_2_field' => 'id',
+           'inspection_sort_2_direction' => 'desc',
        ]));
 
        $config = ClarusConfig::get();
@@ -49,6 +59,11 @@ final class ClarusConfigTest extends TestCase
        self::assertSame(2500, $config[ClarusConfig::RULE_LIMIT]);
        self::assertSame(50, $config[ClarusConfig::PAGE_SIZE]);
        self::assertSame('entity', $config[ClarusConfig::INITIAL_GROUP]);
+       self::assertSame(80, $config[ClarusConfig::MIN_ADHERENCE]);
+       self::assertSame([
+           ['field' => 'result', 'direction' => 'asc'],
+           ['field' => 'id', 'direction' => 'desc'],
+       ], $config[ClarusConfig::INITIAL_SORT]);
    }
 
    /** @dataProvider invalidInputProvider */
@@ -64,6 +79,23 @@ final class ClarusConfigTest extends TestCase
        yield 'open page size' => [ClarusConfig::PAGE_SIZE, '30'];
        yield 'unknown grouping' => [ClarusConfig::INITIAL_GROUP, 'random'];
        yield 'invalid condition toggle' => [ClarusConfig::INCLUDE_ONADD, 'yes'];
+       yield 'negative adherence' => [ClarusConfig::MIN_ADHERENCE, '-1'];
+       yield 'adherence over one hundred' => [ClarusConfig::MIN_ADHERENCE, '101'];
+   }
+
+   public function testDuplicateOrUnknownSortFieldsAreRejected(): void {
+       $this->expectException(\InvalidArgumentException::class);
+       ClarusConfig::update($this->validInput([
+           'inspection_sort_1_field' => 'ranking',
+           'inspection_sort_1_direction' => 'asc',
+           'inspection_sort_2_field' => 'ranking',
+           'inspection_sort_2_direction' => 'desc',
+       ]));
+   }
+
+   public function testInvalidSortDirectionIsRejectedEvenForAnUnusedLevel(): void {
+       $this->expectException(\InvalidArgumentException::class);
+       ClarusConfig::update($this->validInput(['inspection_sort_3_direction' => 'sideways']));
    }
 
    public function testRemovalDeletesOnlyClarusOwnedKeys(): void {
@@ -101,6 +133,12 @@ final class ClarusConfigTest extends TestCase
                'result' => 'Result',
                'entity' => 'Entity',
            ],
+           'sortLevels' => [
+               ['field' => 'adherence', 'direction' => 'desc'],
+               ['field' => 'ranking', 'direction' => 'asc'],
+               ['field' => '', 'direction' => 'asc'],
+           ],
+           'sortOptions' => ['adherence' => 'Confirmed adherence', 'ranking' => 'Ranking'],
            'booleanFields' => [[
                'name' => ClarusConfig::AUTO_INSPECTION,
                'label' => 'Automatic inspection',
@@ -113,6 +151,13 @@ final class ClarusConfigTest extends TestCase
                'ruleLimitHint' => 'Rule limit hint',
                'pageSize' => 'Page size',
                'initialGroup' => 'Initial grouping',
+               'minimumAdherence' => 'Minimum adherence',
+               'minimumAdherenceHint' => 'Hint',
+               'initialSort' => 'Initial sort',
+               'sortLevel' => 'Level %d',
+               'noSort' => 'No additional sort',
+               'ascending' => 'Ascending',
+               'descending' => 'Descending',
                'save' => 'Save',
            ],
        ]);
@@ -120,6 +165,8 @@ final class ClarusConfigTest extends TestCase
        self::assertStringContainsString('name="_glpi_csrf_token" value="csrf-token"', $html);
        self::assertStringContainsString('name="inspection_rule_limit" value="1000"', $html);
        self::assertStringContainsString('name="inspection_page_size"', $html);
+       self::assertStringContainsString('name="inspection_min_adherence" value="0"', $html);
+       self::assertStringContainsString('name="inspection_sort_1_field"', $html);
        self::assertStringNotContainsString('Module active', $html);
    }
 
@@ -136,6 +183,13 @@ final class ClarusConfigTest extends TestCase
            ClarusConfig::RULE_LIMIT => '1000',
            ClarusConfig::PAGE_SIZE => '25',
            ClarusConfig::INITIAL_GROUP => 'processing',
+           ClarusConfig::MIN_ADHERENCE => '0',
+           'inspection_sort_1_field' => 'adherence',
+           'inspection_sort_1_direction' => 'desc',
+           'inspection_sort_2_field' => 'ranking',
+           'inspection_sort_2_direction' => 'asc',
+           'inspection_sort_3_field' => '',
+           'inspection_sort_3_direction' => 'asc',
        ], $overrides);
    }
 }

@@ -46,6 +46,11 @@ final class InspectionPresenterTest extends TestCase
        self::assertIsArray($secondRule);
        self::assertSame(1, $secondRule['matchingCriteria']);
        self::assertSame(2, $secondRule['criteriaCount']);
+       self::assertSame(0, $secondRule['indeterminateCriteria']);
+       self::assertSame(50, $secondRule['adherencePercent']);
+       self::assertSame(1, $secondRule['adherenceNumerator']);
+       self::assertSame(2, $secondRule['adherenceDenominator']);
+       self::assertSame('50% (1/2)', $secondRule['adherenceLabel']);
        $evaluationKeys = [];
       foreach ($presentedRules as $presentedRule) {
           self::assertIsArray($presentedRule);
@@ -53,6 +58,31 @@ final class InspectionPresenterTest extends TestCase
       }
        self::assertSame(['match', 'no_match', 'indeterminate'], $evaluationKeys);
        self::assertArrayNotHasKey('partial', $counts);
+   }
+
+   public function testAdherenceIncludesIndeterminateCriteriaAndKeepsSemanticResultIndependent(): void {
+       $rules = [
+           $this->rule(1, Evaluation::MATCH, [Evaluation::MATCH, Evaluation::MATCH, Evaluation::MATCH, Evaluation::MATCH, Evaluation::INDETERMINATE]),
+           $this->rule(2, Evaluation::MATCH, [Evaluation::MATCH, Evaluation::NO_MATCH, Evaluation::NO_MATCH]),
+           $this->rule(3, Evaluation::INDETERMINATE, []),
+       ];
+       $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 3, 3, false, $rules);
+
+       $view = $this->presenter()->present([$result], ClarusConfig::defaults(), 12, '/refresh', 'token', true);
+       $presented = $view['rules'];
+
+       self::assertIsArray($presented);
+       self::assertIsArray($presented[0]);
+       self::assertIsArray($presented[1]);
+       self::assertIsArray($presented[2]);
+       self::assertSame('80% (4/5)', $presented[0]['adherenceLabel']);
+       self::assertSame(4, $presented[0]['adherenceNumerator']);
+       self::assertSame(5, $presented[0]['adherenceDenominator']);
+       self::assertSame(1, $presented[0]['indeterminateCriteria']);
+       self::assertSame(Evaluation::MATCH, $rules[1]->evaluation);
+       self::assertSame('33% (1/3)', $presented[1]['adherenceLabel']);
+       self::assertSame('0% (0/0)', $presented[2]['adherenceLabel']);
+       self::assertSame('indeterminate', $presented[2]['evaluationKey']);
    }
 
    public function testOnlyExplicitlySafeValuesReachTheViewModel(): void {
@@ -151,6 +181,10 @@ final class InspectionPresenterTest extends TestCase
        $view = $this->presenter()->present([$result], $settings, 12, '/refresh', 'token', true);
 
        self::assertSame(10, $view['pageSize']);
+       self::assertSame(0, $view['minimumAdherence']);
+       $initialSort = $view['initialSort'];
+       self::assertIsArray($initialSort);
+       self::assertCount(3, $initialSort);
        $presentedRules = $view['rules'];
        self::assertIsArray($presentedRules);
        self::assertCount(30, $presentedRules);

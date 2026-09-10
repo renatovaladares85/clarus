@@ -57,6 +57,13 @@ final class ClarusConfigTest extends TestCase
            ClarusConfig::RULE_LIMIT => '2500',
            ClarusConfig::PAGE_SIZE => '100',
            ClarusConfig::INITIAL_GROUP => 'result',
+           ClarusConfig::MIN_ADHERENCE => '80',
+           'inspection_sort_1_field' => 'adherence',
+           'inspection_sort_1_direction' => 'desc',
+           'inspection_sort_2_field' => 'ranking',
+           'inspection_sort_2_direction' => 'asc',
+           'inspection_sort_3_field' => '',
+           'inspection_sort_3_direction' => 'asc',
        ]);
 
        $config = ClarusConfig::get();
@@ -65,6 +72,11 @@ final class ClarusConfigTest extends TestCase
        self::assertSame(2500, $config[ClarusConfig::RULE_LIMIT]);
        self::assertSame(100, $config[ClarusConfig::PAGE_SIZE]);
        self::assertSame('result', $config[ClarusConfig::INITIAL_GROUP]);
+       self::assertSame(80, $config[ClarusConfig::MIN_ADHERENCE]);
+       self::assertSame([
+           ['field' => 'adherence', 'direction' => 'desc'],
+           ['field' => 'ranking', 'direction' => 'asc'],
+       ], $config[ClarusConfig::INITIAL_SORT]);
    }
 
    public function testRemovalPreservesUnrelatedConfigurationInTheSameContext(): void {
