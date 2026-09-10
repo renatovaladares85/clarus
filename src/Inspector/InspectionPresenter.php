@@ -211,10 +211,10 @@ final class InspectionPresenter
            'field' => $this->actionField($action->field),
            'support' => $this->actionSupport($action->support),
            'evaluation' => $this->actionEvaluation($action->evaluation),
-           'configured' => $action->configuredValuePresentationSafe
+           'configured' => $action->configuredValuePresentationSafe && $canViewSensitiveValues
                ? $this->safeActionValue($action->configuredValue)
                : __('Hidden for safety', 'clarus'),
-           'current' => $action->currentValuePresentationSafe
+           'current' => $action->currentValuePresentationSafe && $canViewSensitiveValues
                ? $this->safeActionValue($action->currentValue)
                : __('Hidden or unavailable', 'clarus'),
            'limitation' => $action->reason === null ? null : $this->limitation($action->reason),

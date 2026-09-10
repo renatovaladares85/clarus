@@ -163,8 +163,8 @@ final class InspectionPresenterTest extends TestCase
        self::assertSame('3', $criteria[0]['observed']);
        self::assertSame('Hidden for safety', $criteria[1]['expected']);
        self::assertSame('Hidden or unavailable', $criteria[1]['observed']);
-       self::assertSame('3', $actions[0]['configured']);
-       self::assertSame('Omitted for safety', $actions[1]['configured']);
+       self::assertSame('Hidden for safety', $actions[0]['configured']);
+       self::assertSame('Hidden for safety', $actions[1]['configured']);
        self::assertSame('A diagnostic limitation applies to this item.', $limitations[0]);
        self::assertSame('Entity 9', $presented['entityName']);
 
@@ -184,6 +184,9 @@ final class InspectionPresenterTest extends TestCase
        self::assertIsArray($sensitiveRules[0]['criteria']);
        self::assertIsArray($sensitiveRules[0]['criteria'][1]);
        self::assertSame('secret-pattern', $sensitiveRules[0]['criteria'][1]['expected']);
+       self::assertIsArray($sensitiveRules[0]['actions']);
+       self::assertIsArray($sensitiveRules[0]['actions'][0]);
+       self::assertSame('3', $sensitiveRules[0]['actions'][0]['configured']);
    }
 
    public function testPresentationKeepsEveryEvaluatedRuleIndependentOfPageSize(): void {
