@@ -331,11 +331,16 @@
         }
 
         try {
+            const formData = new FormData(form);
+            const csrfToken = formData.get('_glpi_csrf_token');
             const response = await fetch(form.action, {
                 method: 'POST',
-                body: new FormData(form),
+                body: formData,
                 credentials: 'same-origin',
-                headers: {'X-Requested-With': 'XMLHttpRequest'},
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-Glpi-Csrf-Token': typeof csrfToken === 'string' ? csrfToken : '',
+                },
             });
             const html = await response.text();
             if (!response.ok || html.trim() === '') {

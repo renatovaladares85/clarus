@@ -16,7 +16,6 @@ $error = null;
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     /** @var array<string, mixed> $input */
     $input = $_POST;
-    \Session::checkCSRF($input);
     try {
         ClarusConfig::update($input);
         \Session::addMessageAfterRedirect(__('Clarus configuration saved.', 'clarus'));

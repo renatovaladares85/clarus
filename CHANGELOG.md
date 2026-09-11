@@ -4,6 +4,10 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Fix GLPI 10 CSRF handling for Clarus configuration saves and asynchronous
+  inspection refreshes by relying on the native request bootstrap and sending
+  the refresh form token in the required header.
+
 - Add a separate, deny-by-default sensitive inspection-content Profile right,
   a global ONADD/ONUPDATE evaluation budget, manual inspection loading, and
   clarified non-evaluated rule terminology.
