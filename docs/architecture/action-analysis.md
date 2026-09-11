@@ -5,8 +5,9 @@
 Phase 4 optionally enriches each `RuleInspection` with the configured actions
 of that rule and compares supported effects with the current reconstructable
 Ticket snapshot. `InspectionOptions::includeActions` defaults to `false`, so
-Phase 3 behavior and query cost remain unchanged unless action analysis is
-requested.
+action reflection presentation remains opt-in. The sequential engine still
+loads configured actions read-only because it must preserve native rule-chain
+semantics independently from that presentation choice.
 
 The analyzer never calls `Rule::process()`,
 `RuleCollection::processAllRules()`, or `RuleTicket::executeActions()`. It does
@@ -58,13 +59,16 @@ rules actually evaluated. Rows are grouped by `rules_id` and ordered by
 
 ## Sequential rules, ADD, and UPDATE
 
-RuleTicket uses previous rule output as the next rule input. When action
-analysis is enabled, Clarus reconstructs only a narrow, internal and immutable
-subset of those intermediate contexts. Scalar assignments, category assignment
+RuleTicket uses previous rule output as the next rule input. Clarus always
+reconstructs only a narrow, internal and immutable subset of those intermediate
+contexts; `InspectionOptions::includeActions` controls action reflection
+presentation, not sequential semantics. Scalar assignments, category assignment
 with its resolved category code, and exact deadline deletes are applied in the
 native action order after a `MATCH`. Unknown, unsupported, or indeterminate
-effects are never guessed; they taint their known criterion target for the next
-step instead. `ProjectedRuleEffect` distinguishes applied, not-applied,
+effects are never guessed; they taint their known criterion target and reviewed
+derived dependencies for the next step instead. Requester effects also taint
+requester groups, location, and profile; the category-code regex alias taints
+both category ID and category code. `ProjectedRuleEffect` distinguishes applied, not-applied,
 indeterminate, and unsupported outcomes with safe previous/next values for
 tests only.
 

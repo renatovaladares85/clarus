@@ -35,33 +35,31 @@ final class RuleTicketInspector
        $candidates = $this->candidateProvider->candidates($ticket, $condition);
        $candidateCount = count($candidates);
        $selected = array_slice($candidates, 0, $options->ruleLimit);
-       $actionsByRule = $options->includeActions
-           ? $this->actionProvider->forRuleIds(array_map(
-               static fn (\RuleTicket $rule): int => NativeField::integer($rule->fields['id'] ?? 0),
-               $selected
-           ))
-           : [];
+       $actionsByRule = $this->actionProvider->forRuleIds(array_map(
+           static fn (\RuleTicket $rule): int => NativeField::integer($rule->fields['id'] ?? 0),
+           $selected
+       ));
        $rules = [];
       foreach ($selected as $processingIndex => $rule) {
           $ruleInspection = $this->inspectRule($rule, $context, $condition);
+         $configuredActions = $actionsByRule[$ruleInspection->id] ?? [];
          if ($options->includeActions) {
-             $configuredActions = $actionsByRule[$ruleInspection->id] ?? [];
              $ruleInspection = $ruleInspection->withActions(
                  $this->actionAnalyzer->analyzeAll($configuredActions, $persistedContext)
              );
-             $projection = $this->effectProjector->project(
-                 $ruleInspection->evaluation,
-                 $configuredActions,
-                 $context
-             );
-             $ruleInspection = $ruleInspection->withSequentialStep(new SequentialRuleStep(
-                 $processingIndex,
-                 $context,
-                 $projection->outputContext,
-                 $projection->effects
-             ));
-             $context = $projection->outputContext;
          }
+         $projection = $this->effectProjector->project(
+             $ruleInspection->evaluation,
+             $configuredActions,
+             $context
+         );
+         $ruleInspection = $ruleInspection->withSequentialStep(new SequentialRuleStep(
+             $processingIndex,
+             $context,
+             $projection->outputContext,
+             $projection->effects
+         ));
+         $context = $projection->outputContext;
           $rules[] = $ruleInspection;
       }
 

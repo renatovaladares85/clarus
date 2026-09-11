@@ -18,6 +18,20 @@ final class RuleEffectProjector
    public const REASON_INVALID_CONFIGURED_VALUE = 'invalid_configured_value';
    public const REASON_CATEGORY_CODE_UNAVAILABLE = 'category_code_not_reconstructible';
 
+   /** @var array<string, list<string>> */
+   private const INDIRECT_CONTEXT_KEYS = [
+       '_users_id_requester' => [
+           '_groups_id_of_requester',
+           '_locations_id_of_requester',
+           'profiles_id',
+       ],
+       'itilcategories_id' => ['itilcategories_id_code'],
+       '_affect_itilcategory_by_code' => [
+           'itilcategories_id',
+           'itilcategories_id_code',
+       ],
+   ];
+
    /** @var list<string> */
    private const SCALAR_ASSIGN_FIELDS = [
        'type',
@@ -186,16 +200,19 @@ final class RuleEffectProjector
    }
 
    private function taint(TicketContext $context, string $field, string $reason): TicketContext {
-      if (!array_key_exists($field, $context->values())) {
-          return $context;
-      }
-
-       $context = $context->with($field, ContextValue::indeterminate($reason));
-      if ($field === 'itilcategories_id') {
-          $context = $context->with('itilcategories_id_code', ContextValue::indeterminate($reason));
+      foreach ($this->affectedContextKeys($field) as $contextKey) {
+          $context = $context->with($contextKey, ContextValue::indeterminate($reason));
       }
 
        return $context;
+   }
+
+   /** @return list<string> */
+   private function affectedContextKeys(string $field): array {
+       return array_values(array_unique(array_merge(
+           [$field],
+           self::INDIRECT_CONTEXT_KEYS[$field] ?? []
+       )));
    }
 
    private function integerOrNull(mixed $value): ?int {

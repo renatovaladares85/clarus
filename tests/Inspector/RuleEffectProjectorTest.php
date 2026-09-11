@@ -77,6 +77,41 @@ final class RuleEffectProjectorTest extends TestCase
        self::assertSame(RuleEffectProjector::REASON_UNSUPPORTED_ACTION, $result->effects[0]->reason);
    }
 
+   public function testUnsupportedRequesterActionTaintsNativeDerivedRequesterCriteria(): void {
+       $input = $this->context([
+           '_users_id_requester' => [3],
+           '_groups_id_of_requester' => [7],
+           '_locations_id_of_requester' => 11,
+           'profiles_id' => 4,
+       ]);
+       $result = $this->projector->project(
+           Evaluation::MATCH,
+           [$this->action('assign', '_users_id_requester', '8')],
+           $input
+       );
+
+       self::assertSame(ContextState::INDETERMINATE, $result->outputContext->get('_users_id_requester')->state);
+       self::assertSame(ContextState::INDETERMINATE, $result->outputContext->get('_groups_id_of_requester')->state);
+       self::assertSame(ContextState::INDETERMINATE, $result->outputContext->get('_locations_id_of_requester')->state);
+       self::assertSame(ContextState::INDETERMINATE, $result->outputContext->get('profiles_id')->state);
+   }
+
+   public function testUnsupportedCategoryCodeAliasTaintsCategoryAndCode(): void {
+       $input = $this->context([
+           'itilcategories_id' => 3,
+           'itilcategories_id_code' => 'PERSISTED',
+       ]);
+       $result = $this->projector->project(
+           Evaluation::MATCH,
+           [$this->action('regex_result', '_affect_itilcategory_by_code', '#0')],
+           $input
+       );
+
+       self::assertSame(ContextState::INDETERMINATE, $result->outputContext->get('itilcategories_id')->state);
+       self::assertSame(ContextState::INDETERMINATE, $result->outputContext->get('itilcategories_id_code')->state);
+       self::assertSame(ProjectionStatus::UNSUPPORTED, $result->effects[0]->status);
+   }
+
    public function testMatchedDeleteProjectsExactNull(): void {
        $input = $this->context(['time_to_resolve' => '2026-09-11 12:00:00']);
        $result = $this->projector->project(
