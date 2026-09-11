@@ -1,0 +1,118 @@
+name: Publish Clarus 0.5.1 homologation release
+
+on:
+  push:
+    branches:
+      - release/publish-0.5.1-hml
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    name: Publish verified GLPI package
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: be32e1cffdee1da03d1cbcccf18c04a40eb0f312
+      ARTIFACT_ID: '10179425755'
+      VERSION: '0.5.1'
+      TAG: '0.5.1'
+      PACKAGE_NAME: glpi-clarus-0.5.1.tar.bz2
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download exact package produced by Quality Gate 50
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifact
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > artifact.zip
+          unzip -q artifact.zip -d release-artifact
+          test -f release-artifact/clarus.tar.bz2
+          test -f release-artifact/clarus.tar.bz2.sha256
+          (cd release-artifact && sha256sum --check clarus.tar.bz2.sha256)
+
+      - name: Audit package against GLPI release requirements
+        run: |
+          set -euo pipefail
+          package=release-artifact/clarus.tar.bz2
+          tar -tjf "$package" > archive.txt
+          if grep -Ev '^clarus(/|$)' archive.txt; then
+            echo 'Archive contains files outside the clarus technical directory.' >&2
+            exit 1
+          fi
+          for required in clarus/setup.php clarus/hook.php clarus/plugin.xml; do
+            grep -Fx "$required" archive.txt >/dev/null
+          done
+          tar -xOf "$package" clarus/setup.php | grep -F "define('PLUGIN_CLARUS_VERSION', '${VERSION}');" >/dev/null
+          tar -xOf "$package" clarus/plugin.xml | grep -F '<key>clarus</key>' >/dev/null
+          tar -xOf "$package" clarus/plugin.xml | grep -F "<num>${VERSION}</num>" >/dev/null
+          tar -xOf "$package" clarus/plugin.xml | grep -F '<compatibility>10.0</compatibility>' >/dev/null
+
+      - name: Prepare public release assets
+        run: |
+          set -euo pipefail
+          cp release-artifact/clarus.tar.bz2 "$PACKAGE_NAME"
+          sha256sum "$PACKAGE_NAME" > "${PACKAGE_NAME}.sha256"
+          cat > release-notes.md <<'EOF'
+          ## Clarus 0.5.1 — Homologação
+
+          Pacote de homologação do Clarus para GLPI 10.
+
+          - Fonte: `main` no commit `be32e1cffdee1da03d1cbcccf18c04a40eb0f312`.
+          - Quality Gate pós-merge: #50 — concluído com sucesso.
+          - Compatibilidade declarada: GLPI `>= 10.0.20` e `< 11.0.0`; PHP `>= 8.1` e `< 8.5`.
+          - O pacote foi produzido pelo comando oficial do GLPI `tools:plugin:release`, validado pelo CI e testado após extração/instalação.
+          - O arquivo contém o diretório técnico `clarus/`, como exigido pelo GLPI.
+
+          ### Instalação para homologação
+
+          1. Baixe `glpi-clarus-0.5.1.tar.bz2` e, opcionalmente, valide o SHA-256.
+          2. Extraia o arquivo dentro de `<GLPI_ROOT>/plugins`; o resultado deve ser `<GLPI_ROOT>/plugins/clarus`.
+          3. Em **Configurar > Plugins**, instale e ative o Clarus.
+
+          Esta publicação está marcada como **pre-release** enquanto a validação externa/homologação da Issue #11 estiver em andamento. O tag `0.5.1` aponta para o commit exato validado e não deve ser movido ou recriado.
+          EOF
+
+      - name: Create GitHub pre-release
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; refusing to replace an existing published tag." >&2
+            exit 1
+          fi
+          gh release create "$TAG" \
+            "$PACKAGE_NAME" \
+            "${PACKAGE_NAME}.sha256" \
+            --target "$TARGET_SHA" \
+            --title "Clarus ${VERSION} — Homologação" \
+            --notes-file release-notes.md \
+            --prerelease
+
+      - name: Verify public download and immutable target
+        run: |
+          set -euo pipefail
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}")"
+          printf '%s' "$release_json" | jq -e --arg tag "$TAG" '.tag_name == $tag and .prerelease == true and .draft == false' >/dev/null
+          target="$(printf '%s' "$release_json" | jq -r '.target_commitish')"
+          if [ "$target" != "$TARGET_SHA" ]; then
+            echo "Release target mismatch: $target" >&2
+            exit 1
+          fi
+          download_url="$(printf '%s' "$release_json" | jq -r --arg name "$PACKAGE_NAME" '.assets[] | select(.name == $name) | .browser_download_url')"
+          checksum_url="$(printf '%s' "$release_json" | jq -r --arg name "${PACKAGE_NAME}.sha256" '.assets[] | select(.name == $name) | .browser_download_url')"
+          test -n "$download_url"
+          test -n "$checksum_url"
+          curl --fail --location --silent --show-error "$download_url" -o /tmp/clarus-release.tar.bz2
+          curl --fail --location --silent --show-error "$checksum_url" -o /tmp/clarus-release.sha256
+          expected="$(cut -d' ' -f1 /tmp/clarus-release.sha256)"
+          actual="$(sha256sum /tmp/clarus-release.tar.bz2 | cut -d' ' -f1)"
+          test "$actual" = "$expected"
+          tar -tjf /tmp/clarus-release.tar.bz2 | grep -Fx 'clarus/setup.php' >/dev/null
+          tar -xOf /tmp/clarus-release.tar.bz2 clarus/setup.php | grep -F "define('PLUGIN_CLARUS_VERSION', '${VERSION}');" >/dev/null
+          release_url="$(printf '%s' "$release_json" | jq -r '.html_url')"
+          {
+            echo "### Clarus ${VERSION} homologation release"
+            echo "Release: $release_url"
+            echo "Package: $download_url"
+            echo "SHA-256: $actual"
+          } >> "$GITHUB_STEP_SUMMARY"
