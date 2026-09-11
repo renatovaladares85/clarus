@@ -73,8 +73,10 @@ Clarus-owned keys and preserves unrelated rows in the same context.
 ## Authorization and refresh
 
 The configuration page requires the native `config` right with `UPDATE` and
-validates CSRF before saving. The refresh endpoint accepts POST only, validates
-CSRF, validates the Ticket ID, and repeats both authorization checks:
+relies on the GLPI request bootstrap to validate CSRF before saving. The refresh
+endpoint accepts POST only and sends the form token in GLPI's CSRF header; the
+same GLPI bootstrap rejects missing or invalid tokens before the endpoint
+validates the Ticket ID and repeats both authorization checks:
 `plugin_clarus_inspect` with `READ` and `Ticket::canViewItem()`. Error responses
 shown to the user are generic and do not contain exceptions, SQL, paths, or
 stack traces.

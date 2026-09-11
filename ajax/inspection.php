@@ -20,7 +20,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 
 /** @var array<string, mixed> $input */
 $input = $_POST;
-\Session::checkCSRF($input);
 
 if (!\Session::haveRight(Profile::RIGHT_INSPECT, READ)) {
     http_response_code(403);
