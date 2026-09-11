@@ -12,7 +12,8 @@ final class RuleTicketInspector
         private readonly TicketContextBuilder $contextBuilder = new TicketContextBuilder(),
         private readonly RuleTicketCandidateProvider $candidateProvider = new RuleTicketCandidateProvider(),
         private readonly RuleActionProvider $actionProvider = new RuleActionProvider(),
-        private readonly RuleTicketActionAnalyzer $actionAnalyzer = new RuleTicketActionAnalyzer()
+        private readonly RuleTicketActionAnalyzer $actionAnalyzer = new RuleTicketActionAnalyzer(),
+        private readonly RuleEffectProjector $effectProjector = new RuleEffectProjector()
     ) {
    }
 
@@ -29,7 +30,8 @@ final class RuleTicketInspector
       }
 
        $options ??= new InspectionOptions();
-       $context = $this->contextBuilder->build($ticket);
+       $persistedContext = $this->contextBuilder->build($ticket);
+       $context = $persistedContext;
        $candidates = $this->candidateProvider->candidates($ticket, $condition);
        $candidateCount = count($candidates);
        $selected = array_slice($candidates, 0, $options->ruleLimit);
@@ -40,12 +42,25 @@ final class RuleTicketInspector
            ))
            : [];
        $rules = [];
-      foreach ($selected as $rule) {
+      foreach ($selected as $processingIndex => $rule) {
           $ruleInspection = $this->inspectRule($rule, $context, $condition);
          if ($options->includeActions) {
+             $configuredActions = $actionsByRule[$ruleInspection->id] ?? [];
              $ruleInspection = $ruleInspection->withActions(
-                 $this->actionAnalyzer->analyzeAll($actionsByRule[$ruleInspection->id] ?? [], $context)
+                 $this->actionAnalyzer->analyzeAll($configuredActions, $persistedContext)
              );
+             $projection = $this->effectProjector->project(
+                 $ruleInspection->evaluation,
+                 $configuredActions,
+                 $context
+             );
+             $ruleInspection = $ruleInspection->withSequentialStep(new SequentialRuleStep(
+                 $processingIndex,
+                 $context,
+                 $projection->outputContext,
+                 $projection->effects
+             ));
+             $context = $projection->outputContext;
          }
           $rules[] = $ruleInspection;
       }

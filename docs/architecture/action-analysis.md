@@ -30,6 +30,7 @@ with a stable reason code. Unknown fields never fall back to generic equality.
 `REFLECTED` means only that the configured effect is present now.
 `NOT_REFLECTED` means only that a complete current value contradicts the
 supported effect. Neither state proves whether the rule executed historically.
+Reflection always compares the persisted snapshot, never a simulated context.
 
 ## Initial native action support
 
@@ -57,11 +58,17 @@ rules actually evaluated. Rows are grouped by `rules_id` and ordered by
 
 ## Sequential rules, ADD, and UPDATE
 
-RuleTicket uses previous rule output as the next rule input. Clarus does not
-reconstruct those intermediate states. A later rule or manual change can make
-an earlier action appear reflected or not reflected in the current snapshot.
+RuleTicket uses previous rule output as the next rule input. When action
+analysis is enabled, Clarus reconstructs only a narrow, internal and immutable
+subset of those intermediate contexts. Scalar assignments, category assignment
+with its resolved category code, and exact deadline deletes are applied in the
+native action order after a `MATCH`. Unknown, unsupported, or indeterminate
+effects are never guessed; they taint their known criterion target for the next
+step instead. `ProjectedRuleEffect` distinguishes applied, not-applied,
+indeterminate, and unsupported outcomes with safe previous/next values for
+tests only.
 
-ONADD and ONUPDATE actions use the same snapshot comparison. ONUPDATE criterion
-eligibility remains indeterminate when the original change set is unavailable;
-action reflection stays a separate dimension and does not increase historical
-certainty.
+The projection is not action execution and does not claim historical causality.
+Reflection still uses the persisted snapshot, so a later rule or manual change
+can make an earlier action appear reflected or not reflected. ONADD and
+ONUPDATE remain separate chains and begin from independent snapshots.

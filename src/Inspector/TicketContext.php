@@ -33,4 +33,11 @@ final class TicketContext
    public function values(): array {
        return $this->values;
    }
+
+   public function with(string $key, ContextValue $value): self {
+       $values = $this->values;
+       $values[$key] = $value;
+
+       return new self($values);
+   }
 }

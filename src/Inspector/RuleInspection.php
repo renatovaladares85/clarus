@@ -24,7 +24,8 @@ final class RuleInspection
         public readonly array $criteria,
         public readonly Evaluation $evaluation,
         public readonly array $limitations = [],
-        public readonly array $actions = []
+        public readonly array $actions = [],
+        public readonly ?SequentialRuleStep $sequentialStep = null
     ) {
    }
 
@@ -41,7 +42,25 @@ final class RuleInspection
            $this->criteria,
            $this->evaluation,
            $this->limitations,
-           $actions
+           $actions,
+           $this->sequentialStep
+       );
+   }
+
+   public function withSequentialStep(SequentialRuleStep $step): self {
+       return new self(
+           $this->id,
+           $this->name,
+           $this->condition,
+           $this->entityId,
+           $this->recursive,
+           $this->ranking,
+           $this->matchingMode,
+           $this->criteria,
+           $this->evaluation,
+           $this->limitations,
+           $this->actions,
+           $step
        );
    }
 }

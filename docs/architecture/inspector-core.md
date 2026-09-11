@@ -10,11 +10,12 @@ Ticket -> TicketContextBuilder -> RuleTicketCandidateProvider
 ```
 
 It does not call `process()`, `processAllRules()`, or `executeActions()`. Rule
-actions are not loaded by default and are never simulated. With the opt-in
-`InspectionOptions::includeActions`, only actions of evaluated rules are loaded
-read-only and attached to their `RuleInspection`. A reported match or reflected
-action describes the current reconstructable Ticket state and is not proof that
-the rule executed historically. See [action analysis](action-analysis.md).
+actions are not loaded by default. With the opt-in
+`InspectionOptions::includeActions`, actions of evaluated rules are loaded
+read-only and attached to their `RuleInspection`; a separate immutable
+projection then supplies the next selected rule's context. A reported match,
+projected effect, or reflected action is not proof that the rule executed
+historically. See [action analysis](action-analysis.md).
 
 ## Context and evaluation
 
@@ -42,6 +43,24 @@ ordering without duplicating its SQL. Actions are not retrieved.
 The default inspection limit is 1000 rules and can be configured to any
 positive integer. `InspectionResult` reports the configured limit, known
 candidate count, evaluated count, and whether the result was truncated.
+
+## Sequential simulated context
+
+When configured-action analysis is enabled, the Inspector retains the exact
+candidate order returned by `RuleTicketCollection` and creates one immutable
+`SequentialRuleStep` per evaluated rule. Each step records its native order,
+input context, criterion result, configured actions, projected effects, and
+output context. ONADD and ONUPDATE each start from an independent persisted
+snapshot; no simulated output crosses conditions.
+
+`RuleEffectProjector` is deliberately smaller than GLPI action execution. It
+projects only reviewed scalar `assign` fields, category assignment (including
+the linked `itilcategories_id_code`), and exact-null deadline `delete` actions.
+Actor, append, computed, lookup, regex, template, SLA/OLA, transient, plugin,
+and otherwise unknown behavior is not approximated. If a matching or
+indeterminate rule could alter a known criterion through an unsupported effect,
+that criterion becomes `INDETERMINATE` for later steps. The trace stays inside
+Inspector DTOs in this phase and is not exposed to Twig, HTML, or JavaScript.
 
 ## Validation boundary
 
