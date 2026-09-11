@@ -12,7 +12,7 @@ namespace GlpiPlugin\Clarus\Inspector;
 final class SequentialOverwriteAnalyzer
 {
    /** @var list<string> */
-   private const ADDITIVE_OR_COMPOSITIONAL_ACTION_TYPES = ['append', 'add', 'remove'];
+   private const REPLACEMENT_ACTION_TYPES = ['assign', 'delete'];
 
    /**
     * @param list<RuleInspection> $rules Native candidate order for one condition.
@@ -46,7 +46,7 @@ final class SequentialOverwriteAnalyzer
 
          foreach ($step->effects as $effect) {
             if ($effect->status === ProjectionStatus::NOT_APPLIED
-                || in_array($effect->actionType, self::ADDITIVE_OR_COMPOSITIONAL_ACTION_TYPES, true)) {
+                || !in_array($effect->actionType, self::REPLACEMENT_ACTION_TYPES, true)) {
                 continue;
             }
 

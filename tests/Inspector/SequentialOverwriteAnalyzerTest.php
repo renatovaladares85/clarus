@@ -73,13 +73,18 @@ final class SequentialOverwriteAnalyzerTest extends TestCase
        self::assertSame([], $sameValue);
    }
 
-   public function testAdditiveActionDoesNotClassifyAnOverwrite(): void {
-       $overwrites = $this->analyzer->analyze([
+   public function testAdditiveAndCompositionalActionsDoNotClassifyAnOverwrite(): void {
+       $additive = $this->analyzer->analyze([
            $this->rule(11, 0, Evaluation::MATCH, [$this->applied('urgency', 3, 1)]),
            $this->rule(12, 1, Evaluation::MATCH, [$this->unknown('urgency', ProjectionStatus::UNSUPPORTED, 'append')]),
        ]);
+       $compositional = $this->analyzer->analyze([
+           $this->rule(21, 0, Evaluation::MATCH, [$this->applied('priority', 3, 1)]),
+           $this->rule(22, 1, Evaluation::MATCH, [$this->unknown('priority', ProjectionStatus::UNSUPPORTED, 'compute')]),
+       ]);
 
-       self::assertSame([], $overwrites);
+       self::assertSame([], $additive);
+       self::assertSame([], $compositional);
    }
 
    public function testKeepsTheDeterministicRuleChainAndFinalValue(): void {
