@@ -121,6 +121,7 @@ final class RuleTicketInspectorTest extends TestCase
        $inactive = $this->createRule('inactive-child', \RuleTicket::ONADD, false, 1, [], [], $childId);
        $update = $this->createRule('update-child', \RuleTicket::ONUPDATE, true, 2, [], [], $childId);
        $child = $this->createRule('child', \RuleTicket::ONADD, true, 1, [], [], $childId);
+       $childSecond = $this->createRule('child-second', \RuleTicket::ONADD, true, 2, [], [], $childId);
 
        $candidateIds = array_map(
            static fn (\RuleTicket $rule): int => (int) $rule->getID(),
@@ -129,6 +130,7 @@ final class RuleTicketInspectorTest extends TestCase
 
        self::assertContains($parentRecursive->getID(), $candidateIds);
        self::assertContains($child->getID(), $candidateIds);
+       self::assertContains($childSecond->getID(), $candidateIds);
        self::assertNotContains($parentFlat->getID(), $candidateIds);
        self::assertNotContains($inactive->getID(), $candidateIds);
        self::assertNotContains($update->getID(), $candidateIds);
@@ -136,6 +138,17 @@ final class RuleTicketInspectorTest extends TestCase
            array_search($child->getID(), $candidateIds, true),
            array_search($parentRecursive->getID(), $candidateIds, true)
        );
+
+       $inspection = (new RuleTicketInspector())->inspect(
+           $ticket,
+           \RuleTicket::ONADD,
+           new InspectionOptions(1000, true)
+       );
+      foreach ([$parentRecursive, $child, $childSecond] as $rule) {
+          $step = $this->findRule($inspection->rules, $rule->getID())->sequentialStep;
+          self::assertNotNull($step);
+          self::assertSame(array_search($rule->getID(), $candidateIds, true), $step->processingIndex);
+      }
    }
 
    public function testCandidateSelectionAndEvaluationRemainReadOnly(): void {
@@ -431,7 +444,7 @@ final class RuleTicketInspectorTest extends TestCase
            ['name', \Rule::PATTERN_IS, $this->prefix],
        ], [['assign', 'urgency', '5']]);
        $second = $this->createRule('sequence-second', \RuleTicket::ONADD, true, 3, [
-           ['name', \Rule::PATTERN_IS, $this->prefix],
+           ['urgency', \Rule::PATTERN_IS, '5'],
        ], [['assign', 'urgency', '3']]);
 
        $updateResult = (new RuleTicketInspector())->inspect(
@@ -460,7 +473,136 @@ final class RuleTicketInspectorTest extends TestCase
            ActionEvaluation::REFLECTED,
            $this->findAction($this->findRule($addResult->rules, $second->getID())->actions, 'urgency')->evaluation
        );
+       $firstStep = $this->findRule($addResult->rules, $first->getID())->sequentialStep;
+       $secondStep = $this->findRule($addResult->rules, $second->getID())->sequentialStep;
+       self::assertNotNull($firstStep);
+       self::assertNotNull($secondStep);
+       self::assertSame(5, $firstStep->outputContext->get('urgency')->value);
+       self::assertSame(5, $secondStep->inputContext->get('urgency')->value);
+       self::assertSame(Evaluation::MATCH, $this->findRule($addResult->rules, $second->getID())->evaluation);
        self::assertStringContainsString('not historical', implode(' ', $addResult->limitations));
+   }
+
+   public function testSequentialProjectionDoesNotDependOnActionReflectionPresentation(): void {
+       $ticket = $this->createTicket();
+       $first = $this->createRule('sequence-without-reflection-first', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'urgency', '5']]);
+       $second = $this->createRule('sequence-without-reflection-second', \RuleTicket::ONADD, true, 2, [
+           ['urgency', \Rule::PATTERN_IS, '5'],
+       ]);
+
+       $result = (new RuleTicketInspector())->inspect(
+           $ticket,
+           \RuleTicket::ONADD,
+           new InspectionOptions(1000)
+       );
+       $firstInspection = $this->findRule($result->rules, $first->getID());
+       $secondInspection = $this->findRule($result->rules, $second->getID());
+
+       self::assertSame([], $firstInspection->actions);
+       self::assertNotNull($firstInspection->sequentialStep);
+       self::assertSame(5, $firstInspection->sequentialStep->outputContext->get('urgency')->value);
+       self::assertSame(Evaluation::MATCH, $secondInspection->evaluation);
+   }
+
+   public function testUnsupportedRequesterEffectMakesLaterRequesterGroupCriterionIndeterminate(): void {
+       $groupId = $this->createGroup();
+       $ticket = $this->createTicket();
+       $first = $this->createRule('requester-alias-first', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', '_users_id_requester', (string) \Session::getLoginUserID()]]);
+       $second = $this->createRule('requester-alias-second', \RuleTicket::ONADD, true, 2, [
+           ['_groups_id_of_requester', \Rule::PATTERN_IS, (string) $groupId],
+       ]);
+
+       $result = (new RuleTicketInspector())->inspect($ticket, \RuleTicket::ONADD, new InspectionOptions(1000));
+       $firstStep = $this->findRule($result->rules, $first->getID())->sequentialStep;
+       $secondInspection = $this->findRule($result->rules, $second->getID());
+
+       self::assertNotNull($firstStep);
+       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('_groups_id_of_requester')->state);
+       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->evaluation);
+       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->criteria[0]->evaluation);
+   }
+
+   public function testUnsupportedCategoryCodeAliasMakesLaterCategoryCriterionIndeterminate(): void {
+       $categoryId = $this->createCategory('PERSISTED');
+       $ticket = $this->createTicket(0, $categoryId);
+       $first = $this->createRule('category-alias-first', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['regex_result', '_affect_itilcategory_by_code', '#0']]);
+       $second = $this->createRule('category-alias-second', \RuleTicket::ONADD, true, 2, [
+           ['itilcategories_id_code', \Rule::PATTERN_IS, 'PERSISTED'],
+       ]);
+
+       $result = (new RuleTicketInspector())->inspect($ticket, \RuleTicket::ONADD, new InspectionOptions(1000));
+       $firstStep = $this->findRule($result->rules, $first->getID())->sequentialStep;
+       $secondInspection = $this->findRule($result->rules, $second->getID());
+
+       self::assertNotNull($firstStep);
+       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id')->state);
+       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id_code')->state);
+       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->evaluation);
+   }
+
+   public function testSequentialInspectionDoesNotCreateTicketHistory(): void {
+       $ticket = $this->createTicket();
+       $this->createRule('history-first', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'urgency', '5']]);
+       $this->createRule('history-second', \RuleTicket::ONADD, true, 2, [
+           ['urgency', \Rule::PATTERN_IS, '5'],
+       ]);
+
+       $before = \Log::getHistoryData($ticket);
+       (new RuleTicketInspector())->inspect($ticket, \RuleTicket::ONADD, new InspectionOptions(1000));
+       $after = \Log::getHistoryData($ticket);
+
+       self::assertSame($before, $after, 'Sequential inspection must not create or change Ticket history.');
+   }
+
+   public function testSequentialCategoryProjectionUpdatesTheDerivedCodeWithoutPersistence(): void {
+       $initialCategoryId = $this->createCategory('INITIAL');
+       $projectedCategoryId = $this->createCategory('PROJECTED');
+       $ticket = $this->createTicket(0, $initialCategoryId);
+       $first = $this->createRule('category-first', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'itilcategories_id', (string) $projectedCategoryId]]);
+       $second = $this->createRule('category-second', \RuleTicket::ONADD, true, 2, [
+           ['itilcategories_id_code', \Rule::PATTERN_IS, 'PROJECTED'],
+       ]);
+
+       $before = $this->snapshot($ticket->getID(), $first->getID());
+       $result = (new RuleTicketInspector())->inspect(
+           $ticket,
+           \RuleTicket::ONADD,
+           new InspectionOptions(1000, true)
+       );
+       $after = $this->snapshot($ticket->getID(), $first->getID());
+       $firstStep = $this->findRule($result->rules, $first->getID())->sequentialStep;
+       $secondInspection = $this->findRule($result->rules, $second->getID());
+
+       self::assertNotNull($firstStep);
+       self::assertSame($projectedCategoryId, $firstStep->outputContext->get('itilcategories_id')->value);
+       self::assertSame('PROJECTED', $firstStep->outputContext->get('itilcategories_id_code')->value);
+       self::assertSame(Evaluation::MATCH, $secondInspection->evaluation);
+       self::assertSame($before, $after, 'Sequential projection must not write the Ticket or rule persistence.');
+   }
+
+   public function testOnaddAndOnupdateStartFromSeparateSimulatedContexts(): void {
+       $ticket = $this->createTicket();
+       $this->createRule('add-only-sequence', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'urgency', '5']]);
+       $update = $this->createRule('update-separate-sequence', \RuleTicket::ONUPDATE, true, 1, [
+           ['urgency', \Rule::PATTERN_IS, '5'],
+       ]);
+
+       (new RuleTicketInspector())->inspect($ticket, \RuleTicket::ONADD, new InspectionOptions(1000, true));
+       $updateResult = (new RuleTicketInspector())->inspect($ticket, \RuleTicket::ONUPDATE, new InspectionOptions(1000, true));
+
+       self::assertSame(Evaluation::NO_MATCH, $this->findRule($updateResult->rules, $update->getID())->evaluation);
    }
 
     /** @param array<string, mixed> $overrides */

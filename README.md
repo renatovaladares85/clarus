@@ -12,8 +12,9 @@ Ticket being inspected.
 
 ## Development status
 
-`0.5.1` is under development. The initial MVP targets Ticket (`RuleTicket`)
-business-rule inspection only; it does not simulate or record rule execution.
+`1.0.0-dev.1` is the current development pre-release; `1.0.0` remains reserved
+for the final stable release. The initial MVP targets Ticket (`RuleTicket`)
+business-rule inspection only; it neither executes nor records rule execution.
 
 The Phase 3 inspector core can reconstruct persisted and safely derived Ticket
 context, select native RuleTicket candidates, and report `MATCH`, `NO_MATCH`,
@@ -21,7 +22,11 @@ or `INDETERMINATE` per criterion and rule. `INDETERMINATE` is used whenever a
 historical/transient value cannot be reconstructed without guessing.
 Action analysis is opt-in and reports only whether supported configured effects
 are reflected in the current snapshot; it does not execute actions or attribute
-historical causality.
+historical causality. When configured-action analysis is enabled, Clarus also
+builds an internal immutable sequence for the selected condition: deterministic
+scalar/category assignments and exact deadline deletes can feed the next rule;
+unknown or non-reconstructible effects make only their known criterion target
+indeterminate. This internal trace is not yet presented in the Ticket tab.
 
 The Ticket tab presents ONADD and ONUPDATE diagnostics in one responsive view.
 It evaluates the last saved Ticket state; unsaved form changes are explicitly not included.

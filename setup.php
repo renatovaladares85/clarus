@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-define('PLUGIN_CLARUS_VERSION', '0.5.1');
+define('PLUGIN_CLARUS_VERSION', '1.0.0-dev.1');
 define('PLUGIN_CLARUS_MIN_GLPI_VERSION', '10.0.20');
 define('PLUGIN_CLARUS_MAX_GLPI_VERSION', '11.0.0');
 define('PLUGIN_CLARUS_MIN_PHP_VERSION', '8.1.0');
