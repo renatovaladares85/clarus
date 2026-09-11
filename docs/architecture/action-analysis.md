@@ -76,3 +76,8 @@ The projection is not action execution and does not claim historical causality.
 Reflection still uses the persisted snapshot, so a later rule or manual change
 can make an earlier action appear reflected or not reflected. ONADD and
 ONUPDATE remain separate chains and begin from independent snapshots.
+
+The sequential overwrite diagnostic consumes projected effects separately from
+action reflection and primary rule evaluation. It may report a possible or a
+confirmed simulated overwrite, but neither result claims that rules executed
+historically.

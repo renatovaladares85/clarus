@@ -13,7 +13,8 @@ final class RuleTicketInspector
         private readonly RuleTicketCandidateProvider $candidateProvider = new RuleTicketCandidateProvider(),
         private readonly RuleActionProvider $actionProvider = new RuleActionProvider(),
         private readonly RuleTicketActionAnalyzer $actionAnalyzer = new RuleTicketActionAnalyzer(),
-        private readonly RuleEffectProjector $effectProjector = new RuleEffectProjector()
+        private readonly RuleEffectProjector $effectProjector = new RuleEffectProjector(),
+        private readonly SequentialOverwriteAnalyzer $overwriteAnalyzer = new SequentialOverwriteAnalyzer()
     ) {
    }
 
@@ -77,7 +78,8 @@ final class RuleTicketInspector
                $options->includeActions
                    ? 'Action reflection describes only the current Ticket snapshot, not historical causality.'
                    : 'Configured rule actions were not included in this inspection.',
-           ]
+           ],
+           $this->overwriteAnalyzer->analyze($rules)
        );
    }
 

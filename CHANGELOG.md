@@ -8,10 +8,12 @@ All notable changes to Clarus are documented in this file.
   inspection refreshes by relying on the native request bootstrap and sending
   the refresh form token in the required header.
 
-- Prepare the 1.0.0-dev.1 development line with read-only sequential RuleTicket
-  context projection. Deterministic scalar/category assignments and exact
-  deadline deletes can inform a subsequent rule without executing native
-  actions; unsupported or indeterminate effects fail closed for known targets.
+- Prepare the 1.0.0-dev.2 development line with read-only sequential RuleTicket
+  context projection and independent possible/confirmed overwrite diagnostics.
+  Deterministic scalar/category assignments and exact deadline deletes can
+  inform a subsequent rule without executing native actions; unsupported or
+  indeterminate effects fail closed for known targets and cannot confirm an
+  overwrite.
 
 - Add a separate, deny-by-default sensitive inspection-content Profile right,
   a global ONADD/ONUPDATE evaluation budget, manual inspection loading, and

@@ -14,7 +14,9 @@ use GlpiPlugin\Clarus\Inspector\CriterionInspection;
 use GlpiPlugin\Clarus\Inspector\Evaluation;
 use GlpiPlugin\Clarus\Inspector\InspectionPresenter;
 use GlpiPlugin\Clarus\Inspector\InspectionResult;
+use GlpiPlugin\Clarus\Inspector\OverwriteClassification;
 use GlpiPlugin\Clarus\Inspector\RuleInspection;
+use GlpiPlugin\Clarus\Inspector\RuleOverwrite;
 use PHPUnit\Framework\TestCase;
 
 final class InspectionPresenterTest extends TestCase
@@ -212,6 +214,42 @@ final class InspectionPresenterTest extends TestCase
        $presentedRules = $view['rules'];
        self::assertIsArray($presentedRules);
        self::assertCount(30, $presentedRules);
+   }
+
+   public function testPresentsOverwriteMetadataWithoutDiagnosticValues(): void {
+       $rule = $this->rule(1, Evaluation::MATCH, [Evaluation::MATCH]);
+       $overwrite = new RuleOverwrite(
+           'urgency',
+           1,
+           2,
+           0,
+           1,
+           OverwriteClassification::CONFIRMED,
+           null,
+           true,
+           'secret-previous',
+           'secret-intermediate',
+           'secret-final'
+       );
+       $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 1, 1, false, [$rule], [], [$overwrite]);
+
+       $view = $this->presenter()->present([$result], ClarusConfig::defaults(), 12, '/refresh', 'token', true);
+
+       self::assertIsArray($view['overwrites']);
+       self::assertSame([
+           'field' => 'urgency',
+           'previousRuleId' => 1,
+           'laterRuleId' => 2,
+           'previousProcessingIndex' => 0,
+           'laterProcessingIndex' => 1,
+           'classification' => 'confirmed',
+           'reason' => null,
+       ], $view['overwrites'][0]);
+       self::assertStringNotContainsString('secret', serialize($view));
+       $labels = $view['labels'];
+       self::assertIsArray($labels);
+       self::assertSame('Possible overwrite', $labels['possibleOverwrite']);
+       self::assertSame('Confirmed overwrite in simulation', $labels['confirmedOverwrite']);
    }
 
    private function presenter(): InspectionPresenter {
