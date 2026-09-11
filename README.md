@@ -12,7 +12,8 @@ Ticket being inspected.
 
 ## Development status
 
-`1.0.0` is under development. The initial MVP targets Ticket (`RuleTicket`)
+`1.0.0-dev.1` is the current development pre-release; `1.0.0` remains reserved
+for the final stable release. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it neither executes nor records rule execution.
 
 The Phase 3 inspector core can reconstruct persisted and safely derived Ticket

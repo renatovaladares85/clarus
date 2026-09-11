@@ -15,7 +15,7 @@ final class BootstrapTest extends TestCase
    }
 
    public function testPluginMetadataIsDefined(): void {
-       self::assertSame('1.0.0', PLUGIN_CLARUS_VERSION);
+       self::assertSame('1.0.0-dev.1', PLUGIN_CLARUS_VERSION);
        self::assertSame('10.0.20', PLUGIN_CLARUS_MIN_GLPI_VERSION);
        self::assertSame('11.0.0', PLUGIN_CLARUS_MAX_GLPI_VERSION);
        self::assertSame('8.1.0', PLUGIN_CLARUS_MIN_PHP_VERSION);
