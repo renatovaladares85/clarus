@@ -88,3 +88,34 @@ test('uses deterministic ranking and ID fallbacks and paginates only after filte
     assert.equal(page.pageCount, 2);
     assert.deepEqual(page.rules.map((item) => item.dataset.id), ['1']);
 });
+
+test('combines conflict filtering with result, condition, and entity filters', () => {
+    const rules = [
+        rule(1, {conflicts: 'possible', entityId: '2'}),
+        rule(2, {conflicts: 'confirmed', entityId: '2'}),
+        rule(3, {conflicts: '', entityId: '2'}),
+        rule(4, {conflicts: 'confirmed', condition: 'onupdate', entityId: '2'}),
+    ];
+
+    const visible = filterAndSortRules(rules, state({
+        conflicts: new Set(['confirmed']),
+        conditions: new Set(['onadd']),
+        entities: new Set(['2']),
+        results: new Set(['match']),
+    }), []);
+
+    assert.deepEqual(visible.map((item) => item.dataset.id), ['2']);
+});
+
+test('sorts by the presented processing position without mutating rule metadata', () => {
+    const rules = [
+        rule(1, {processingIndex: '2', ranking: '1'}),
+        rule(2, {processingIndex: '0', ranking: '9'}),
+        rule(3, {processingIndex: '1', ranking: '4'}),
+    ];
+
+    const sorted = filterAndSortRules(rules, state(), [{field: 'processing', direction: 'asc'}]);
+
+    assert.deepEqual(sorted.map((item) => item.dataset.id), ['2', '3', '1']);
+    assert.deepEqual(rules.map((item) => item.dataset.processingIndex), ['2', '0', '1']);
+});

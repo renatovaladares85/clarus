@@ -23,6 +23,8 @@ final class LocalizationCatalogTest extends TestCase
       self::assertStringContainsString('Unsaved form changes are not included in this diagnostic.', $pot);
       self::assertStringContainsString('Confirmed adherence', $pot);
       self::assertStringContainsString('Clarus could not evaluate one or more criteria safely', $pot);
+      self::assertStringContainsString('Conflict filters', $pot);
+      self::assertStringContainsString('Sequential diagnostic', $pot);
       self::assertStringContainsString('msgstr "Inspeção de regras"', $ptBr);
       self::assertStringContainsString('msgstr "Atualizar inspeção"', $ptBr);
       self::assertStringContainsString('msgstr "Não corresponde"', $ptBr);

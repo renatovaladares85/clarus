@@ -14,7 +14,9 @@ use GlpiPlugin\Clarus\Inspector\CriterionInspection;
 use GlpiPlugin\Clarus\Inspector\Evaluation;
 use GlpiPlugin\Clarus\Inspector\InspectionRenderer;
 use GlpiPlugin\Clarus\Inspector\InspectionResult;
+use GlpiPlugin\Clarus\Inspector\OverwriteClassification;
 use GlpiPlugin\Clarus\Inspector\RuleInspection;
+use GlpiPlugin\Clarus\Inspector\RuleOverwrite;
 use PHPUnit\Framework\TestCase;
 
 final class InspectionRendererTest extends TestCase
@@ -153,6 +155,52 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('secret-observed-value', $authorized);
       self::assertStringNotContainsString('secret-pattern', $afterRevocation);
       self::assertStringNotContainsString('secret-observed-value', $afterRevocation);
+   }
+
+   public function testRendersSafeSequentialConflictPresentationAndAccessibleToggles(): void {
+       $first = new RuleInspection(1, 'First', \RuleTicket::ONADD, 0, false, 1, 'AND', [], Evaluation::MATCH);
+       $second = new RuleInspection(2, 'Second', \RuleTicket::ONADD, 0, false, 2, 'AND', [], Evaluation::MATCH);
+       $third = new RuleInspection(3, 'Third', \RuleTicket::ONADD, 0, false, 3, 'AND', [], Evaluation::MATCH);
+       $overwrite = new RuleOverwrite(
+           'urgency',
+           1,
+           2,
+           0,
+           1,
+           OverwriteClassification::CONFIRMED,
+           null,
+           true,
+           'secret-previous',
+           'secret-intermediate',
+           'secret-final'
+       );
+       $secondOverwrite = new RuleOverwrite(
+           'urgency',
+           2,
+           3,
+           1,
+           2,
+           OverwriteClassification::CONFIRMED,
+           null,
+           true,
+           'secret-intermediate',
+           'secret-final',
+           'secret-later'
+       );
+       $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 3, 3, false, [$first, $second, $third], [], [$overwrite, $secondOverwrite]);
+
+       $html = (new InspectionRenderer())->render([$result], ClarusConfig::defaults(), 12, '/refresh', 'token');
+
+       self::assertStringContainsString('data-clarus-conflict', $html);
+       self::assertStringContainsString('Confirmed overwrite in simulation', $html);
+       self::assertStringContainsString('Confirmed in the sequential diagnostic.', $html);
+       self::assertMatchesRegularExpression('/#1\\s*<span aria-hidden="true">→<\\/span>\\s*#2\\s*<span aria-hidden="true">→<\\/span>\\s*#3/', $html);
+       self::assertStringContainsString('data-clarus-rule-toggle aria-expanded="false"', $html);
+       self::assertStringContainsString('data-clarus-technical-toggle aria-expanded="false"', $html);
+       self::assertStringNotContainsString('secret-previous', $html);
+       self::assertStringNotContainsString('secret-intermediate', $html);
+       self::assertStringNotContainsString('secret-final', $html);
+       self::assertStringNotContainsString('secret-later', $html);
    }
 
    public function testRendersClarusOwnedLabelsThroughTheGettextDomain(): void {

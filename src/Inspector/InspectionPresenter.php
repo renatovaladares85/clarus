@@ -9,6 +9,9 @@ namespace GlpiPlugin\Clarus\Inspector;
 use GlpiPlugin\Clarus\ClarusConfig;
 
 /** Builds an escaped-by-Twig view model containing only explicitly safe values. */
+/**
+ * @phpstan-type PresentedOverwrite array{field: string, fieldLabel: string, previousRuleId: int, laterRuleId: int, previousProcessingIndex: int, laterProcessingIndex: int, classification: 'possible'|'confirmed', reason: ?string, chainRuleIds: list<int>}
+ */
 final class InspectionPresenter
 {
    private \Closure $entityNameResolver;
@@ -58,16 +61,28 @@ final class InspectionPresenter
        $actionsEnabled = (bool) $settings[ClarusConfig::INCLUDE_ACTIONS];
        $counts = ['match' => 0, 'no_match' => 0, 'indeterminate' => 0];
        $overwrites = [];
+       $overwriteCounts = ['possible' => 0, 'confirmed' => 0];
+       /** @var array<string, list<PresentedOverwrite>> $overwritesByRule */
+       $overwritesByRule = [];
        $entityOptions = [];
       foreach ($results as $result) {
           $candidateCount += $result->candidateCount;
           $evaluatedCount += $result->evaluatedCount;
-          $truncated = $truncated || $result->truncated;
+         $truncated = $truncated || $result->truncated;
          foreach ($result->overwrites as $overwrite) {
-             $overwrites[] = $this->overwrite($overwrite);
+             $presentedOverwrite = $this->overwrite($overwrite, $result->overwrites);
+             $overwrites[] = $presentedOverwrite;
+             ++$overwriteCounts[$presentedOverwrite['classification']];
+            foreach ([$overwrite->previousRuleId, $overwrite->laterRuleId] as $ruleId) {
+                $overwritesByRule[$this->ruleIdentity($result->condition, $ruleId)][] = $presentedOverwrite;
+            }
          }
          foreach ($result->rules as $rule) {
-             $rules[] = $this->rule($rule, $processingIndex++, $actionsEnabled, $canViewSensitiveValues);
+             $presentedRule = $this->rule($rule, $processingIndex++, $actionsEnabled, $canViewSensitiveValues);
+             $ruleOverwrites = $overwritesByRule[$this->ruleIdentity($result->condition, $rule->id)] ?? [];
+             $presentedRule['overwrites'] = $ruleOverwrites;
+             $presentedRule['conflictKeys'] = array_values(array_unique(array_column($ruleOverwrites, 'classification')));
+             $rules[] = $presentedRule;
              $entityOptions[$rule->entityId] = [
                  'id' => $rule->entityId,
                  'name' => $this->entityName($rule->entityId),
@@ -89,6 +104,7 @@ final class InspectionPresenter
            'evaluatedCount' => $evaluatedCount,
            'counts' => $counts,
            'overwrites' => $overwrites,
+           'overwriteCounts' => $overwriteCounts,
            'rules' => $rules,
            'entityOptions' => array_values($entityOptions),
            'pageSize' => $settings[ClarusConfig::PAGE_SIZE],
@@ -100,17 +116,60 @@ final class InspectionPresenter
        ];
    }
 
-   /** @return array<string, int|string|null> */
-   private function overwrite(RuleOverwrite $overwrite): array {
+   /**
+    * @param list<RuleOverwrite> $overwrites
+    * @return PresentedOverwrite
+    */
+   private function overwrite(RuleOverwrite $overwrite, array $overwrites): array {
        return [
            'field' => $overwrite->field,
+           'fieldLabel' => $this->actionField($overwrite->field),
            'previousRuleId' => $overwrite->previousRuleId,
            'laterRuleId' => $overwrite->laterRuleId,
            'previousProcessingIndex' => $overwrite->previousProcessingIndex,
            'laterProcessingIndex' => $overwrite->laterProcessingIndex,
            'classification' => strtolower($overwrite->classification->name),
-           'reason' => $overwrite->reason,
+           'reason' => $overwrite->reason === null ? null : $this->limitation($overwrite->reason),
+           'chainRuleIds' => $this->chainRuleIds($overwrites, $overwrite),
        ];
+   }
+
+   private function ruleIdentity(int $condition, int $ruleId): string {
+       return $condition . ':' . $ruleId;
+   }
+
+   /**
+    * @param list<RuleOverwrite> $overwrites
+    * @return list<int>
+    */
+   private function chainRuleIds(array $overwrites, RuleOverwrite $target): array {
+       $chain = [$target->previousRuleId, $target->laterRuleId];
+       $seen = array_fill_keys($chain, true);
+
+      while (true) {
+          $extended = false;
+         foreach ($overwrites as $overwrite) {
+            if ($overwrite->field !== $target->field) {
+               continue;
+            }
+            if ($overwrite->laterRuleId === $chain[0] && !isset($seen[$overwrite->previousRuleId])) {
+                array_unshift($chain, $overwrite->previousRuleId);
+                $seen[$overwrite->previousRuleId] = true;
+                $extended = true;
+                break;
+            }
+             $lastRuleId = $chain[array_key_last($chain)];
+            if ($overwrite->previousRuleId === $lastRuleId && !isset($seen[$overwrite->laterRuleId])) {
+                $chain[] = $overwrite->laterRuleId;
+                $seen[$overwrite->laterRuleId] = true;
+                $extended = true;
+                break;
+            }
+         }
+         if (!$extended) {
+             return $chain;
+         }
+      }
    }
 
    /** @return array<string, mixed> */
@@ -131,6 +190,16 @@ final class InspectionPresenter
            ? 0
            : (int) round(($matchingCriteria / $criteriaCount) * 100, 0, PHP_ROUND_HALF_UP);
 
+       $actions = array_map(fn (ActionInspection $action): array => $this->action($action, $canViewSensitiveValues), $rule->actions);
+       $searchTerms = [(string) $rule->id, $rule->name, $entityName];
+      foreach ($rule->criteria as $criterion) {
+          $searchTerms[] = $this->criterionName($criterion->key);
+      }
+      foreach ($rule->actions as $action) {
+          $searchTerms[] = $this->actionType($action->actionType);
+          $searchTerms[] = $this->actionField($action->field);
+      }
+
        return [
            'id' => $rule->id,
            'name' => $rule->name === '' ? __('Unnamed', 'clarus') : $rule->name,
@@ -148,7 +217,7 @@ final class InspectionPresenter
            'adherenceDenominator' => $criteriaCount,
            'adherencePercent' => $adherencePercent,
            'adherenceLabel' => sprintf('%d%% (%d/%d)', $adherencePercent, $matchingCriteria, $criteriaCount),
-           'actions' => array_map(fn (ActionInspection $action): array => $this->action($action, $canViewSensitiveValues), $rule->actions),
+           'actions' => $actions,
            'actionCount' => count($rule->actions),
            'actionSummary' => $actionsEnabled
                ? sprintf('%d %s', count($rule->actions), __('configured actions', 'clarus'))
@@ -157,10 +226,12 @@ final class InspectionPresenter
            'evaluationKey' => $evaluationKey,
            'evaluationLabel' => $this->evaluation($rule->evaluation),
            'evaluationOrder' => ['match' => 0, 'no_match' => 1, 'indeterminate' => 2][$evaluationKey],
-           'processingIndex' => $processingIndex,
+           'processingIndex' => $rule->sequentialStep === null
+               ? $processingIndex
+               : $rule->sequentialStep->processingIndex,
            'entitySort' => mb_strtolower($entityName, 'UTF-8'),
            'entityId' => $rule->entityId,
-           'searchText' => mb_strtolower($rule->id . ' ' . $rule->name, 'UTF-8'),
+           'searchText' => mb_strtolower(implode(' ', $searchTerms), 'UTF-8'),
            'limitations' => array_map(fn (string $reason): string => $this->limitation($reason), $rule->limitations),
        ];
    }
@@ -189,6 +260,7 @@ final class InspectionPresenter
    /** @return array<string, string> */
    private function sortOptions(): array {
        return [
+           'processing' => __('Processing order', 'clarus'),
            'result' => __('Result', 'clarus'),
            'adherence' => __('Confirmed adherence', 'clarus'),
            'matches' => __('Matching criteria', 'clarus'),
@@ -270,6 +342,12 @@ final class InspectionPresenter
            'groupEntity' => __('Entity', 'clarus'),
            'grouping' => __('Grouping', 'clarus'),
            'resultFilter' => __('Result filters', 'clarus'),
+           'conflictFilter' => __('Conflict filters', 'clarus'),
+           'withConflict' => __('With conflict', 'clarus'),
+           'affectedField' => __('Affected field', 'clarus'),
+           'sequentialDiagnostic' => __('Sequential diagnostic', 'clarus'),
+           'possibleOverwriteNotice' => __('A relevant rule effect could not be determined safely.', 'clarus'),
+           'technicalDetails' => __('Technical details', 'clarus'),
            'conditionFilter' => __('Condition filters', 'clarus'),
            'entityFilter' => __('Entity filters', 'clarus'),
            'onadd' => __('On ticket creation (ONADD)', 'clarus'),
@@ -493,6 +571,8 @@ final class InspectionPresenter
                => __('The special relation semantics are not supported by this inspection.', 'clarus'),
            'unsupported_action_semantics'
                => __('The action semantics are not supported by this inspection.', 'clarus'),
+           'rule_result_indeterminate'
+               => __('A preceding rule result could not be determined safely.', 'clarus'),
            default => __('A diagnostic limitation applies to this item.', 'clarus'),
        };
    }

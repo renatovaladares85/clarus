@@ -238,18 +238,52 @@ final class InspectionPresenterTest extends TestCase
        self::assertIsArray($view['overwrites']);
        self::assertSame([
            'field' => 'urgency',
+           'fieldLabel' => 'Urgency',
            'previousRuleId' => 1,
            'laterRuleId' => 2,
            'previousProcessingIndex' => 0,
            'laterProcessingIndex' => 1,
            'classification' => 'confirmed',
            'reason' => null,
+           'chainRuleIds' => [1, 2],
        ], $view['overwrites'][0]);
        self::assertStringNotContainsString('secret', serialize($view));
        $labels = $view['labels'];
        self::assertIsArray($labels);
        self::assertSame('Possible overwrite', $labels['possibleOverwrite']);
        self::assertSame('Confirmed overwrite in simulation', $labels['confirmedOverwrite']);
+   }
+
+   public function testAssociatesOverwriteDiagnosticsWithTheCorrectConditionAndRules(): void {
+       $first = $this->rule(1, Evaluation::MATCH, [Evaluation::MATCH]);
+       $second = $this->rule(2, Evaluation::MATCH, [Evaluation::MATCH]);
+       $overwrite = new RuleOverwrite(
+           'urgency',
+           1,
+           2,
+           0,
+           1,
+           OverwriteClassification::POSSIBLE,
+           'unsupported_action_semantics',
+           true,
+           'secret-previous',
+           'secret-intermediate',
+           null
+       );
+       $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 2, 2, false, [$first, $second], [], [$overwrite]);
+
+       $view = $this->presenter()->present([$result], ClarusConfig::defaults(), 12, '/refresh', 'token', true);
+
+       self::assertSame(['possible' => 1, 'confirmed' => 0], $view['overwriteCounts']);
+       self::assertIsArray($view['rules']);
+       self::assertIsArray($view['rules'][0]);
+       self::assertIsArray($view['rules'][1]);
+       self::assertIsArray($view['rules'][0]['overwrites']);
+       self::assertIsArray($view['rules'][0]['overwrites'][0]);
+       self::assertSame(['possible'], $view['rules'][0]['conflictKeys']);
+       self::assertSame(['possible'], $view['rules'][1]['conflictKeys']);
+       self::assertSame('The action semantics are not supported by this inspection.', $view['rules'][0]['overwrites'][0]['reason']);
+       self::assertStringNotContainsString('secret', serialize($view));
    }
 
    private function presenter(): InspectionPresenter {

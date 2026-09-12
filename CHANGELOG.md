@@ -4,6 +4,12 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Prepare the 1.0.0-dev.3 development line with a compact, responsive Ticket
+  inspection presentation for sequential diagnostics. It adds safe conflict
+  filtering, effective processing-order display and sorting, expanded
+  rule-chain context, collapsed technical metadata, and accessible disclosure
+  state without changing Inspector semantics or implying historical execution.
+
 - Fix GLPI 10 CSRF handling for Clarus configuration saves and asynchronous
   inspection refreshes by relying on the native request bootstrap and sending
   the refresh form token in the required header.
