@@ -159,7 +159,17 @@ final class InspectionRendererTest extends TestCase
 
    public function testRendersSafeSequentialConflictPresentationAndAccessibleToggles(): void {
        $first = new RuleInspection(1, 'First', \RuleTicket::ONADD, 0, false, 1, 'AND', [], Evaluation::MATCH);
-       $second = new RuleInspection(2, 'Second', \RuleTicket::ONADD, 0, false, 2, 'AND', [], Evaluation::MATCH);
+       $second = new RuleInspection(
+           2,
+           'Second',
+           \RuleTicket::ONADD,
+           0,
+           false,
+           2,
+           'AND',
+           [new CriterionInspection('status', 1, 'open', Evaluation::INDETERMINATE)],
+           Evaluation::MATCH
+       );
        $third = new RuleInspection(3, 'Third', \RuleTicket::ONADD, 0, false, 3, 'AND', [], Evaluation::MATCH);
        $overwrite = new RuleOverwrite(
            'urgency',
@@ -187,7 +197,30 @@ final class InspectionRendererTest extends TestCase
            'secret-final',
            'secret-later'
        );
-       $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 3, 3, false, [$first, $second, $third], [], [$overwrite, $secondOverwrite]);
+       $possibleOverwrite = new RuleOverwrite(
+           'users_id',
+           2,
+           3,
+           1,
+           2,
+           OverwriteClassification::POSSIBLE,
+           'unsupported_action_semantics',
+           false,
+           null,
+           null,
+           null
+       );
+       $result = new InspectionResult(
+           12,
+           \RuleTicket::ONADD,
+           1000,
+           3,
+           3,
+           false,
+           [$first, $second, $third],
+           [],
+           [$overwrite, $secondOverwrite, $possibleOverwrite]
+       );
 
        $html = (new InspectionRenderer())->render([$result], ClarusConfig::defaults(), 12, '/refresh', 'token');
 
@@ -195,6 +228,8 @@ final class InspectionRendererTest extends TestCase
        self::assertStringContainsString('Confirmed overwrite in simulation', $html);
        self::assertStringContainsString('Confirmed in the sequential diagnostic.', $html);
        self::assertMatchesRegularExpression('/#1\\s*<span aria-hidden="true">→<\\/span>\\s*#2\\s*<span aria-hidden="true">→<\\/span>\\s*#3/', $html);
+       self::assertSame(3, substr_count($html, 'Confirmed in the sequential diagnostic.'));
+       self::assertMatchesRegularExpression('/clarus-rule__status">.*clarus-rule__indeterminate.*clarus-rule__conflict-badge--confirmed.*clarus-rule__conflict-badge--possible.*clarus-rule__chevron/s', $html);
        self::assertStringContainsString('data-clarus-rule-toggle aria-expanded="false"', $html);
        self::assertStringContainsString('data-clarus-technical-toggle aria-expanded="false"', $html);
        self::assertStringNotContainsString('secret-previous', $html);

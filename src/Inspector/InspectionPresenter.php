@@ -62,7 +62,7 @@ final class InspectionPresenter
        $counts = ['match' => 0, 'no_match' => 0, 'indeterminate' => 0];
        $overwrites = [];
        $overwriteCounts = ['possible' => 0, 'confirmed' => 0];
-       /** @var array<string, list<PresentedOverwrite>> $overwritesByRule */
+       /** @var array<string, array<string, PresentedOverwrite>> $overwritesByRule */
        $overwritesByRule = [];
        $entityOptions = [];
       foreach ($results as $result) {
@@ -73,13 +73,14 @@ final class InspectionPresenter
              $presentedOverwrite = $this->overwrite($overwrite, $result->overwrites);
              $overwrites[] = $presentedOverwrite;
              ++$overwriteCounts[$presentedOverwrite['classification']];
+             $overwriteKey = $this->overwriteIdentity($presentedOverwrite);
             foreach ([$overwrite->previousRuleId, $overwrite->laterRuleId] as $ruleId) {
-                $overwritesByRule[$this->ruleIdentity($result->condition, $ruleId)][] = $presentedOverwrite;
+                $overwritesByRule[$this->ruleIdentity($result->condition, $ruleId)][$overwriteKey] = $presentedOverwrite;
             }
          }
          foreach ($result->rules as $rule) {
              $presentedRule = $this->rule($rule, $processingIndex++, $actionsEnabled, $canViewSensitiveValues);
-             $ruleOverwrites = $overwritesByRule[$this->ruleIdentity($result->condition, $rule->id)] ?? [];
+             $ruleOverwrites = array_values($overwritesByRule[$this->ruleIdentity($result->condition, $rule->id)] ?? []);
              $presentedRule['overwrites'] = $ruleOverwrites;
              $presentedRule['conflictKeys'] = array_values(array_unique(array_column($ruleOverwrites, 'classification')));
              $rules[] = $presentedRule;
@@ -136,6 +137,11 @@ final class InspectionPresenter
 
    private function ruleIdentity(int $condition, int $ruleId): string {
        return $condition . ':' . $ruleId;
+   }
+
+   /** @param PresentedOverwrite $overwrite */
+   private function overwriteIdentity(array $overwrite): string {
+       return $overwrite['field'] . ':' . $overwrite['classification'] . ':' . implode(',', $overwrite['chainRuleIds']);
    }
 
    /**
