@@ -108,6 +108,8 @@ final class RuleTicketActionAnalyzerTest extends TestCase
        self::assertSame(ActionSupport::SUPPORTED, $result->support);
        self::assertSame(ActionEvaluation::INDETERMINATE, $result->evaluation);
        self::assertSame(RuleTicketActionAnalyzer::REASON_CURRENT_VALUE_UNAVAILABLE, $result->reason);
+       self::assertTrue($result->configuredValuePresentationSafe);
+       self::assertSame('4', $result->configuredValue);
    }
 
    public function testInvalidConfigurationIsIndeterminateWithoutExposingValue(): void {

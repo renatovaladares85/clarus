@@ -66,6 +66,17 @@
     padding: 0;
 }
 
+.clarus-inspection__filters .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+
+.clarus-inspection__filters .btn-group > .btn {
+    flex: 0 1 auto;
+    white-space: normal;
+}
+
 .clarus-inspection [data-clarus-result][aria-pressed="true"],
 .clarus-inspection [data-clarus-result-all][aria-pressed="true"],
 .clarus-inspection [data-clarus-conflict][aria-pressed="true"] {

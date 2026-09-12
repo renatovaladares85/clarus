@@ -14,7 +14,30 @@ use GlpiPlugin\Clarus\ClarusConfig;
  */
 final class InspectionPresenter
 {
+   /** @var array<string, string> */
+   private const REFERENCE_TABLES = [
+       'itilcategories_id' => 'glpi_itilcategories',
+       'locations_id' => 'glpi_locations',
+       'requesttypes_id' => 'glpi_requesttypes',
+       'entities_id' => 'glpi_entities',
+       'profiles_id' => 'glpi_profiles',
+       'slas_id_ttr' => 'glpi_slas',
+       'slas_id_tto' => 'glpi_slas',
+       'olas_id_ttr' => 'glpi_olas',
+       'olas_id_tto' => 'glpi_olas',
+       '_users_id_requester' => 'glpi_users',
+       '_users_id_assign' => 'glpi_users',
+       '_users_id_observer' => 'glpi_users',
+       '_groups_id_requester' => 'glpi_groups',
+       '_groups_id_assign' => 'glpi_groups',
+       '_groups_id_observer' => 'glpi_groups',
+       '_groups_id_of_requester' => 'glpi_groups',
+       '_suppliers_id_assign' => 'glpi_suppliers',
+   ];
+
    private \Closure $entityNameResolver;
+
+   private \Closure $referenceNameResolver;
 
    /** @var array<int, string> */
    private array $entityNames = [];
@@ -25,8 +48,11 @@ final class InspectionPresenter
    /** @var null|array<string, array{name: string}> */
    private ?array $actionLabels = null;
 
-   /** @param null|callable(int): string $entityNameResolver */
-   public function __construct(?callable $entityNameResolver = null) {
+   /**
+    * @param null|callable(int): string $entityNameResolver
+    * @param null|callable(string, int): string $referenceNameResolver
+    */
+   public function __construct(?callable $entityNameResolver = null, ?callable $referenceNameResolver = null) {
        $this->entityNameResolver = $entityNameResolver === null
            ? static function (int $entityId): string {
                $name = \Dropdown::getDropdownName(\Entity::getTable(), $entityId);
@@ -36,6 +62,18 @@ final class InspectionPresenter
                    : sprintf(__('Entity #%d', 'clarus'), $entityId);
            }
            : \Closure::fromCallable($entityNameResolver);
+       $this->referenceNameResolver = $referenceNameResolver === null
+           ? static function (string $field, int $id): string {
+               $table = self::REFERENCE_TABLES[$field] ?? null;
+            if ($table === null || $id < 1) {
+                   return '';
+            }
+
+               $name = \Dropdown::getDropdownName($table, $id);
+
+               return $name;
+           }
+           : \Closure::fromCallable($referenceNameResolver);
    }
 
    /**
@@ -216,6 +254,7 @@ final class InspectionPresenter
            'recursive' => $rule->recursive ? __('Yes') : __('No'),
            'matchingMode' => $this->matchingMode($rule->matchingMode),
            'criteria' => $criteria,
+           'technicalValues' => $this->technicalValues($criteria, $actions),
            'matchingCriteria' => $matchingCriteria,
            'criteriaCount' => $criteriaCount,
            'indeterminateCriteria' => $indeterminateCriteria,
@@ -283,38 +322,147 @@ final class InspectionPresenter
 
    /** @return array<string, mixed> */
    private function criterion(CriterionInspection $criterion, bool $canViewSensitiveValues): array {
+       $canPresent = TicketContextBuilder::isPresentationSafeKey($criterion->key) || $canViewSensitiveValues;
+       $expected = $canPresent && $criterion->expectedValuePresentationSafe
+           ? $this->presentValue($criterion->key, $criterion->pattern)
+           : null;
+       $observed = $canPresent && $criterion->hasObservedValue
+           ? $this->presentValue($criterion->key, $criterion->observedValue)
+           : null;
+
        return [
            'name' => $this->criterionName($criterion->key),
            'operator' => $this->operator($criterion->operator, $criterion->key),
            'state' => $this->criterionState($criterion->evaluation),
            'evaluationKey' => $this->evaluationKey($criterion->evaluation),
-           'expected' => $criterion->expectedValuePresentationSafe
-               && (TicketContextBuilder::isPresentationSafeKey($criterion->key) || $canViewSensitiveValues)
-               ? $this->safeValue($criterion->pattern)
-               : __('Hidden for safety', 'clarus'),
-           'observed' => $criterion->hasObservedValue
-               && (TicketContextBuilder::isPresentationSafeKey($criterion->key) || $canViewSensitiveValues)
-               ? $this->safeValue($criterion->observedValue)
-               : __('Hidden or unavailable', 'clarus'),
+           'expected' => $expected['value'] ?? $this->unavailableValue(
+               $canPresent,
+               __('Unavailable from rule configuration', 'clarus')
+           ),
+           'expectedTechnical' => $expected['technical'] ?? null,
+           'observed' => $observed['value'] ?? $this->unavailableValue(
+               $canPresent,
+               __('Unavailable from persisted Ticket state', 'clarus')
+           ),
+           'observedTechnical' => $observed['technical'] ?? null,
            'limitation' => $criterion->reason === null ? null : $this->limitation($criterion->reason),
        ];
    }
 
    /** @return array<string, mixed> */
    private function action(ActionInspection $action, bool $canViewSensitiveValues): array {
+       $configured = $canViewSensitiveValues && $action->configuredValuePresentationSafe
+           ? $this->presentActionValue($action->field, $action->configuredValue)
+           : null;
+       $current = $canViewSensitiveValues && $action->currentValuePresentationSafe
+           ? $this->presentActionValue($action->field, $action->currentValue)
+           : null;
+
        return [
            'type' => $this->actionType($action->actionType),
            'field' => $this->actionField($action->field),
            'support' => $this->actionSupport($action->support),
            'evaluation' => $this->actionEvaluation($action->evaluation),
-           'configured' => $action->configuredValuePresentationSafe && $canViewSensitiveValues
-               ? $this->safeActionValue($action->configuredValue)
-               : __('Hidden for safety', 'clarus'),
-           'current' => $action->currentValuePresentationSafe && $canViewSensitiveValues
-               ? $this->safeActionValue($action->currentValue)
-               : __('Hidden or unavailable', 'clarus'),
+           'configured' => $configured['value'] ?? $this->unavailableValue(
+               $canViewSensitiveValues,
+               __('Unavailable from rule configuration', 'clarus')
+           ),
+           'configuredTechnical' => $configured['technical'] ?? null,
+           'current' => $current['value'] ?? $this->unavailableValue(
+               $canViewSensitiveValues,
+               __('Unavailable from persisted Ticket state', 'clarus')
+           ),
+           'currentTechnical' => $current['technical'] ?? null,
            'limitation' => $action->reason === null ? null : $this->limitation($action->reason),
        ];
+   }
+
+   /**
+    * @param list<array<string, mixed>> $criteria
+    * @param list<array<string, mixed>> $actions
+    * @return list<array{label: string, value: string}>
+    */
+   private function technicalValues(array $criteria, array $actions): array {
+       $values = [];
+      foreach ($criteria as $criterion) {
+         if (!is_string($criterion['name'] ?? null)) {
+             continue;
+         }
+         foreach (['expected' => 'expectedTechnical', 'observed' => 'observedTechnical'] as $label => $technical) {
+            $technicalValue = $criterion[$technical] ?? null;
+            if (is_string($technicalValue)) {
+                $values[] = [
+                    'label' => $criterion['name'] . ' — ' . ($label === 'expected' ? __('Expected', 'clarus') : __('Observed', 'clarus')),
+                    'value' => $technicalValue,
+                ];
+            }
+         }
+      }
+      foreach ($actions as $action) {
+         if (!is_string($action['field'] ?? null)) {
+             continue;
+         }
+         foreach (['configured' => 'configuredTechnical', 'current' => 'currentTechnical'] as $label => $technical) {
+            $technicalValue = $action[$technical] ?? null;
+            if (is_string($technicalValue)) {
+                $values[] = [
+                    'label' => $action['field'] . ' — ' . ($label === 'configured' ? __('Configured value', 'clarus') : __('Current value', 'clarus')),
+                    'value' => $technicalValue,
+                ];
+            }
+         }
+      }
+
+       return $values;
+   }
+
+   /** @return array{value: string, technical: ?string} */
+   private function presentValue(string $field, mixed $value): array {
+       $safeValue = $this->safeValue($value);
+       $reference = $this->referencePresentation($field, $value);
+
+       return $reference ?? ['value' => $safeValue, 'technical' => null];
+   }
+
+   /** @return array{value: string, technical: ?string} */
+   private function presentActionValue(string $field, mixed $value): array {
+       $safeValue = $this->safeActionValue($value);
+       $reference = $this->referencePresentation($field, $value);
+
+       return $reference ?? ['value' => $safeValue, 'technical' => null];
+   }
+
+   /** @return null|array{value: string, technical: string} */
+   private function referencePresentation(string $field, mixed $value): ?array {
+      if (!isset(self::REFERENCE_TABLES[$field])) {
+          return null;
+      }
+
+       $values = is_array($value) ? $value : [$value];
+       $names = [];
+       $rawValues = [];
+      foreach ($values as $item) {
+         if (!is_int($item) && (!is_string($item) || preg_match('/^-?\d+$/D', $item) !== 1)) {
+             return null;
+         }
+          $id = (int) $item;
+          $name = ($this->referenceNameResolver)($field, $id);
+         if (!is_string($name) || $name === '') {
+             return null;
+         }
+          $names[] = $name;
+          $rawValues[] = (string) $id;
+      }
+
+      if ($names === []) {
+          return null;
+      }
+
+       return ['value' => implode(', ', $names), 'technical' => implode(', ', $rawValues)];
+   }
+
+   private function unavailableValue(bool $authorized, string $unavailable): string {
+       return $authorized ? $unavailable : __('Hidden by permission', 'clarus');
    }
 
    /** @return array<string, string> */
@@ -371,6 +519,8 @@ final class InspectionPresenter
            'operator' => __('Operator', 'clarus'),
            'expected' => __('Expected', 'clarus'),
            'observed' => __('Observed', 'clarus'),
+           'missingEvidence' => __('Missing evidence', 'clarus'),
+           'referenceIdentifiers' => __('Reference identifiers', 'clarus'),
            'configuredActions' => __('Configured actions', 'clarus'),
            'action' => __('Action', 'clarus'),
            'field' => __('Field', 'clarus'),

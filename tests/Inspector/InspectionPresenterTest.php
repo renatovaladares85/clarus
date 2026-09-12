@@ -167,10 +167,10 @@ final class InspectionPresenterTest extends TestCase
 
        self::assertSame('3', $criteria[0]['expected']);
        self::assertSame('3', $criteria[0]['observed']);
-       self::assertSame('Hidden for safety', $criteria[1]['expected']);
-       self::assertSame('Hidden or unavailable', $criteria[1]['observed']);
-       self::assertSame('Hidden for safety', $actions[0]['configured']);
-       self::assertSame('Hidden for safety', $actions[1]['configured']);
+       self::assertSame('Hidden by permission', $criteria[1]['expected']);
+       self::assertSame('Hidden by permission', $criteria[1]['observed']);
+       self::assertSame('Hidden by permission', $actions[0]['configured']);
+       self::assertSame('Hidden by permission', $actions[1]['configured']);
        self::assertSame('A diagnostic limitation applies to this item.', $limitations[0]);
        self::assertSame('Entity 9', $presented['entityName']);
 
@@ -193,6 +193,70 @@ final class InspectionPresenterTest extends TestCase
        self::assertIsArray($sensitiveRules[0]['actions']);
        self::assertIsArray($sensitiveRules[0]['actions'][0]);
        self::assertSame('3', $sensitiveRules[0]['actions'][0]['configured']);
+   }
+
+   public function testPresentsAuthorizedIndeterminateValuesAndNativeReferenceNames(): void {
+       $criterion = new CriterionInspection(
+           'itilcategories_id',
+           2,
+           '12',
+           Evaluation::INDETERMINATE,
+           'Value cannot be reconstructed defensibly from the persisted Ticket state.',
+           false,
+           null,
+           true
+       );
+       $action = new ActionInspection(
+           1,
+           'assign',
+           'itilcategories_id',
+           ActionSupport::SUPPORTED,
+           ActionEvaluation::INDETERMINATE,
+           'current_value_unavailable',
+           true,
+           18
+       );
+       $rule = new RuleInspection(
+           1,
+           'Rule',
+           \RuleTicket::ONADD,
+           0,
+           false,
+           1,
+           'AND',
+           [$criterion],
+           Evaluation::INDETERMINATE,
+           [],
+           [$action]
+       );
+       $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 1, 1, false, [$rule]);
+       $view = $this->presenter(static fn (string $field, int $id): string => 'Reference ' . $id)->present(
+           [$result],
+           ClarusConfig::defaults(),
+           12,
+           '/refresh',
+           'token',
+           true,
+           null,
+           true
+       );
+
+       self::assertIsArray($view['rules']);
+       self::assertIsArray($view['rules'][0]);
+       self::assertIsArray($view['rules'][0]['criteria']);
+       self::assertIsArray($view['rules'][0]['criteria'][0]);
+       self::assertIsArray($view['rules'][0]['actions']);
+       self::assertIsArray($view['rules'][0]['actions'][0]);
+       self::assertSame('Reference 12', $view['rules'][0]['criteria'][0]['expected']);
+       self::assertSame('Unavailable from persisted Ticket state', $view['rules'][0]['criteria'][0]['observed']);
+       self::assertSame('12', $view['rules'][0]['criteria'][0]['expectedTechnical']);
+       self::assertSame('Reference 18', $view['rules'][0]['actions'][0]['configured']);
+       self::assertSame('Unavailable from persisted Ticket state', $view['rules'][0]['actions'][0]['current']);
+       self::assertSame('18', $view['rules'][0]['actions'][0]['configuredTechnical']);
+       self::assertSame([
+           ['label' => 'Unknown criterion (itilcategories_id) — Expected', 'value' => '12'],
+           ['label' => 'Unknown field (itilcategories_id) — Configured value', 'value' => '18'],
+       ], $view['rules'][0]['technicalValues']);
    }
 
    public function testPresentationKeepsEveryEvaluatedRuleIndependentOfPageSize(): void {
@@ -286,8 +350,9 @@ final class InspectionPresenterTest extends TestCase
        self::assertStringNotContainsString('secret', serialize($view));
    }
 
-   private function presenter(): InspectionPresenter {
-       return new InspectionPresenter(static fn (int $id): string => 'Entity ' . $id);
+   /** @param null|callable(string, int): string $referenceNameResolver */
+   private function presenter(?callable $referenceNameResolver = null): InspectionPresenter {
+       return new InspectionPresenter(static fn (int $id): string => 'Entity ' . $id, $referenceNameResolver);
    }
 
    /** @param list<Evaluation> $evaluations */

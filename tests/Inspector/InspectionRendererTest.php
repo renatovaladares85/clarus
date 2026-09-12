@@ -101,6 +101,7 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('<details class="clarus-inspection__sort">', $html);
       self::assertStringNotContainsString('<fieldset class="clarus-inspection__sort"', $html);
       self::assertStringContainsString('Clarus could not evaluate one or more criteria safely using the data available in the Ticket.', $html);
+      self::assertStringContainsString('Missing evidence:', $html);
       self::assertStringContainsString('clarus-diagnostic-grid__context', $html);
       self::assertStringNotContainsString('>Limitation<', $html);
       self::assertStringNotContainsString('data-label="Limitation"', $html);
@@ -113,6 +114,34 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('No configured action was executed', $html);
       self::assertStringNotContainsString('PARTIAL_MATCH', $html);
       self::assertStringNotContainsString('Partial', $html);
+   }
+
+   public function testRendersTechnicalReferenceIdentifiersForExplicitlySafeValues(): void {
+      $criterion = new CriterionInspection(
+         'itilcategories_id',
+         2,
+         '12',
+         Evaluation::INDETERMINATE,
+         'Value cannot be reconstructed defensibly from the persisted Ticket state.',
+         false,
+         null,
+         true
+      );
+      $rule = new RuleInspection(7, 'Rule', \RuleTicket::ONADD, 0, false, 1, 'AND', [$criterion], Evaluation::INDETERMINATE);
+      $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 1, 1, false, [$rule]);
+      $renderer = new InspectionRenderer(new \GlpiPlugin\Clarus\Inspector\InspectionPresenter(
+         static fn (int $id): string => 'Entity ' . $id,
+         static fn (string $field, int $id): string => 'Category ' . $id
+      ));
+
+      $unauthorized = $renderer->render([$result], ClarusConfig::defaults(), 12, '/refresh', 'token');
+      $authorized = $renderer->render([$result], ClarusConfig::defaults(), 12, '/refresh', 'token', true, null, true);
+
+      self::assertStringContainsString('Category 12', $unauthorized);
+      self::assertStringContainsString('Reference identifiers', $unauthorized);
+      self::assertStringContainsString('Category 12', $authorized);
+      self::assertStringContainsString('Reference identifiers', $authorized);
+      self::assertStringContainsString('Unknown criterion (itilcategories_id) — Expected: 12', $authorized);
    }
 
    public function testNewServerRenderAfterSensitiveAccessIsRevokedExcludesValues(): void {

@@ -128,7 +128,10 @@ final class RuleTicketInspector
                  NativeField::integer($criterion->fields['condition'] ?? 0),
                  NativeField::string($criterion->fields['pattern'] ?? ''),
                  Evaluation::INDETERMINATE,
-                 $contextValue->reason
+                 $contextValue->reason,
+                 false,
+                 null,
+                 true
              );
              continue;
          }
@@ -139,7 +142,10 @@ final class RuleTicketInspector
                  NativeField::integer($criterion->fields['condition'] ?? 0),
                  NativeField::string($criterion->fields['pattern'] ?? ''),
                  Evaluation::INDETERMINATE,
-                 'Native RuleTicket criterion evaluation did not return a result.'
+                 'Native RuleTicket criterion evaluation did not return a result.',
+                 true,
+                 $contextValue->value,
+                 true
              );
              continue;
          }

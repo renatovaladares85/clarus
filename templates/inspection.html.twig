@@ -218,7 +218,7 @@
                       <span data-label="{{ labels.expected }}">{{ criterion.expected }}</span>
                       <span data-label="{{ labels.observed }}">
                         {{ criterion.observed }}
-                        {% if criterion.limitation is not null %}<small class="clarus-diagnostic-grid__context text-muted"><i class="ti ti-help-circle" aria-hidden="true"></i>{{ criterion.limitation }}</small>{% endif %}
+                        {% if criterion.limitation is not null %}<small class="clarus-diagnostic-grid__context text-muted"><i class="ti ti-help-circle" aria-hidden="true"></i>{% if criterion.evaluationKey == 'indeterminate' %}<strong>{{ labels.missingEvidence }}:</strong> {% endif %}{{ criterion.limitation }}</small>{% endif %}
                       </span>
                     </div>
                   {% endfor %}
@@ -263,6 +263,9 @@
                   <div><dt>{{ labels.ranking }}</dt><dd>{{ rule.ranking }}</dd></div>
                   <div><dt>{{ labels.condition }}</dt><dd>{{ rule.condition }}</dd></div>
                   <div><dt>{{ labels.entity }}</dt><dd>{{ rule.entityName }}</dd></div>
+                  {% if rule.technicalValues is not empty %}
+                    <div><dt>{{ labels.referenceIdentifiers }}</dt><dd>{% for value in rule.technicalValues %}<div>{{ value.label }}: {{ value.value }}</div>{% endfor %}</dd></div>
+                  {% endif %}
                 </dl>
               </details>
             </div>
