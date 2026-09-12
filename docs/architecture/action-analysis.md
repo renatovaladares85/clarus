@@ -70,7 +70,9 @@ derived dependencies for the next step instead. Requester effects also taint
 requester groups, location, and profile; the category-code regex alias taints
 both category ID and category code. `ProjectedRuleEffect` distinguishes applied, not-applied,
 indeterminate, and unsupported outcomes with safe previous/next values for
-tests only.
+tests only. It also carries the affected context keys for an indeterminate or
+unsupported effect, so a known native alias can degrade a sequential overwrite
+chain for its semantic replacement field without approximating the action.
 
 The projection is not action execution and does not claim historical causality.
 Reflection still uses the persisted snapshot, so a later rule or manual change

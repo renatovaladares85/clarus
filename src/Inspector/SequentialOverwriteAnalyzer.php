@@ -45,16 +45,15 @@ final class SequentialOverwriteAnalyzer
          $lastProcessingIndex = $step->processingIndex;
 
          foreach ($step->effects as $effect) {
-            if ($effect->status === ProjectionStatus::NOT_APPLIED
-                || !in_array($effect->actionType, self::REPLACEMENT_ACTION_TYPES, true)) {
+            if ($effect->status === ProjectionStatus::NOT_APPLIED) {
                 continue;
             }
 
-            $field = $effect->field;
-            if ($effect->status === ProjectionStatus::APPLIED && $effect->hasNextValue) {
-               if (isset($uncertainProducers[$field])) {
-                   $uncertain = $uncertainProducers[$field];
-                  if ($uncertain['ruleId'] !== $rule->id) {
+            foreach ($this->semanticReplacementFields($effect) as $field) {
+               if ($effect->status === ProjectionStatus::APPLIED && $effect->hasNextValue) {
+                  if (isset($uncertainProducers[$field])) {
+                      $uncertain = $uncertainProducers[$field];
+                     if ($uncertain['ruleId'] !== $rule->id) {
                         $overwrites[] = $this->possible(
                             $field,
                             $uncertain['ruleId'],
@@ -66,12 +65,12 @@ final class SequentialOverwriteAnalyzer
                             null,
                             null,
                             $effect->nextValue
-                        );
-                  }
-                   unset($uncertainProducers[$field]);
-               } else if (isset($producers[$field])) {
-                   $producer = $producers[$field];
-                  if ($producer['ruleId'] !== $rule->id && $producer['intermediateValue'] !== $effect->nextValue) {
+                           );
+                     }
+                      unset($uncertainProducers[$field]);
+                  } else if (isset($producers[$field])) {
+                      $producer = $producers[$field];
+                     if ($producer['ruleId'] !== $rule->id && $producer['intermediateValue'] !== $effect->nextValue) {
                         $overwrites[] = new RuleOverwrite(
                             $field,
                             $producer['ruleId'],
@@ -84,31 +83,31 @@ final class SequentialOverwriteAnalyzer
                             $producer['previousValue'],
                             $producer['intermediateValue'],
                             $effect->nextValue
-                        );
+                           );
+                     }
                   }
-               }
 
-               if (!isset($producers[$field]) || $producers[$field]['ruleId'] === $rule->id
+                  if (!isset($producers[$field]) || $producers[$field]['ruleId'] === $rule->id
                    || $producers[$field]['intermediateValue'] !== $effect->nextValue) {
-                    $producers[$field] = [
+                       $producers[$field] = [
                         'ruleId' => $rule->id,
                         'processingIndex' => $step->processingIndex,
                         'hasPreviousValue' => $effect->hasPreviousValue,
                         'previousValue' => $effect->previousValue,
                         'intermediateValue' => $effect->nextValue,
-                    ];
+                       ];
+                  }
+                  continue;
                }
-                continue;
-            }
 
-            if (!in_array($effect->status, [ProjectionStatus::INDETERMINATE, ProjectionStatus::UNSUPPORTED], true)) {
-                continue;
-            }
+               if (!in_array($effect->status, [ProjectionStatus::INDETERMINATE, ProjectionStatus::UNSUPPORTED], true)) {
+                  continue;
+               }
 
-            $reason = $effect->reason ?? RuleEffectProjector::REASON_UNSUPPORTED_ACTION;
-            if (isset($producers[$field]) && $producers[$field]['ruleId'] !== $rule->id) {
-                $producer = $producers[$field];
-                $overwrites[] = $this->possible(
+               $reason = $effect->reason ?? RuleEffectProjector::REASON_UNSUPPORTED_ACTION;
+               if (isset($producers[$field]) && $producers[$field]['ruleId'] !== $rule->id) {
+                   $producer = $producers[$field];
+                   $overwrites[] = $this->possible(
                     $field,
                     $producer['ruleId'],
                     $rule->id,
@@ -119,18 +118,34 @@ final class SequentialOverwriteAnalyzer
                     $producer['previousValue'],
                     $producer['intermediateValue'],
                     null
-                );
-                unset($producers[$field]);
-            }
-            $uncertainProducers[$field] = [
+                   );
+                   unset($producers[$field]);
+               }
+               $uncertainProducers[$field] = [
                 'ruleId' => $rule->id,
                 'processingIndex' => $step->processingIndex,
                 'reason' => $reason,
-            ];
+               ];
+            }
          }
       }
 
        return $overwrites;
+   }
+
+   /** @return list<string> */
+   private function semanticReplacementFields(ProjectedRuleEffect $effect): array {
+      if (in_array($effect->actionType, self::REPLACEMENT_ACTION_TYPES, true)) {
+          return [$effect->field];
+      }
+
+       // Only projector-mapped aliases can affect a replacement field without
+       // being a direct assign/delete action. Raw-only effects remain excluded:
+       // additive and compositional actions must not create overwrite chains.
+       return array_values(array_filter(
+           $effect->affectedFields,
+           static fn (string $field): bool => $field !== $effect->field
+       ));
    }
 
    private function possible(

@@ -124,6 +124,23 @@ final class SequentialOverwriteAnalyzerTest extends TestCase
       }
    }
 
+   public function testUnsupportedCategoryCodeAliasDegradesTheCategoryChain(): void {
+       $overwrites = $this->analyzer->analyze([
+           $this->rule(11, 0, Evaluation::MATCH, [$this->applied('itilcategories_id', 3, 1)]),
+           $this->rule(12, 1, Evaluation::MATCH, [$this->categoryCodeAlias()]),
+           $this->rule(13, 2, Evaluation::MATCH, [$this->applied('itilcategories_id', 1, 2)]),
+       ]);
+
+       self::assertCount(2, $overwrites);
+       self::assertSame(
+           [OverwriteClassification::POSSIBLE, OverwriteClassification::POSSIBLE],
+           array_column($overwrites, 'classification')
+       );
+       self::assertSame([11, 12], array_column($overwrites, 'previousRuleId'));
+       self::assertSame([12, 13], array_column($overwrites, 'laterRuleId'));
+       self::assertSame('itilcategories_id', $overwrites[1]->field);
+   }
+
    public function testOnaddAndOnupdateNeverShareAProducer(): void {
        $overwrites = $this->analyzer->analyze([
            $this->rule(11, 0, Evaluation::MATCH, [$this->applied('urgency', 3, 1)], 1, \RuleTicket::ONADD),
@@ -177,6 +194,17 @@ final class SequentialOverwriteAnalyzerTest extends TestCase
            $status === ProjectionStatus::INDETERMINATE
                ? 'rule_result_indeterminate'
                : 'unsupported_action_semantics'
+       );
+   }
+
+   private function categoryCodeAlias(): ProjectedRuleEffect {
+       return new ProjectedRuleEffect(
+           1,
+           'regex_result',
+           '_affect_itilcategory_by_code',
+           ProjectionStatus::UNSUPPORTED,
+           'unsupported_action_semantics',
+           affectedFields: ['_affect_itilcategory_by_code', 'itilcategories_id', 'itilcategories_id_code']
        );
    }
 }

@@ -74,10 +74,11 @@ final class RuleEffectProjector
              $output = $this->taint($output, $action->field, self::REASON_RULE_RESULT_INDETERMINATE);
              $effects[] = new ProjectedRuleEffect(
                  $action->actionId,
-                 $action->actionType,
-                 $action->field,
-                 ProjectionStatus::INDETERMINATE,
-                 self::REASON_RULE_RESULT_INDETERMINATE
+                $action->actionType,
+                $action->field,
+                ProjectionStatus::INDETERMINATE,
+                self::REASON_RULE_RESULT_INDETERMINATE,
+                affectedFields: $this->affectedContextKeys($action->field)
              );
              continue;
          }
@@ -122,7 +123,8 @@ final class RuleEffectProjector
            $action->actionType,
            $action->field,
            ProjectionStatus::UNSUPPORTED,
-           self::REASON_UNSUPPORTED_ACTION
+           self::REASON_UNSUPPORTED_ACTION,
+           affectedFields: $this->affectedContextKeys($action->field)
        )];
    }
 
