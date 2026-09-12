@@ -15,10 +15,12 @@ final class ProjectedRuleEffect
        public readonly string $field,
        public readonly ProjectionStatus $status,
        public readonly ?string $reason = null,
-       public readonly bool $hasPreviousValue = false,
-       public readonly mixed $previousValue = null,
-       public readonly bool $hasNextValue = false,
-       public readonly mixed $nextValue = null
+        public readonly bool $hasPreviousValue = false,
+        public readonly mixed $previousValue = null,
+        public readonly bool $hasNextValue = false,
+        public readonly mixed $nextValue = null,
+        /** @var list<string> Context keys which this effect can affect semantically. */
+        public readonly array $affectedFields = []
    ) {
       if (in_array($status, [ProjectionStatus::INDETERMINATE, ProjectionStatus::UNSUPPORTED], true)
           && ($reason === null || $reason === '')) {

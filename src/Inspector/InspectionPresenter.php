@@ -57,11 +57,15 @@ final class InspectionPresenter
        $processingIndex = 0;
        $actionsEnabled = (bool) $settings[ClarusConfig::INCLUDE_ACTIONS];
        $counts = ['match' => 0, 'no_match' => 0, 'indeterminate' => 0];
+       $overwrites = [];
        $entityOptions = [];
       foreach ($results as $result) {
           $candidateCount += $result->candidateCount;
           $evaluatedCount += $result->evaluatedCount;
           $truncated = $truncated || $result->truncated;
+         foreach ($result->overwrites as $overwrite) {
+             $overwrites[] = $this->overwrite($overwrite);
+         }
          foreach ($result->rules as $rule) {
              $rules[] = $this->rule($rule, $processingIndex++, $actionsEnabled, $canViewSensitiveValues);
              $entityOptions[$rule->entityId] = [
@@ -84,6 +88,7 @@ final class InspectionPresenter
            'candidateCount' => $candidateCount,
            'evaluatedCount' => $evaluatedCount,
            'counts' => $counts,
+           'overwrites' => $overwrites,
            'rules' => $rules,
            'entityOptions' => array_values($entityOptions),
            'pageSize' => $settings[ClarusConfig::PAGE_SIZE],
@@ -92,6 +97,19 @@ final class InspectionPresenter
            'initialSort' => $this->sortLevels($settings[ClarusConfig::INITIAL_SORT]),
            'sortOptions' => $this->sortOptions(),
            'labels' => $this->labels(),
+       ];
+   }
+
+   /** @return array<string, int|string|null> */
+   private function overwrite(RuleOverwrite $overwrite): array {
+       return [
+           'field' => $overwrite->field,
+           'previousRuleId' => $overwrite->previousRuleId,
+           'laterRuleId' => $overwrite->laterRuleId,
+           'previousProcessingIndex' => $overwrite->previousProcessingIndex,
+           'laterProcessingIndex' => $overwrite->laterProcessingIndex,
+           'classification' => strtolower($overwrite->classification->name),
+           'reason' => $overwrite->reason,
        ];
    }
 
@@ -240,6 +258,14 @@ final class InspectionPresenter
            'searchPlaceholder' => __('Search by rule name or ID', 'clarus'),
            'all' => __('All', 'clarus'),
            'groupProcessing' => __('Processing order', 'clarus'),
+           'ruleChain' => __('Rule chain', 'clarus'),
+           'possibleOverwrite' => __('Possible overwrite', 'clarus'),
+           'confirmedOverwrite' => __('Confirmed overwrite in simulation', 'clarus'),
+           'finalSimulatedResult' => __('Final simulated result', 'clarus'),
+           'confirmedOverwriteNotice' => __(
+               'Confirmed in the sequential diagnostic. This does not, by itself, prove historical execution of these rules.',
+               'clarus'
+           ),
            'groupResult' => __('Result', 'clarus'),
            'groupEntity' => __('Entity', 'clarus'),
            'grouping' => __('Grouping', 'clarus'),

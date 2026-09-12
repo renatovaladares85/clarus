@@ -11,6 +11,7 @@ final class InspectionResult
     /**
      * @param list<RuleInspection> $rules
      * @param list<string> $limitations
+     * @param list<RuleOverwrite> $overwrites
      */
    public function __construct(
         public readonly int $ticketId,
@@ -20,7 +21,8 @@ final class InspectionResult
         public readonly int $evaluatedCount,
         public readonly bool $truncated,
         public readonly array $rules,
-        public readonly array $limitations = []
+        public readonly array $limitations = [],
+        public readonly array $overwrites = []
     ) {
       if ($configuredLimit < 0 || $candidateCount < 0 || $evaluatedCount < 0) {
           throw new \InvalidArgumentException('Inspection result counts and limit must be valid.');

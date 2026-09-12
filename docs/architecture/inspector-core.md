@@ -64,6 +64,25 @@ that criterion and reviewed derived dependencies become `INDETERMINATE` for
 later steps. The trace stays inside
 Inspector DTOs in this phase and is not exposed to Twig, HTML, or JavaScript.
 
+## Overwrite diagnostics
+
+`SequentialOverwriteAnalyzer` consumes only the immutable projected effects in
+the native processing order. It is a separate diagnostic dimension: primary
+rule results remain `MATCH`, `NO_MATCH`, and `INDETERMINATE`.
+
+A confirmed overwrite requires two different deterministic projected values for
+the same field, with the later rule evaluated after the earlier producer and no
+relevant uncertain effect between them. A no-match rule, equal values, and
+additive or compositional actions do not create an overwrite classification.
+An indeterminate or unsupported replacement effect instead produces a possible
+overwrite and breaks the deterministic producer chain. The domain record keeps
+previous, intermediate, and final simulated values; the presenter exposes no
+such values without a separate authorization decision.
+
+Confirmed in the sequential diagnostic does not, by itself, prove historical
+execution of these rules. ONADD and ONUPDATE are analyzed as independent
+chains, beginning from their own persisted snapshots.
+
 ## Validation boundary
 
 Unit tests cover the GLPI-independent value objects and reducer. The

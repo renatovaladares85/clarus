@@ -12,6 +12,7 @@ use GlpiPlugin\Clarus\Inspector\ActionSupport;
 use GlpiPlugin\Clarus\Inspector\ContextState;
 use GlpiPlugin\Clarus\Inspector\Evaluation;
 use GlpiPlugin\Clarus\Inspector\InspectionOptions;
+use GlpiPlugin\Clarus\Inspector\OverwriteClassification;
 use GlpiPlugin\Clarus\Inspector\RuleActionProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketCandidateProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketInspector;
@@ -504,6 +505,31 @@ final class RuleTicketInspectorTest extends TestCase
        self::assertNotNull($firstInspection->sequentialStep);
        self::assertSame(5, $firstInspection->sequentialStep->outputContext->get('urgency')->value);
        self::assertSame(Evaluation::MATCH, $secondInspection->evaluation);
+   }
+
+   public function testSequentiallyEligibleRuleProducesAConfirmedOverwriteWithoutActionReflection(): void {
+       $ticket = $this->createTicket();
+       $first = $this->createRule('overwrite-first', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'urgency', '5']]);
+       $second = $this->createRule('overwrite-second', \RuleTicket::ONADD, true, 2, [
+           ['urgency', \Rule::PATTERN_IS, '5'],
+       ], [['assign', 'urgency', '3']]);
+
+       $result = (new RuleTicketInspector())->inspect(
+           $ticket,
+           \RuleTicket::ONADD,
+           new InspectionOptions(1000)
+       );
+
+       self::assertSame(Evaluation::MATCH, $this->findRule($result->rules, $second->getID())->evaluation);
+       self::assertCount(1, $result->overwrites);
+       $overwrite = $result->overwrites[0];
+       self::assertSame(OverwriteClassification::CONFIRMED, $overwrite->classification);
+       self::assertSame($first->getID(), $overwrite->previousRuleId);
+       self::assertSame($second->getID(), $overwrite->laterRuleId);
+       self::assertSame(5, $overwrite->intermediateValue);
+       self::assertSame(3, $overwrite->finalValue);
    }
 
    public function testUnsupportedRequesterEffectMakesLaterRequesterGroupCriterionIndeterminate(): void {

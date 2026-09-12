@@ -110,6 +110,10 @@ final class RuleEffectProjectorTest extends TestCase
        self::assertSame(ContextState::INDETERMINATE, $result->outputContext->get('itilcategories_id')->state);
        self::assertSame(ContextState::INDETERMINATE, $result->outputContext->get('itilcategories_id_code')->state);
        self::assertSame(ProjectionStatus::UNSUPPORTED, $result->effects[0]->status);
+       self::assertSame(
+           ['_affect_itilcategory_by_code', 'itilcategories_id', 'itilcategories_id_code'],
+           $result->effects[0]->affectedFields
+       );
    }
 
    public function testMatchedDeleteProjectsExactNull(): void {
