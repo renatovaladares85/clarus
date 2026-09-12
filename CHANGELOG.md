@@ -4,7 +4,7 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
-- Prepare the 1.0.0-dev.3 development line with a compact, responsive Ticket
+- Prepare the 1.0.0-dev.4 development line with a compact, responsive Ticket
   inspection presentation for sequential diagnostics. It adds safe conflict
   filtering, effective processing-order display and sorting, expanded
   rule-chain context, collapsed technical metadata, and accessible disclosure
