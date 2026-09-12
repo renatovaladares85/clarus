@@ -12,7 +12,7 @@ Ticket being inspected.
 
 ## Development status
 
-`1.0.0-dev.2` is the current development pre-release; `1.0.0` remains reserved
+`1.0.0-dev.3` is the current development pre-release; `1.0.0` remains reserved
 for the final stable release. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it neither executes nor records rule execution.
 
@@ -28,8 +28,11 @@ scalar/category assignments and exact deadline deletes can feed the next rule;
 unknown or non-reconstructible effects make only their known criterion target
 indeterminate. The same sequence independently classifies possible and
 confirmed simulated overwrites; it never replaces a rule's `MATCH`, `NO_MATCH`,
-or `INDETERMINATE` result, and it is not historical evidence. This internal
-trace is not yet presented in the Ticket tab.
+or `INDETERMINATE` result, and it is not historical evidence. The Ticket tab
+presents these dimensions independently: compact rule rows make result,
+condition, effective processing order, and conflicts easy to locate; expansion
+reveals the relevant sequential chain while technical metadata remains
+collapsed.
 
 The Ticket tab presents ONADD and ONUPDATE diagnostics in one responsive view.
 It evaluates the last saved Ticket state; unsaved form changes are explicitly not included.
@@ -37,7 +40,8 @@ Each card keeps its native semantic result and also shows confirmed adherence as
 `percentage (matching/configured criteria)`; not evaluated criteria remain in
 the denominator and are identified separately. An OR rule can therefore match
 with low adherence. Search, segmented result controls, compact condition and entity
-pickers, configured minimum adherence, three-level sorting, grouping, and
+pickers, configured minimum adherence, conflict filtering, three-level sorting,
+grouping, and
 pagination act only on the already evaluated cards. Expected, observed,
 configured, and current values are shown only when the backend has explicitly
 classified them as presentation-safe.

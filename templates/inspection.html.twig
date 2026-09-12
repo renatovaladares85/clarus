@@ -40,6 +40,14 @@
       <div class="clarus-inspection__metric clarus-inspection__metric--indeterminate">
         <strong>{{ counts.indeterminate }}</strong><span>{{ labels.indeterminate }}</span>
       </div>
+      {% if overwriteCounts.possible > 0 or overwriteCounts.confirmed > 0 %}
+        <div class="clarus-inspection__metric clarus-inspection__metric--possible-overwrite">
+          <strong>{{ overwriteCounts.possible }}</strong><span>{{ labels.possibleOverwrite }}</span>
+        </div>
+        <div class="clarus-inspection__metric clarus-inspection__metric--confirmed-overwrite">
+          <strong>{{ overwriteCounts.confirmed }}</strong><span>{{ labels.confirmedOverwrite }}</span>
+        </div>
+      {% endif %}
     </div>
 
     {% if truncated %}
@@ -71,6 +79,15 @@
             <button class="btn btn-outline-secondary" type="button" value="match" data-clarus-result aria-pressed="true">{{ labels.matches }}</button>
             <button class="btn btn-outline-secondary" type="button" value="no_match" data-clarus-result aria-pressed="true">{{ labels.doesNotMatch }}</button>
             <button class="btn btn-outline-secondary" type="button" value="indeterminate" data-clarus-result aria-pressed="true">{{ labels.indeterminate }}</button>
+          </div>
+        </fieldset>
+        <fieldset class="clarus-inspection__filters" aria-label="{{ labels.conflictFilter }}">
+          <legend>{{ labels.conflictFilter }}</legend>
+          <div class="btn-group" role="group" aria-label="{{ labels.conflictFilter }}">
+            <button class="btn btn-outline-secondary" type="button" value="all" data-clarus-conflict aria-pressed="true">{{ labels.all }}</button>
+            <button class="btn btn-outline-secondary" type="button" value="with" data-clarus-conflict aria-pressed="false">{{ labels.withConflict }}</button>
+            <button class="btn btn-outline-secondary" type="button" value="possible" data-clarus-conflict aria-pressed="false">{{ labels.possibleOverwrite }}</button>
+            <button class="btn btn-outline-secondary" type="button" value="confirmed" data-clarus-conflict aria-pressed="false">{{ labels.confirmedOverwrite }}</button>
           </div>
         </fieldset>
         <details class="clarus-inspection__compact-filter">
@@ -121,8 +138,9 @@
                    data-entity="{{ rule.entitySort }}" data-entity-id="{{ rule.entityId }}" data-entity-label="{{ rule.entityName }}" data-search="{{ rule.searchText }}" data-condition="{{ rule.conditionKey }}"
                    data-adherence-numerator="{{ rule.adherenceNumerator }}" data-adherence-denominator="{{ rule.adherenceDenominator }}" data-matches="{{ rule.matchingCriteria }}"
                    data-criteria="{{ rule.criteriaCount }}" data-indeterminate="{{ rule.indeterminateCriteria }}"
-                   data-ranking="{{ rule.ranking }}" data-actions="{{ rule.actionCount }}" data-name="{{ rule.name|lower }}" data-id="{{ rule.id }}">
-            <summary class="clarus-rule__summary">
+                   data-ranking="{{ rule.ranking }}" data-actions="{{ rule.actionCount }}" data-name="{{ rule.name|lower }}" data-id="{{ rule.id }}"
+                   data-conflicts="{{ rule.conflictKeys|join(' ') }}">
+            <summary class="clarus-rule__summary" data-clarus-rule-toggle aria-expanded="false">
               <span class="clarus-rule__accent clarus-rule__accent--{{ rule.evaluationKey }}" aria-hidden="true"></span>
               <span class="clarus-rule__identity">
                 <span class="clarus-rule__id">#{{ rule.id }}</span>
@@ -131,16 +149,24 @@
                   {{ labels.ranking }} {{ rule.ranking }}
                   <span aria-hidden="true">•</span> {{ labels.entity }}: {{ rule.entityName }}
                   <span aria-hidden="true">•</span> {{ rule.condition }}
+                  <span aria-hidden="true">•</span> {{ labels.groupProcessing }}: {{ rule.processingIndex + 1 }}
                   <span aria-hidden="true">•</span> {{ labels.confirmedAdherence }}: {{ rule.adherenceLabel }}
                   {% if rule.indeterminateCriteria > 0 %}<span aria-hidden="true">•</span> {{ rule.indeterminateCriteria }} {{ labels.indeterminateCriteria }}{% endif %}
                   <span aria-hidden="true">•</span> {{ rule.actionSummary }}
                 </span>
               </span>
-              {% if rule.indeterminateCriteria > 0 %}
-                <span class="clarus-rule__indeterminate" title="{{ labels.cannotSafelyEvaluate }}" aria-label="{{ labels.cannotSafelyEvaluate }}"><i class="ti ti-help-circle" aria-hidden="true"></i></span>
-              {% endif %}
-              <span class="clarus-rule__badge clarus-rule__badge--{{ rule.evaluationKey }}">{{ rule.evaluationLabel }}</span>
-              <i class="ti ti-chevron-down clarus-rule__chevron" aria-hidden="true"></i>
+              <span class="clarus-rule__status">
+                {% if rule.indeterminateCriteria > 0 %}
+                  <span class="clarus-rule__indeterminate" title="{{ labels.cannotSafelyEvaluate }}" aria-label="{{ labels.cannotSafelyEvaluate }}"><i class="ti ti-help-circle" aria-hidden="true"></i></span>
+                {% endif %}
+                <span class="clarus-rule__badge clarus-rule__badge--{{ rule.evaluationKey }}">{{ rule.evaluationLabel }}</span>
+                {% for conflict in rule.conflictKeys %}
+                  <span class="clarus-rule__conflict-badge clarus-rule__conflict-badge--{{ conflict }}">
+                    {% if conflict == 'confirmed' %}{{ labels.confirmedOverwrite }}{% else %}{{ labels.possibleOverwrite }}{% endif %}
+                  </span>
+                {% endfor %}
+                <i class="ti ti-chevron-down clarus-rule__chevron" aria-hidden="true"></i>
+              </span>
             </summary>
 
             <div class="clarus-rule__details">
@@ -151,6 +177,28 @@
                 <ul class="alert alert-secondary" role="list">
                   {% for limitation in rule.limitations %}<li>{{ limitation }}</li>{% endfor %}
                 </ul>
+              {% endif %}
+
+              {% if rule.overwrites is not empty %}
+                <section class="clarus-rule__sequential" aria-label="{{ labels.sequentialDiagnostic }}">
+                  <h4>{{ labels.sequentialDiagnostic }}</h4>
+                  {% for overwrite in rule.overwrites %}
+                    <article class="clarus-rule__overwrite clarus-rule__overwrite--{{ overwrite.classification }}">
+                      <div>
+                        <strong>{% if overwrite.classification == 'confirmed' %}{{ labels.confirmedOverwrite }}{% else %}{{ labels.possibleOverwrite }}{% endif %}</strong>
+                        <span>{{ labels.affectedField }}: {{ overwrite.fieldLabel }}</span>
+                      </div>
+                      <p class="mb-1"><span class="visually-hidden">{{ labels.ruleChain }}: </span>{% for ruleId in overwrite.chainRuleIds %}#{{ ruleId }}{% if not loop.last %} <span aria-hidden="true">→</span> {% endif %}{% endfor %}</p>
+                      <p class="text-muted mb-0">
+                        {% if overwrite.classification == 'confirmed' %}
+                          {{ labels.confirmedOverwriteNotice }}
+                        {% else %}
+                          {{ overwrite.reason ?? labels.possibleOverwriteNotice }}
+                        {% endif %}
+                      </p>
+                    </article>
+                  {% endfor %}
+                </section>
               {% endif %}
 
               <h4>{{ labels.criteria }}</h4>
@@ -207,6 +255,16 @@
                   </div>
                 {% endif %}
               </div>
+
+              <details class="clarus-rule__technical">
+                <summary data-clarus-technical-toggle aria-expanded="false">{{ labels.technicalDetails }}</summary>
+                <dl>
+                  <div><dt>{{ labels.groupProcessing }}</dt><dd>{{ rule.processingIndex + 1 }}</dd></div>
+                  <div><dt>{{ labels.ranking }}</dt><dd>{{ rule.ranking }}</dd></div>
+                  <div><dt>{{ labels.condition }}</dt><dd>{{ rule.condition }}</dd></div>
+                  <div><dt>{{ labels.entity }}</dt><dd>{{ rule.entityName }}</dd></div>
+                </dl>
+              </details>
             </div>
           </details>
         {% endfor %}
