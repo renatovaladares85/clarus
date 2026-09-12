@@ -14,7 +14,9 @@ use GlpiPlugin\Clarus\Inspector\CriterionInspection;
 use GlpiPlugin\Clarus\Inspector\Evaluation;
 use GlpiPlugin\Clarus\Inspector\InspectionRenderer;
 use GlpiPlugin\Clarus\Inspector\InspectionResult;
+use GlpiPlugin\Clarus\Inspector\OverwriteClassification;
 use GlpiPlugin\Clarus\Inspector\RuleInspection;
+use GlpiPlugin\Clarus\Inspector\RuleOverwrite;
 use PHPUnit\Framework\TestCase;
 
 final class InspectionRendererTest extends TestCase
@@ -99,6 +101,7 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('<details class="clarus-inspection__sort">', $html);
       self::assertStringNotContainsString('<fieldset class="clarus-inspection__sort"', $html);
       self::assertStringContainsString('Clarus could not evaluate one or more criteria safely using the data available in the Ticket.', $html);
+      self::assertStringContainsString('Missing evidence:', $html);
       self::assertStringContainsString('clarus-diagnostic-grid__context', $html);
       self::assertStringNotContainsString('>Limitation<', $html);
       self::assertStringNotContainsString('data-label="Limitation"', $html);
@@ -111,6 +114,34 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('No configured action was executed', $html);
       self::assertStringNotContainsString('PARTIAL_MATCH', $html);
       self::assertStringNotContainsString('Partial', $html);
+   }
+
+   public function testRendersTechnicalReferenceIdentifiersForExplicitlySafeValues(): void {
+      $criterion = new CriterionInspection(
+         'itilcategories_id',
+         2,
+         '12',
+         Evaluation::INDETERMINATE,
+         'Value cannot be reconstructed defensibly from the persisted Ticket state.',
+         false,
+         null,
+         true
+      );
+      $rule = new RuleInspection(7, 'Rule', \RuleTicket::ONADD, 0, false, 1, 'AND', [$criterion], Evaluation::INDETERMINATE);
+      $result = new InspectionResult(12, \RuleTicket::ONADD, 1000, 1, 1, false, [$rule]);
+      $renderer = new InspectionRenderer(new \GlpiPlugin\Clarus\Inspector\InspectionPresenter(
+         static fn (int $id): string => 'Entity ' . $id,
+         static fn (string $field, int $id): string => 'Category ' . $id
+      ));
+
+      $unauthorized = $renderer->render([$result], ClarusConfig::defaults(), 12, '/refresh', 'token');
+      $authorized = $renderer->render([$result], ClarusConfig::defaults(), 12, '/refresh', 'token', true, null, true);
+
+      self::assertStringContainsString('Category 12', $unauthorized);
+      self::assertStringContainsString('Reference identifiers', $unauthorized);
+      self::assertStringContainsString('Category 12', $authorized);
+      self::assertStringContainsString('Reference identifiers', $authorized);
+      self::assertStringContainsString('Unknown criterion (itilcategories_id) — Expected: 12', $authorized);
    }
 
    public function testNewServerRenderAfterSensitiveAccessIsRevokedExcludesValues(): void {
@@ -153,6 +184,87 @@ final class InspectionRendererTest extends TestCase
       self::assertStringContainsString('secret-observed-value', $authorized);
       self::assertStringNotContainsString('secret-pattern', $afterRevocation);
       self::assertStringNotContainsString('secret-observed-value', $afterRevocation);
+   }
+
+   public function testRendersSafeSequentialConflictPresentationAndAccessibleToggles(): void {
+       $first = new RuleInspection(1, 'First', \RuleTicket::ONADD, 0, false, 1, 'AND', [], Evaluation::MATCH);
+       $second = new RuleInspection(
+           2,
+           'Second',
+           \RuleTicket::ONADD,
+           0,
+           false,
+           2,
+           'AND',
+           [new CriterionInspection('status', 1, 'open', Evaluation::INDETERMINATE)],
+           Evaluation::MATCH
+       );
+       $third = new RuleInspection(3, 'Third', \RuleTicket::ONADD, 0, false, 3, 'AND', [], Evaluation::MATCH);
+       $overwrite = new RuleOverwrite(
+           'urgency',
+           1,
+           2,
+           0,
+           1,
+           OverwriteClassification::CONFIRMED,
+           null,
+           true,
+           'secret-previous',
+           'secret-intermediate',
+           'secret-final'
+       );
+       $secondOverwrite = new RuleOverwrite(
+           'urgency',
+           2,
+           3,
+           1,
+           2,
+           OverwriteClassification::CONFIRMED,
+           null,
+           true,
+           'secret-intermediate',
+           'secret-final',
+           'secret-later'
+       );
+       $possibleOverwrite = new RuleOverwrite(
+           'users_id',
+           2,
+           3,
+           1,
+           2,
+           OverwriteClassification::POSSIBLE,
+           'unsupported_action_semantics',
+           false,
+           null,
+           null,
+           null
+       );
+       $result = new InspectionResult(
+           12,
+           \RuleTicket::ONADD,
+           1000,
+           3,
+           3,
+           false,
+           [$first, $second, $third],
+           [],
+           [$overwrite, $secondOverwrite, $possibleOverwrite]
+       );
+
+       $html = (new InspectionRenderer())->render([$result], ClarusConfig::defaults(), 12, '/refresh', 'token');
+
+       self::assertStringContainsString('data-clarus-conflict', $html);
+       self::assertStringContainsString('Confirmed overwrite in simulation', $html);
+       self::assertStringContainsString('Confirmed in the sequential diagnostic.', $html);
+       self::assertMatchesRegularExpression('/#1\\s*<span aria-hidden="true">→<\\/span>\\s*#2\\s*<span aria-hidden="true">→<\\/span>\\s*#3/', $html);
+       self::assertSame(3, substr_count($html, 'Confirmed in the sequential diagnostic.'));
+       self::assertMatchesRegularExpression('/clarus-rule__status">.*clarus-rule__indeterminate.*clarus-rule__conflict-badge--confirmed.*clarus-rule__conflict-badge--possible.*clarus-rule__chevron/s', $html);
+       self::assertStringContainsString('data-clarus-rule-toggle aria-expanded="false"', $html);
+       self::assertStringContainsString('data-clarus-technical-toggle aria-expanded="false"', $html);
+       self::assertStringNotContainsString('secret-previous', $html);
+       self::assertStringNotContainsString('secret-intermediate', $html);
+       self::assertStringNotContainsString('secret-final', $html);
+       self::assertStringNotContainsString('secret-later', $html);
    }
 
    public function testRendersClarusOwnedLabelsThroughTheGettextDomain(): void {

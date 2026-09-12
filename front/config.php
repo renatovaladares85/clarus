@@ -50,6 +50,7 @@ TemplateRenderer::getInstance()->display('@clarus/config.html.twig', [
     ],
     'sortLevels' => $sortLevels,
     'sortOptions' => [
+        'processing' => __('Processing order', 'clarus'),
         'result' => __('Result', 'clarus'),
         'adherence' => __('Confirmed adherence', 'clarus'),
         'matches' => __('Matching criteria', 'clarus'),

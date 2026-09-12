@@ -9,9 +9,35 @@ namespace GlpiPlugin\Clarus\Inspector;
 use GlpiPlugin\Clarus\ClarusConfig;
 
 /** Builds an escaped-by-Twig view model containing only explicitly safe values. */
+/**
+ * @phpstan-type PresentedOverwrite array{field: string, fieldLabel: string, previousRuleId: int, laterRuleId: int, previousProcessingIndex: int, laterProcessingIndex: int, classification: 'possible'|'confirmed', reason: ?string, chainRuleIds: list<int>}
+ */
 final class InspectionPresenter
 {
+   /** @var array<string, string> */
+   private const REFERENCE_TABLES = [
+       'itilcategories_id' => 'glpi_itilcategories',
+       'locations_id' => 'glpi_locations',
+       'requesttypes_id' => 'glpi_requesttypes',
+       'entities_id' => 'glpi_entities',
+       'profiles_id' => 'glpi_profiles',
+       'slas_id_ttr' => 'glpi_slas',
+       'slas_id_tto' => 'glpi_slas',
+       'olas_id_ttr' => 'glpi_olas',
+       'olas_id_tto' => 'glpi_olas',
+       '_users_id_requester' => 'glpi_users',
+       '_users_id_assign' => 'glpi_users',
+       '_users_id_observer' => 'glpi_users',
+       '_groups_id_requester' => 'glpi_groups',
+       '_groups_id_assign' => 'glpi_groups',
+       '_groups_id_observer' => 'glpi_groups',
+       '_groups_id_of_requester' => 'glpi_groups',
+       '_suppliers_id_assign' => 'glpi_suppliers',
+   ];
+
    private \Closure $entityNameResolver;
+
+   private \Closure $referenceNameResolver;
 
    /** @var array<int, string> */
    private array $entityNames = [];
@@ -22,8 +48,11 @@ final class InspectionPresenter
    /** @var null|array<string, array{name: string}> */
    private ?array $actionLabels = null;
 
-   /** @param null|callable(int): string $entityNameResolver */
-   public function __construct(?callable $entityNameResolver = null) {
+   /**
+    * @param null|callable(int): string $entityNameResolver
+    * @param null|callable(string, int): string $referenceNameResolver
+    */
+   public function __construct(?callable $entityNameResolver = null, ?callable $referenceNameResolver = null) {
        $this->entityNameResolver = $entityNameResolver === null
            ? static function (int $entityId): string {
                $name = \Dropdown::getDropdownName(\Entity::getTable(), $entityId);
@@ -33,6 +62,18 @@ final class InspectionPresenter
                    : sprintf(__('Entity #%d', 'clarus'), $entityId);
            }
            : \Closure::fromCallable($entityNameResolver);
+       $this->referenceNameResolver = $referenceNameResolver === null
+           ? static function (string $field, int $id): string {
+               $table = self::REFERENCE_TABLES[$field] ?? null;
+            if ($table === null || $id < 1) {
+                   return '';
+            }
+
+               $name = \Dropdown::getDropdownName($table, $id);
+
+               return $name;
+           }
+           : \Closure::fromCallable($referenceNameResolver);
    }
 
    /**
@@ -58,16 +99,29 @@ final class InspectionPresenter
        $actionsEnabled = (bool) $settings[ClarusConfig::INCLUDE_ACTIONS];
        $counts = ['match' => 0, 'no_match' => 0, 'indeterminate' => 0];
        $overwrites = [];
+       $overwriteCounts = ['possible' => 0, 'confirmed' => 0];
+       /** @var array<string, array<string, PresentedOverwrite>> $overwritesByRule */
+       $overwritesByRule = [];
        $entityOptions = [];
       foreach ($results as $result) {
           $candidateCount += $result->candidateCount;
           $evaluatedCount += $result->evaluatedCount;
-          $truncated = $truncated || $result->truncated;
+         $truncated = $truncated || $result->truncated;
          foreach ($result->overwrites as $overwrite) {
-             $overwrites[] = $this->overwrite($overwrite);
+             $presentedOverwrite = $this->overwrite($overwrite, $result->overwrites);
+             $overwrites[] = $presentedOverwrite;
+             ++$overwriteCounts[$presentedOverwrite['classification']];
+             $overwriteKey = $this->overwriteIdentity($presentedOverwrite);
+            foreach ([$overwrite->previousRuleId, $overwrite->laterRuleId] as $ruleId) {
+                $overwritesByRule[$this->ruleIdentity($result->condition, $ruleId)][$overwriteKey] = $presentedOverwrite;
+            }
          }
          foreach ($result->rules as $rule) {
-             $rules[] = $this->rule($rule, $processingIndex++, $actionsEnabled, $canViewSensitiveValues);
+             $presentedRule = $this->rule($rule, $processingIndex++, $actionsEnabled, $canViewSensitiveValues);
+             $ruleOverwrites = array_values($overwritesByRule[$this->ruleIdentity($result->condition, $rule->id)] ?? []);
+             $presentedRule['overwrites'] = $ruleOverwrites;
+             $presentedRule['conflictKeys'] = array_values(array_unique(array_column($ruleOverwrites, 'classification')));
+             $rules[] = $presentedRule;
              $entityOptions[$rule->entityId] = [
                  'id' => $rule->entityId,
                  'name' => $this->entityName($rule->entityId),
@@ -89,6 +143,7 @@ final class InspectionPresenter
            'evaluatedCount' => $evaluatedCount,
            'counts' => $counts,
            'overwrites' => $overwrites,
+           'overwriteCounts' => $overwriteCounts,
            'rules' => $rules,
            'entityOptions' => array_values($entityOptions),
            'pageSize' => $settings[ClarusConfig::PAGE_SIZE],
@@ -100,17 +155,65 @@ final class InspectionPresenter
        ];
    }
 
-   /** @return array<string, int|string|null> */
-   private function overwrite(RuleOverwrite $overwrite): array {
+   /**
+    * @param list<RuleOverwrite> $overwrites
+    * @return PresentedOverwrite
+    */
+   private function overwrite(RuleOverwrite $overwrite, array $overwrites): array {
        return [
            'field' => $overwrite->field,
+           'fieldLabel' => $this->actionField($overwrite->field),
            'previousRuleId' => $overwrite->previousRuleId,
            'laterRuleId' => $overwrite->laterRuleId,
            'previousProcessingIndex' => $overwrite->previousProcessingIndex,
            'laterProcessingIndex' => $overwrite->laterProcessingIndex,
            'classification' => strtolower($overwrite->classification->name),
-           'reason' => $overwrite->reason,
+           'reason' => $overwrite->reason === null ? null : $this->limitation($overwrite->reason),
+           'chainRuleIds' => $this->chainRuleIds($overwrites, $overwrite),
        ];
+   }
+
+   private function ruleIdentity(int $condition, int $ruleId): string {
+       return $condition . ':' . $ruleId;
+   }
+
+   /** @param PresentedOverwrite $overwrite */
+   private function overwriteIdentity(array $overwrite): string {
+       return $overwrite['field'] . ':' . $overwrite['classification'] . ':' . implode(',', $overwrite['chainRuleIds']);
+   }
+
+   /**
+    * @param list<RuleOverwrite> $overwrites
+    * @return list<int>
+    */
+   private function chainRuleIds(array $overwrites, RuleOverwrite $target): array {
+       $chain = [$target->previousRuleId, $target->laterRuleId];
+       $seen = array_fill_keys($chain, true);
+
+      while (true) {
+          $extended = false;
+         foreach ($overwrites as $overwrite) {
+            if ($overwrite->field !== $target->field) {
+               continue;
+            }
+            if ($overwrite->laterRuleId === $chain[0] && !isset($seen[$overwrite->previousRuleId])) {
+                array_unshift($chain, $overwrite->previousRuleId);
+                $seen[$overwrite->previousRuleId] = true;
+                $extended = true;
+                break;
+            }
+             $lastRuleId = $chain[array_key_last($chain)];
+            if ($overwrite->previousRuleId === $lastRuleId && !isset($seen[$overwrite->laterRuleId])) {
+                $chain[] = $overwrite->laterRuleId;
+                $seen[$overwrite->laterRuleId] = true;
+                $extended = true;
+                break;
+            }
+         }
+         if (!$extended) {
+             return $chain;
+         }
+      }
    }
 
    /** @return array<string, mixed> */
@@ -131,6 +234,16 @@ final class InspectionPresenter
            ? 0
            : (int) round(($matchingCriteria / $criteriaCount) * 100, 0, PHP_ROUND_HALF_UP);
 
+       $actions = array_map(fn (ActionInspection $action): array => $this->action($action, $canViewSensitiveValues), $rule->actions);
+       $searchTerms = [(string) $rule->id, $rule->name, $entityName];
+      foreach ($rule->criteria as $criterion) {
+          $searchTerms[] = $this->criterionName($criterion->key);
+      }
+      foreach ($rule->actions as $action) {
+          $searchTerms[] = $this->actionType($action->actionType);
+          $searchTerms[] = $this->actionField($action->field);
+      }
+
        return [
            'id' => $rule->id,
            'name' => $rule->name === '' ? __('Unnamed', 'clarus') : $rule->name,
@@ -141,6 +254,7 @@ final class InspectionPresenter
            'recursive' => $rule->recursive ? __('Yes') : __('No'),
            'matchingMode' => $this->matchingMode($rule->matchingMode),
            'criteria' => $criteria,
+           'technicalValues' => $this->technicalValues($criteria, $actions),
            'matchingCriteria' => $matchingCriteria,
            'criteriaCount' => $criteriaCount,
            'indeterminateCriteria' => $indeterminateCriteria,
@@ -148,7 +262,7 @@ final class InspectionPresenter
            'adherenceDenominator' => $criteriaCount,
            'adherencePercent' => $adherencePercent,
            'adherenceLabel' => sprintf('%d%% (%d/%d)', $adherencePercent, $matchingCriteria, $criteriaCount),
-           'actions' => array_map(fn (ActionInspection $action): array => $this->action($action, $canViewSensitiveValues), $rule->actions),
+           'actions' => $actions,
            'actionCount' => count($rule->actions),
            'actionSummary' => $actionsEnabled
                ? sprintf('%d %s', count($rule->actions), __('configured actions', 'clarus'))
@@ -157,10 +271,12 @@ final class InspectionPresenter
            'evaluationKey' => $evaluationKey,
            'evaluationLabel' => $this->evaluation($rule->evaluation),
            'evaluationOrder' => ['match' => 0, 'no_match' => 1, 'indeterminate' => 2][$evaluationKey],
-           'processingIndex' => $processingIndex,
+           'processingIndex' => $rule->sequentialStep === null
+               ? $processingIndex
+               : $rule->sequentialStep->processingIndex,
            'entitySort' => mb_strtolower($entityName, 'UTF-8'),
            'entityId' => $rule->entityId,
-           'searchText' => mb_strtolower($rule->id . ' ' . $rule->name, 'UTF-8'),
+           'searchText' => mb_strtolower(implode(' ', $searchTerms), 'UTF-8'),
            'limitations' => array_map(fn (string $reason): string => $this->limitation($reason), $rule->limitations),
        ];
    }
@@ -189,6 +305,7 @@ final class InspectionPresenter
    /** @return array<string, string> */
    private function sortOptions(): array {
        return [
+           'processing' => __('Processing order', 'clarus'),
            'result' => __('Result', 'clarus'),
            'adherence' => __('Confirmed adherence', 'clarus'),
            'matches' => __('Matching criteria', 'clarus'),
@@ -205,38 +322,147 @@ final class InspectionPresenter
 
    /** @return array<string, mixed> */
    private function criterion(CriterionInspection $criterion, bool $canViewSensitiveValues): array {
+       $canPresent = TicketContextBuilder::isPresentationSafeKey($criterion->key) || $canViewSensitiveValues;
+       $expected = $canPresent && $criterion->expectedValuePresentationSafe
+           ? $this->presentValue($criterion->key, $criterion->pattern)
+           : null;
+       $observed = $canPresent && $criterion->hasObservedValue
+           ? $this->presentValue($criterion->key, $criterion->observedValue)
+           : null;
+
        return [
            'name' => $this->criterionName($criterion->key),
            'operator' => $this->operator($criterion->operator, $criterion->key),
            'state' => $this->criterionState($criterion->evaluation),
            'evaluationKey' => $this->evaluationKey($criterion->evaluation),
-           'expected' => $criterion->expectedValuePresentationSafe
-               && (TicketContextBuilder::isPresentationSafeKey($criterion->key) || $canViewSensitiveValues)
-               ? $this->safeValue($criterion->pattern)
-               : __('Hidden for safety', 'clarus'),
-           'observed' => $criterion->hasObservedValue
-               && (TicketContextBuilder::isPresentationSafeKey($criterion->key) || $canViewSensitiveValues)
-               ? $this->safeValue($criterion->observedValue)
-               : __('Hidden or unavailable', 'clarus'),
+           'expected' => $expected['value'] ?? $this->unavailableValue(
+               $canPresent,
+               __('Unavailable from rule configuration', 'clarus')
+           ),
+           'expectedTechnical' => $expected['technical'] ?? null,
+           'observed' => $observed['value'] ?? $this->unavailableValue(
+               $canPresent,
+               __('Unavailable from persisted Ticket state', 'clarus')
+           ),
+           'observedTechnical' => $observed['technical'] ?? null,
            'limitation' => $criterion->reason === null ? null : $this->limitation($criterion->reason),
        ];
    }
 
    /** @return array<string, mixed> */
    private function action(ActionInspection $action, bool $canViewSensitiveValues): array {
+       $configured = $canViewSensitiveValues && $action->configuredValuePresentationSafe
+           ? $this->presentActionValue($action->field, $action->configuredValue)
+           : null;
+       $current = $canViewSensitiveValues && $action->currentValuePresentationSafe
+           ? $this->presentActionValue($action->field, $action->currentValue)
+           : null;
+
        return [
            'type' => $this->actionType($action->actionType),
            'field' => $this->actionField($action->field),
            'support' => $this->actionSupport($action->support),
            'evaluation' => $this->actionEvaluation($action->evaluation),
-           'configured' => $action->configuredValuePresentationSafe && $canViewSensitiveValues
-               ? $this->safeActionValue($action->configuredValue)
-               : __('Hidden for safety', 'clarus'),
-           'current' => $action->currentValuePresentationSafe && $canViewSensitiveValues
-               ? $this->safeActionValue($action->currentValue)
-               : __('Hidden or unavailable', 'clarus'),
+           'configured' => $configured['value'] ?? $this->unavailableValue(
+               $canViewSensitiveValues,
+               __('Unavailable from rule configuration', 'clarus')
+           ),
+           'configuredTechnical' => $configured['technical'] ?? null,
+           'current' => $current['value'] ?? $this->unavailableValue(
+               $canViewSensitiveValues,
+               __('Unavailable from persisted Ticket state', 'clarus')
+           ),
+           'currentTechnical' => $current['technical'] ?? null,
            'limitation' => $action->reason === null ? null : $this->limitation($action->reason),
        ];
+   }
+
+   /**
+    * @param list<array<string, mixed>> $criteria
+    * @param list<array<string, mixed>> $actions
+    * @return list<array{label: string, value: string}>
+    */
+   private function technicalValues(array $criteria, array $actions): array {
+       $values = [];
+      foreach ($criteria as $criterion) {
+         if (!is_string($criterion['name'] ?? null)) {
+             continue;
+         }
+         foreach (['expected' => 'expectedTechnical', 'observed' => 'observedTechnical'] as $label => $technical) {
+            $technicalValue = $criterion[$technical] ?? null;
+            if (is_string($technicalValue)) {
+                $values[] = [
+                    'label' => $criterion['name'] . ' — ' . ($label === 'expected' ? __('Expected', 'clarus') : __('Observed', 'clarus')),
+                    'value' => $technicalValue,
+                ];
+            }
+         }
+      }
+      foreach ($actions as $action) {
+         if (!is_string($action['field'] ?? null)) {
+             continue;
+         }
+         foreach (['configured' => 'configuredTechnical', 'current' => 'currentTechnical'] as $label => $technical) {
+            $technicalValue = $action[$technical] ?? null;
+            if (is_string($technicalValue)) {
+                $values[] = [
+                    'label' => $action['field'] . ' — ' . ($label === 'configured' ? __('Configured value', 'clarus') : __('Current value', 'clarus')),
+                    'value' => $technicalValue,
+                ];
+            }
+         }
+      }
+
+       return $values;
+   }
+
+   /** @return array{value: string, technical: ?string} */
+   private function presentValue(string $field, mixed $value): array {
+       $safeValue = $this->safeValue($value);
+       $reference = $this->referencePresentation($field, $value);
+
+       return $reference ?? ['value' => $safeValue, 'technical' => null];
+   }
+
+   /** @return array{value: string, technical: ?string} */
+   private function presentActionValue(string $field, mixed $value): array {
+       $safeValue = $this->safeActionValue($value);
+       $reference = $this->referencePresentation($field, $value);
+
+       return $reference ?? ['value' => $safeValue, 'technical' => null];
+   }
+
+   /** @return null|array{value: string, technical: string} */
+   private function referencePresentation(string $field, mixed $value): ?array {
+      if (!isset(self::REFERENCE_TABLES[$field])) {
+          return null;
+      }
+
+       $values = is_array($value) ? $value : [$value];
+       $names = [];
+       $rawValues = [];
+      foreach ($values as $item) {
+         if (!is_int($item) && (!is_string($item) || preg_match('/^-?\d+$/D', $item) !== 1)) {
+             return null;
+         }
+          $id = (int) $item;
+          $name = ($this->referenceNameResolver)($field, $id);
+         if (!is_string($name) || $name === '') {
+             return null;
+         }
+          $names[] = $name;
+          $rawValues[] = (string) $id;
+      }
+
+      if ($names === []) {
+          return null;
+      }
+
+       return ['value' => implode(', ', $names), 'technical' => implode(', ', $rawValues)];
+   }
+
+   private function unavailableValue(bool $authorized, string $unavailable): string {
+       return $authorized ? $unavailable : __('Hidden by permission', 'clarus');
    }
 
    /** @return array<string, string> */
@@ -270,6 +496,12 @@ final class InspectionPresenter
            'groupEntity' => __('Entity', 'clarus'),
            'grouping' => __('Grouping', 'clarus'),
            'resultFilter' => __('Result filters', 'clarus'),
+           'conflictFilter' => __('Conflict filters', 'clarus'),
+           'withConflict' => __('With conflict', 'clarus'),
+           'affectedField' => __('Affected field', 'clarus'),
+           'sequentialDiagnostic' => __('Sequential diagnostic', 'clarus'),
+           'possibleOverwriteNotice' => __('A relevant rule effect could not be determined safely.', 'clarus'),
+           'technicalDetails' => __('Technical details', 'clarus'),
            'conditionFilter' => __('Condition filters', 'clarus'),
            'entityFilter' => __('Entity filters', 'clarus'),
            'onadd' => __('On ticket creation (ONADD)', 'clarus'),
@@ -287,6 +519,8 @@ final class InspectionPresenter
            'operator' => __('Operator', 'clarus'),
            'expected' => __('Expected', 'clarus'),
            'observed' => __('Observed', 'clarus'),
+           'missingEvidence' => __('Missing evidence', 'clarus'),
+           'referenceIdentifiers' => __('Reference identifiers', 'clarus'),
            'configuredActions' => __('Configured actions', 'clarus'),
            'action' => __('Action', 'clarus'),
            'field' => __('Field', 'clarus'),
@@ -493,6 +727,8 @@ final class InspectionPresenter
                => __('The special relation semantics are not supported by this inspection.', 'clarus'),
            'unsupported_action_semantics'
                => __('The action semantics are not supported by this inspection.', 'clarus'),
+           'rule_result_indeterminate'
+               => __('A preceding rule result could not be determined safely.', 'clarus'),
            default => __('A diagnostic limitation applies to this item.', 'clarus'),
        };
    }

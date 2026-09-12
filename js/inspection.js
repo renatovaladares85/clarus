@@ -32,6 +32,9 @@
         if (field === 'result') {
             return numberValue(left, 'evaluationOrder') - numberValue(right, 'evaluationOrder');
         }
+        if (field === 'processing') {
+            return numberValue(left, 'processingIndex') - numberValue(right, 'processingIndex');
+        }
         if (field === 'adherence') {
             return compareAdherence(left, right);
         }
@@ -51,10 +54,16 @@
 
     function matchesFilters(rule, state) {
         const query = normalize(state.query.trim());
+        const conflicts = state.conflicts || new Set(['all']);
+        const conflictKeys = (rule.dataset.conflicts || '').split(' ').filter(Boolean);
+        const matchesConflict = conflicts.has('all')
+            || (conflicts.has('with') && conflictKeys.length > 0)
+            || conflictKeys.some((conflict) => conflicts.has(conflict));
 
         return state.results.has(rule.dataset.evaluation)
             && state.conditions.has(rule.dataset.condition)
             && state.entities.has(rule.dataset.entityId)
+            && matchesConflict
             && (numberValue(rule, 'adherenceNumerator') * 100)
                 >= (state.minimumAdherence * adherenceDenominator(rule))
             && normalize(rule.dataset.search || '').includes(query);
@@ -103,6 +112,7 @@
             pageSize: Number.parseInt(container.dataset.pageSize || '25', 10),
             query: '',
             results: new Set(['match', 'no_match', 'indeterminate']),
+            conflicts: new Set(['all']),
         };
 
         const allRules = Array.from(rulesHost.querySelectorAll('[data-clarus-rule]'));
@@ -110,6 +120,8 @@
         const group = container.querySelector('[data-clarus-group]');
         const resultInputs = Array.from(container.querySelectorAll('[data-clarus-result]'));
         const resultAll = container.querySelector('[data-clarus-result-all]');
+        const conflictInputs = Array.from(container.querySelectorAll('[data-clarus-conflict]'));
+        const conflictAll = conflictInputs.find((input) => input.value === 'all');
         const conditionSelect = container.querySelector('[data-clarus-condition]');
         const entitySelect = container.querySelector('[data-clarus-entity]');
         const sortFields = Array.from(container.querySelectorAll('[data-clarus-sort-field]'));
@@ -234,6 +246,22 @@
             inputs.filter((input) => input.getAttribute('aria-pressed') === 'true').forEach((input) => set.add(input.value));
         }
 
+        function refreshConflicts() {
+            state.conflicts.clear();
+            conflictInputs.filter((input) => input.getAttribute('aria-pressed') === 'true')
+                .forEach((input) => state.conflicts.add(input.value));
+        }
+
+        container.querySelectorAll('[data-clarus-rule], .clarus-rule__technical').forEach((details) => {
+            const toggle = details.querySelector(':scope > summary');
+            if (!toggle) {
+                return;
+            }
+            details.addEventListener('toggle', function () {
+                toggle.setAttribute('aria-expanded', details.open ? 'true' : 'false');
+            });
+        });
+
         function refreshConditions() {
             state.conditions.clear();
             if (!conditionSelect) {
@@ -285,6 +313,19 @@
                 apply();
             });
         }
+        conflictInputs.forEach((input) => input.addEventListener('click', function () {
+            if (input === conflictAll) {
+                conflictInputs.forEach((item) => item.setAttribute('aria-pressed', item === conflictAll ? 'true' : 'false'));
+            } else {
+                input.setAttribute('aria-pressed', input.getAttribute('aria-pressed') !== 'true' ? 'true' : 'false');
+                if (conflictAll) {
+                    conflictAll.setAttribute('aria-pressed', 'false');
+                }
+            }
+            refreshConflicts();
+            state.page = 1;
+            apply();
+        }));
         if (conditionSelect) {
             conditionSelect.addEventListener('change', function () {
                 refreshConditions();

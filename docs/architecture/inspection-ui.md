@@ -39,16 +39,26 @@ template.
 `InspectionRenderer` uses GLPI's `TemplateRenderer` and the `@clarus` Twig
 namespace. Bootstrap and Tabler supplied by GLPI provide the base components.
 Clarus CSS is fully scoped below `.clarus-inspection` or `.clarus-config`.
-Vanilla JavaScript adds search, segmented result controls, compact condition and entity
-pickers, the configured adherence threshold, up to three sort levels in a collapsed
-editor, grouping,
+Vanilla JavaScript adds search across safe rule metadata, segmented result and
+conflict controls, compact condition and entity pickers, the configured
+adherence threshold, up to three sort levels in a collapsed editor, grouping,
 presentation-only pagination, and in-place refresh. Filters use OR within each
-group and AND across groups. Adherence filtering and sorting use the exact
+group and AND across groups. Conflict filters use only presenter metadata and
+never receive diagnostic values. Adherence filtering and sorting use the exact
 matching-criteria ratio; whole percentages are display-only. Sorting has
 deterministic ranking and ID fallbacks;
 grouping only adds visual headings and never overrides sort order. All evaluated
 rules remain in the server-rendered result; pagination never changes the engine
 input or output.
+
+The compact rule row exposes the primary result independently from its optional
+possible/confirmed overwrite badges. Expanding it shows only the relevant
+rule-ID chain, affected-field label, and a safe explanation; confirmed text
+explicitly remains simulation-only. Effective processing position is presented
+per independent ONADD or ONUPDATE chain and can be used for presentation
+sorting, but never replaces the Inspector's native sequential order. Technical
+metadata is a nested disclosure, while native `<details>` controls and the
+associated JavaScript keep disclosure state available to assistive technology.
 
 ## Configuration lifecycle
 

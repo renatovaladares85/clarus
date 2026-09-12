@@ -235,14 +235,37 @@ final class RuleTicketActionAnalyzer
         ActionSupport $support,
         string $reason
     ): ActionInspection {
+       $configuredValuePresentationSafe = $this->isSafeConfiguredValue($action->configuredValue);
+
        return new ActionInspection(
            $action->actionId,
            $action->actionType,
            $action->field,
            $support,
            ActionEvaluation::INDETERMINATE,
-           $reason
+           $reason,
+           $configuredValuePresentationSafe,
+           $configuredValuePresentationSafe ? $action->configuredValue : null
        );
+   }
+
+   private function isSafeConfiguredValue(mixed $value): bool {
+      if ($value === null || is_int($value)) {
+          return true;
+      }
+      if (is_string($value)) {
+          return preg_match('/^-?\d+$/D', $value) === 1;
+      }
+      if (!is_array($value)) {
+          return false;
+      }
+      foreach ($value as $item) {
+         if (!is_int($item) && (!is_string($item) || preg_match('/^-?\d+$/D', $item) !== 1)) {
+             return false;
+         }
+      }
+
+       return true;
    }
 
    private function integerOrNull(mixed $value): ?int {

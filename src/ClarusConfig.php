@@ -29,7 +29,7 @@ final class ClarusConfig
 
    /** @var list<string> */
    public const SORT_FIELDS = [
-       'result', 'adherence', 'matches', 'criteria', 'indeterminate', 'ranking',
+       'processing', 'result', 'adherence', 'matches', 'criteria', 'indeterminate', 'ranking',
        'entity', 'condition', 'actions', 'name', 'id',
    ];
 
