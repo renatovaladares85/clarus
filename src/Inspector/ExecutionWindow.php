@@ -25,7 +25,8 @@ final class ExecutionWindow
        public readonly string $id = '',
        public readonly array $evidence = [],
        public readonly ?array $onlyCriteria = null,
-       public readonly bool $updateInputKnown = true
+       public readonly bool $updateInputKnown = true,
+       public readonly ?int $candidateEntityId = null
    ) {
    }
 }

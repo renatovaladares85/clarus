@@ -4,6 +4,11 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Prepare the `1.0.0-dev.9` external development build. ONADD replay now
+  treats retained later history as unknown creation input; deterministic
+  technician-group, status, SLA, and OLA assignments can feed later rule
+  criteria without executing native actions.
+
 - Prepare the `1.0.0-dev.8` external development build with native ONUPDATE
   incoming-state and `only_criteria` modeling. Retained history cannot prove
   its manual input/change set, so historical ONUPDATE evaluation now fails

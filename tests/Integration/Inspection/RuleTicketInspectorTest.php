@@ -15,7 +15,6 @@ use GlpiPlugin\Clarus\Inspector\ContextValue;
 use GlpiPlugin\Clarus\Inspector\Evaluation;
 use GlpiPlugin\Clarus\Inspector\ExecutionWindow;
 use GlpiPlugin\Clarus\Inspector\InspectionOptions;
-use GlpiPlugin\Clarus\Inspector\OverwriteClassification;
 use GlpiPlugin\Clarus\Inspector\RuleActionProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketCandidateProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketInspector;
@@ -556,6 +555,60 @@ final class RuleTicketInspectorTest extends TestCase
        self::assertSame(4, $replay->rule($second->getID())->sequentialStep->outputContext->get('priority')->value);
    }
 
+   public function testReplayProjectsTechnicianGroupBeforeLaterOlaRule(): void {
+       $groupId = $this->createGroup();
+       $first = $this->createRule('group-first', \RuleTicket::ONADD, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', '_groups_id_assign', (string) $groupId]]);
+       $second = $this->createRule('group-ola', \RuleTicket::ONADD, true, 2, [
+           ['_groups_id_assign', \Rule::PATTERN_IS, (string) $groupId],
+       ], [['assign', 'olas_id_ttr', '8100']]);
+       $window = new ExecutionWindow(
+           \RuleTicket::ONADD,
+           new TicketContext([
+               'entities_id' => ContextValue::available(0, 'test', true),
+               'name' => ContextValue::available($this->prefix, 'test'),
+               '_groups_id_assign' => ContextValue::available([], 'test', true),
+               'olas_id_ttr' => ContextValue::available(0, 'test', true),
+           ]),
+           true,
+           [],
+           'onadd:test'
+       );
+
+       $replay = (new RuleTicketReplayEngine())->replay(
+           $window,
+           [$first, $second],
+           [
+               $first->getID() => [new ConfiguredAction($first->getID(), 1, 'assign', '_groups_id_assign', (string) $groupId, 0)],
+               $second->getID() => [new ConfiguredAction($second->getID(), 2, 'assign', 'olas_id_ttr', '8100', 0)],
+           ]
+       );
+
+       self::assertSame(Evaluation::MATCH, $replay->rule($first->getID())->evaluation);
+       self::assertSame(Evaluation::MATCH, $replay->rule($second->getID())->evaluation);
+       self::assertSame([$groupId], $replay->rule($first->getID())->sequentialStep->outputContext->get('_groups_id_assign')->value);
+       self::assertSame(8100, $replay->rule($second->getID())->sequentialStep->outputContext->get('olas_id_ttr')->value);
+   }
+
+   public function testHistoricalOnupdateExposesEvidenceWithoutClaimingReplay(): void {
+       $ticket = $this->createTicket();
+       self::assertTrue($ticket->update(['id' => $ticket->getID(), 'urgency' => 4]));
+       self::assertTrue($ticket->getFromDB($ticket->getID()));
+       $rule = $this->createRule('historical-update', \RuleTicket::ONUPDATE, true, 1, [
+           ['urgency', \Rule::PATTERN_IS, '4'],
+       ], [['assign', 'priority', '5']]);
+
+       $result = (new RuleTicketInspector())->inspect($ticket, \RuleTicket::ONUPDATE, new InspectionOptions(1000));
+       $inspection = $this->findRule($result->rules, $rule->getID());
+
+       self::assertSame(Evaluation::MATCH, $inspection->evaluation);
+       self::assertNull($inspection->replayEvaluation);
+       self::assertNotEmpty($result->replay->laterChanges);
+       self::assertSame([], $result->replay->rules);
+       self::assertStringContainsString('was not evaluated', implode(' ', $result->limitations));
+   }
+
    public function testCurrentSnapshotDoesNotProduceAHistoricalOverwriteWithoutEvidence(): void {
        $ticket = $this->createTicket();
        $first = $this->createRule('overwrite-first', \RuleTicket::ONADD, true, 1, [
@@ -576,7 +629,7 @@ final class RuleTicketInspectorTest extends TestCase
        self::assertCount(0, $result->overwrites);
    }
 
-   public function testReplayUsesDurableBeforeValueAndKeepsCurrentSnapshotSeparate(): void {
+   public function testOnaddHistoryDoesNotTreatLaterBeforeValueAsCreationInput(): void {
        $ticket = $this->createTicket();
        self::assertTrue($ticket->update(['id' => $ticket->getID(), 'urgency' => 4]));
        self::assertTrue($ticket->getFromDB($ticket->getID()));
@@ -593,15 +646,13 @@ final class RuleTicketInspectorTest extends TestCase
 
        self::assertSame(Evaluation::NO_MATCH, $firstInspection->evaluation);
        self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
-       self::assertSame(Evaluation::MATCH, $firstInspection->replayEvaluation);
-       self::assertSame(Evaluation::MATCH, $secondInspection->replayEvaluation);
+       self::assertSame(Evaluation::INDETERMINATE, $firstInspection->replayEvaluation);
+       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
        self::assertNotNull($firstInspection->sequentialStep);
-       self::assertSame('3', (string) $firstInspection->sequentialStep->inputContext->get('urgency')->value);
-       self::assertSame(5, $firstInspection->sequentialStep->outputContext->get('urgency')->value);
-       self::assertCount(1, $result->overwrites);
-       self::assertSame(OverwriteClassification::CONFIRMED, $result->overwrites[0]->classification);
-       self::assertSame($first->getID(), $result->overwrites[0]->previousRuleId);
-       self::assertSame($second->getID(), $result->overwrites[0]->laterRuleId);
+       self::assertSame(ContextState::INDETERMINATE, $firstInspection->sequentialStep->inputContext->get('urgency')->state);
+       self::assertSame(ContextState::INDETERMINATE, $firstInspection->sequentialStep->outputContext->get('urgency')->state);
+       self::assertCount(0, $result->overwrites);
+       self::assertStringContainsString('cannot establish the pre-creation', implode(' ', $result->limitations));
    }
 
    public function testUnsupportedRequesterEffectMakesLaterRequesterGroupCriterionIndeterminate(): void {

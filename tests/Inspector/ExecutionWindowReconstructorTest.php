@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ExecutionWindowReconstructorTest extends TestCase
 {
-   public function testUsesOldestDurableBeforeValueAndNeverLeaksTheCurrentSnapshot(): void {
+   public function testOnaddFailsClosedInsteadOfUsingLaterBeforeValues(): void {
        $timeline = new TicketTimeline($this->currentContext(), [
            new TimelineFieldChange(10, 'urgency', '3', '4', '2026-09-12 10:00:00'),
            new TimelineFieldChange(11, 'urgency', '4', '5', '2026-09-12 11:00:00'),
@@ -26,11 +26,11 @@ final class ExecutionWindowReconstructorTest extends TestCase
 
        $window = (new ExecutionWindowReconstructor())->reconstruct($timeline, \RuleTicket::ONADD);
 
-       self::assertSame('3', $window->inputContext->get('urgency')->value);
-       self::assertSame('2', $window->inputContext->get('impact')->value);
+       self::assertSame(ContextState::INDETERMINATE, $window->inputContext->get('urgency')->state);
+       self::assertSame(ContextState::INDETERMINATE, $window->inputContext->get('impact')->state);
        self::assertSame(ContextState::INDETERMINATE, $window->inputContext->get('name')->state);
        self::assertFalse($window->boundaryKnown);
-       self::assertStringContainsString('not proof', implode(' ', $window->limitations));
+       self::assertStringContainsString('cannot establish the pre-creation', implode(' ', $window->limitations));
    }
 
    public function testMissingHistoryFailsClosedForEveryCurrentValue(): void {
@@ -55,8 +55,8 @@ final class ExecutionWindowReconstructorTest extends TestCase
 
        self::assertCount(3, $windows);
        self::assertSame(\RuleTicket::ONADD, $windows[0]->condition);
-       self::assertSame('3', $windows[0]->inputContext->get('urgency')->value);
-       self::assertSame('2', $windows[0]->inputContext->get('impact')->value);
+       self::assertSame(ContextState::INDETERMINATE, $windows[0]->inputContext->get('urgency')->state);
+       self::assertSame(ContextState::INDETERMINATE, $windows[0]->inputContext->get('impact')->state);
        self::assertSame(\RuleTicket::ONUPDATE, $windows[1]->condition);
        self::assertSame('4', $windows[1]->inputContext->get('urgency')->value);
        self::assertSame('3', $windows[1]->inputContext->get('impact')->value);
@@ -83,6 +83,8 @@ final class ExecutionWindowReconstructorTest extends TestCase
        self::assertSame(4, $windows[1]->inputContext->get('entities_id')->value);
        self::assertSame(['entities_id'], $windows[1]->onlyCriteria);
        self::assertFalse($windows[1]->updateInputKnown);
+       self::assertSame(3, $windows[0]->candidateEntityId);
+       self::assertSame(4, $windows[1]->candidateEntityId);
    }
 
    public function testHistoricalOnupdateDoesNotEvaluateAnUnprovenInputScope(): void {

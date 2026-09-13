@@ -46,15 +46,17 @@ labels, and ambiguous values are not parsed into replay facts.
 
 The reconstructor starts by making every current value unknown. The persisted
 Ticket entity is retained only as the native collection-selection context; a
-retained `entities_id` history row replaces it for the reconstructed earlier or
-later window. For every other field, the oldest retained `before` value is used
-as the earliest defensible value. Fields with no durable before/after evidence
-remain indeterminate. This is deliberately conservative: history retention,
-transient inputs, and execution boundaries may be incomplete. A deterministic
-replay is an inference, never a claim that GLPI executed a rule.
+retained `entities_id` history row replaces it for a later reconstructed
+window. A later history row may already contain output written by an ONADD
+rule, so its `before` value never establishes creation input. Fields with no
+durable before/after evidence remain indeterminate. This is deliberately
+conservative: history retention, transient inputs, and execution boundaries may
+be incomplete. A deterministic replay is an inference, never a claim that
+GLPI executed a rule.
 
-ONADD has one earliest-retained-state candidate. Each chronological timestamp
-group of later persisted changes retains a separate ONUPDATE evidence window
+ONADD has one fail-closed unknown-input window; its candidate entity is used
+only to select native rules, never as criterion input. Each chronological
+timestamp group of later persisted changes retains a separate ONUPDATE evidence window
 whose context uses the incoming (`after`) state and its changed fields as a
 proposed native `only_criteria` scope. Timestamp grouping does not identify
 which changes came from the caller versus a rule output in the same execution.
@@ -71,9 +73,12 @@ entity value, then evaluates criteria with the existing safe native
 RuleTicket preparation at the initial input and after every rule output. It
 derives mail aliases only from a durable header and fails closed when historical
 requester group membership or category-code state is not persisted. The engine
-then uses `RuleEffectProjector` only for characterized scalar/category
-assignments and exact deadline deletions. Output from a matched rule becomes the
-next replay input. Unsupported, dynamic, transient, or indeterminate action
+then uses `RuleEffectProjector` only for characterized scalar/category,
+status, SLA/OLA, and technician-group assignments, plus exact deadline
+deletions. Technician-group `assign` replaces the projected
+`_groups_id_assign` value; group append remains unsupported because GLPI keeps
+it in a distinct pending-assignment channel. Output from a matched rule becomes
+the next replay input. Unsupported, dynamic, transient, or indeterminate action
 effects taint only their known affected context keys.
 
 For a future execution window with a known ONUPDATE input/change set, the

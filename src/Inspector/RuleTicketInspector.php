@@ -58,14 +58,14 @@ final class RuleTicketInspector
        $timeline = $this->timelineReader->read($ticket);
        $replays = [];
       foreach ($this->windowReconstructor->reconstructAll($timeline) as $window) {
-          $entity = $window->inputContext->get('entities_id');
-         if ($entity->state !== ContextState::AVAILABLE) {
+          $entityId = $window->candidateEntityId;
+         if ($entityId === null) {
              $replay = $this->replayEngine->replay($window, [], [])->withLimitations([
                  'Native RuleTicket candidate selection is indeterminate because the historical entity is unavailable.',
              ]);
          } else {
              $windowCandidates = $this->candidateProvider->candidatesForEntity(
-                 NativeField::integer($entity->value),
+                 $entityId,
                  $window->condition
              );
              $windowActions = $this->actionProvider->forRuleIds(array_map(

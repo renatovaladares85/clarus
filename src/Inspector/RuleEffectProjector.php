@@ -38,8 +38,13 @@ final class RuleEffectProjector
        'urgency',
        'impact',
        'priority',
+       'status',
        'locations_id',
        'requesttypes_id',
+       'slas_id_ttr',
+       'slas_id_tto',
+       'olas_id_ttr',
+       'olas_id_tto',
        'global_validation',
        'validation_percent',
    ];
@@ -129,6 +134,10 @@ final class RuleEffectProjector
 
       if ($action->actionType === 'assign' && in_array($action->field, self::SCALAR_ASSIGN_FIELDS, true)) {
           return $this->assignInteger($action, $context);
+      }
+
+      if ($action->actionType === 'assign' && $action->field === '_groups_id_assign') {
+          return $this->assignGroup($action, $context);
       }
 
       if ($action->actionType === 'delete' && in_array($action->field, self::DELETE_FIELDS, true)) {
@@ -229,6 +238,39 @@ final class RuleEffectProjector
            $previous->value,
            true,
            $value
+       )];
+   }
+
+   /** @return array{TicketContext, ProjectedRuleEffect} */
+   private function assignGroup(ConfiguredAction $action, TicketContext $context): array {
+       $value = $this->integerOrNull($action->configuredValue);
+      if ($value === null || $value < 1) {
+          $output = $this->taint($context, $action->field, self::REASON_INVALID_CONFIGURED_VALUE);
+          return [$output, new ProjectedRuleEffect(
+              $action->actionId,
+              $action->actionType,
+              $action->field,
+              ProjectionStatus::INDETERMINATE,
+              self::REASON_INVALID_CONFIGURED_VALUE
+          )];
+      }
+
+       $previous = $context->get($action->field);
+       $output = $context->with(
+           $action->field,
+           ContextValue::available([$value], 'simulated:rule-action', true)
+       );
+
+       return [$output, new ProjectedRuleEffect(
+           $action->actionId,
+           $action->actionType,
+           $action->field,
+           ProjectionStatus::APPLIED,
+           null,
+           $previous->state === ContextState::AVAILABLE,
+           $previous->value,
+           true,
+           [$value]
        )];
    }
 

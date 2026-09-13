@@ -78,12 +78,24 @@ final class ExecutionWindowReconstructor
                ? 'No durable before/after field evidence is available for a historical replay input.'
                : 'Only fields with durable before/after history are reconstructed; all remaining inputs are unknown.',
        ];
+       // Later Ticket history records a value that was already persisted after
+       // creation. It cannot establish the caller input that preceded ONADD
+       // actions, so never feed those retained before values into ONADD.
+       $onaddCandidateEntity = $persistedEntity->state === ContextState::AVAILABLE
+           ? NativeField::integer($persistedEntity->value)
+           : null;
        $windows = [new ExecutionWindow(
            \RuleTicket::ONADD,
-           $context,
+           $timeline->currentContext->withoutValues(self::REASON_MISSING_HISTORICAL_EVIDENCE),
            false,
-           $baseLimitations,
-           'onadd:retained-history'
+           array_merge($baseLimitations, [
+               'ONADD was not replayed because retained later history cannot establish the pre-creation RuleTicket input.',
+           ]),
+           'onadd:input-not-reconstructable',
+           [],
+           null,
+           true,
+           $onaddCandidateEntity
        )];
 
        // Ticket::prepareInputForUpdate() receives the incoming values, not
@@ -116,7 +128,10 @@ final class ExecutionWindowReconstructor
                'onupdate:history:' . ($index + 1),
                $group,
                array_keys($onlyCriteria),
-               false
+               false,
+               $updateContext->get('entities_id')->state === ContextState::AVAILABLE
+                   ? NativeField::integer($updateContext->get('entities_id')->value)
+                   : null
            );
            $context = $updateContext;
        }

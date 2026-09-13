@@ -20,6 +20,7 @@ final class RuleTicketCharacterizationTest extends TestCase
         'actions' => [],
         'criteria' => [],
         'rules' => [],
+        'groups' => [],
         'categories' => [],
         'entities' => [],
     ];
@@ -29,6 +30,7 @@ final class RuleTicketCharacterizationTest extends TestCase
         'actions' => [],
         'criteria' => [],
         'rules' => [],
+        'groups' => [],
         'categories' => [],
         'entities' => [],
     ];
@@ -227,6 +229,33 @@ final class RuleTicketCharacterizationTest extends TestCase
        self::assertSame('5', (string) $output['priority']);
    }
 
+   public function testNativeTechnicianGroupAssignmentFeedsLaterOlaCriterion(): void {
+       $groupId = $this->createGroup();
+       $first = $this->createRule('group-first', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', '_groups_id_assign', (string) $groupId]]);
+       $second = $this->createRule('group-ola', 0, \RuleTicket::ONADD, true, 2, true, \Rule::AND_MATCHING, [
+           ['_groups_id_assign', \Rule::PATTERN_IS, (string) $groupId],
+       ], [['assign', 'olas_id_ttr', '8100']]);
+       $collection = new \RuleTicketCollection(0);
+       $collection->RuleList = new \SingletonRuleList();
+       $collection->RuleList->list = [$first, $second];
+       $collection->RuleList->load = 15;
+       $input = [
+           'entities_id' => 0,
+           'name' => $this->prefix,
+           '_groups_id_assign' => [],
+           'olas_id_ttr' => 0,
+       ];
+
+       $output = $collection->processAllRules($input, $input, ['recursive' => true, 'entities_id' => 0], [
+           'condition' => \RuleTicket::ONADD,
+       ]);
+
+       self::assertSame((string) $groupId, (string) $output['_groups_id_assign']);
+       self::assertSame('8100', (string) $output['olas_id_ttr']);
+   }
+
    public function testNativePreparationDerivesMailAliasesAndRequesterGroups(): void {
        $collection = new \RuleTicketCollection(0);
        $prepared = $collection->prepareInputDataForProcess([
@@ -365,6 +394,20 @@ final class RuleTicketCharacterizationTest extends TestCase
        return $categoryId;
    }
 
+   private function createGroup(): int {
+       $group = new \Group();
+       $groupId = (int) $group->add([
+           'name' => $this->prefix . '-group',
+           'entities_id' => 0,
+           'is_assign' => 1,
+       ]);
+      if ($groupId > 0) {
+          $this->track('groups', $groupId);
+      }
+       self::assertGreaterThan(0, $groupId);
+       return $groupId;
+   }
+
    private function track(string $type, int $id): void {
        $this->createdIds[$type][$id] = true;
        self::$pendingIds[$type][$id] = true;
@@ -379,6 +422,7 @@ final class RuleTicketCharacterizationTest extends TestCase
            'actions' => \RuleAction::class,
            'criteria' => \RuleCriteria::class,
            'rules' => \RuleTicket::class,
+           'groups' => \Group::class,
            'categories' => \ITILCategory::class,
            'entities' => \Entity::class,
        ] as $type => $class) {
@@ -410,7 +454,7 @@ final class RuleTicketCharacterizationTest extends TestCase
 
     /** @return array<string, array<int, true>> */
    private static function emptyIdMap(): array {
-       return ['actions' => [], 'criteria' => [], 'rules' => [], 'categories' => [], 'entities' => []];
+       return ['actions' => [], 'criteria' => [], 'rules' => [], 'groups' => [], 'categories' => [], 'entities' => []];
    }
 
     /** @return list<int> */
