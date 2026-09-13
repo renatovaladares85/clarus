@@ -44,12 +44,14 @@ stored values. Dropdown history is accepted only when GLPI's `name (id)` form
 has an unambiguous trailing numeric identifier. Localized history text, actor
 labels, and ambiguous values are not parsed into replay facts.
 
-The reconstructor starts by making every current value unknown. For each field,
-the oldest retained `before` value is used as the earliest defensible value.
-Fields with no durable before/after evidence remain indeterminate. This is
-deliberately conservative: history retention, transient inputs, and execution
-boundaries may be incomplete. A deterministic replay is an inference, never a
-claim that GLPI executed a rule.
+The reconstructor starts by making every current value unknown. The persisted
+Ticket entity is retained only as the native collection-selection context; a
+retained `entities_id` history row replaces it for the reconstructed earlier or
+later window. For every other field, the oldest retained `before` value is used
+as the earliest defensible value. Fields with no durable before/after evidence
+remain indeterminate. This is deliberately conservative: history retention,
+transient inputs, and execution boundaries may be incomplete. A deterministic
+replay is an inference, never a claim that GLPI executed a rule.
 
 ONADD has one earliest-retained-state candidate. Each chronological timestamp
 group of later persisted changes creates a separate ONUPDATE candidate whose

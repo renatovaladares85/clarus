@@ -4,6 +4,11 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Prepare the `1.0.0-dev.7` external development build by retaining the
+  persisted Ticket entity exclusively for native candidate collection
+  selection, while retained entity-history values override it per replay
+  window.
+
 - Prepare the `1.0.0-dev.6` external development build with independent
   retained-history ONUPDATE candidates, historical entity-aware native
   candidate selection, and pure GLPI 10.0.20 RuleTicket input preparation

@@ -45,6 +45,17 @@ final class ExecutionWindowReconstructor
            $right->occurredAt, $right->id]);
 
        $context = $timeline->currentContext->withoutValues(self::REASON_MISSING_HISTORICAL_EVIDENCE);
+       // RuleTicketCollection requires an entity before it can obtain its
+       // native, inherited candidate sequence. GLPI keeps the Ticket entity
+       // as durable record identity; a retained entities_id history row below
+       // always replaces this value for earlier/later reconstructed windows.
+       $persistedEntity = $timeline->currentContext->get('entities_id');
+      if ($persistedEntity->state === ContextState::AVAILABLE) {
+          $context = $context->with(
+              'entities_id',
+              ContextValue::available($persistedEntity->value, 'ticket:entity-selection', true)
+          );
+      }
        $reconstructedFields = [];
       foreach ($changes as $change) {
          if (isset($reconstructedFields[$change->field])) {
