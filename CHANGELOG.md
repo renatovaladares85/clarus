@@ -4,6 +4,33 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Prepare the `1.0.0-dev.9` external development build. ONADD replay now
+  treats retained later history as unknown creation input; deterministic
+  technician-group, status, SLA, and OLA assignments can feed later rule
+  criteria without executing native actions.
+
+- Prepare the `1.0.0-dev.8` external development build with native ONUPDATE
+  incoming-state and `only_criteria` modeling. Retained history cannot prove
+  its manual input/change set, so historical ONUPDATE evaluation now fails
+  closed while preserving its evidence separately.
+
+- Prepare the `1.0.0-dev.7` external development build by retaining the
+  persisted Ticket entity exclusively for native candidate collection
+  selection, while retained entity-history values override it per replay
+  window.
+
+- Prepare the `1.0.0-dev.6` external development build with independent
+  retained-history ONUPDATE candidates, historical entity-aware native
+  candidate selection, and pure GLPI 10.0.20 RuleTicket input preparation
+  between replayed rules. Missing historical group membership or category-code
+  evidence remains indeterminate instead of reading today's related data.
+
+- Prepare the `1.0.0-dev.5` external development build with a forensic,
+  read-only RuleTicket replay foundation. Current Ticket compatibility is now
+  separate from replay; only durable GLPI before/after history is used as a
+  past input, missing evidence fails closed, and reproducible native
+  stop-processing actions terminate the replay without executing rules.
+
 - Fix GLPI 10 CSRF handling for Clarus configuration saves and asynchronous
   inspection refreshes by relying on the native request bootstrap and sending
   the refresh form token in the required header.

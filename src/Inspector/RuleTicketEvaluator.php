@@ -1,0 +1,145 @@
+<?php
+
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+declare(strict_types=1);
+
+namespace GlpiPlugin\Clarus\Inspector;
+
+/** Safe native-criterion evaluation over an immutable reconstructed context. */
+final class RuleTicketEvaluator
+{
+   public function __construct(private readonly RuleTicketInputPreparer $inputPreparer = new RuleTicketInputPreparer()) {
+   }
+
+   public function inspect(\RuleTicket $rule, TicketContext $context, int $condition): RuleInspection {
+       $matchingMode = NativeField::string($rule->fields['match'] ?? '');
+       $criterionResults = [];
+       $limitations = [];
+
+      if (!in_array($matchingMode, ['AND', 'OR'], true)) {
+          $limitations[] = 'Rule has an unsupported native matching mode.';
+          return $this->ruleResult($rule, $condition, $matchingMode, [], Evaluation::INDETERMINATE, $limitations);
+      }
+
+      if ($rule->criterias === []) {
+          $limitations[] = 'Native Rule processing rejects rules without criteria.';
+          return $this->ruleResult($rule, $condition, $matchingMode, [], Evaluation::INDETERMINATE, $limitations);
+      }
+
+       // GLPI prepares derived RuleTicket inputs before processing and again
+       // after every rule output. The replay engine gives us the equivalent
+       // context; do it here too so the current-snapshot diagnostic has the
+       // same criterion inputs without invoking the mutating pipeline.
+       $context = $this->inputPreparer->prepare($context);
+       $nativeResults = [];
+       $input = $context->availableInput();
+       $diagnosticRule = clone $rule;
+       $diagnosticRule->testCriterias($input, $nativeResults);
+
+      foreach ($rule->criterias as $criterion) {
+          $key = NativeField::string($criterion->fields['criteria'] ?? '');
+          $contextValue = $context->get($key);
+          $criterionId = NativeField::integer($criterion->fields['id'] ?? 0);
+
+         if ($contextValue->state === ContextState::INDETERMINATE) {
+             $criterionResults[] = new CriterionInspection(
+                 $key,
+                 NativeField::integer($criterion->fields['condition'] ?? 0),
+                 NativeField::string($criterion->fields['pattern'] ?? ''),
+                 Evaluation::INDETERMINATE,
+                 $contextValue->reason
+             );
+             continue;
+         }
+
+         if (!isset($nativeResults[$criterionId]['result'])) {
+             $criterionResults[] = new CriterionInspection(
+                 $key,
+                 NativeField::integer($criterion->fields['condition'] ?? 0),
+                 NativeField::string($criterion->fields['pattern'] ?? ''),
+                 Evaluation::INDETERMINATE,
+                 'Native RuleTicket criterion evaluation did not return a result.'
+             );
+             continue;
+         }
+
+          $criterionResults[] = new CriterionInspection(
+              $key,
+              NativeField::integer($criterion->fields['condition'] ?? 0),
+              NativeField::string($criterion->fields['pattern'] ?? ''),
+              NativeField::integer($nativeResults[$criterionId]['result']) === 1
+                  ? Evaluation::MATCH
+                  : Evaluation::NO_MATCH,
+              null,
+              true,
+              $contextValue->value,
+              true
+          );
+      }
+
+       $overall = EvaluationReducer::reduce(
+           $matchingMode,
+           array_map(static fn (CriterionInspection $criterion): Evaluation => $criterion->evaluation, $criterionResults)
+       );
+       $allAvailable = !in_array(
+           Evaluation::INDETERMINATE,
+           array_map(static fn (CriterionInspection $criterion): Evaluation => $criterion->evaluation, $criterionResults),
+           true
+       );
+      if ($allAvailable) {
+          $nativeRule = clone $rule;
+          $overall = $nativeRule->checkCriterias($input) ? Evaluation::MATCH : Evaluation::NO_MATCH;
+      }
+
+       return $this->ruleResult($rule, $condition, $matchingMode, $criterionResults, $overall, $limitations);
+   }
+
+   /** @param list<string> $onlyCriteria */
+   public function isEligibleForUpdate(\RuleTicket $rule, array $onlyCriteria): bool {
+      foreach ($rule->criterias as $criterion) {
+         if (in_array(NativeField::string($criterion->fields['criteria'] ?? ''), $onlyCriteria, true)) {
+            return true;
+         }
+      }
+
+       return false;
+   }
+
+   public function skippedForUpdateScope(\RuleTicket $rule, int $condition): RuleInspection {
+       return $this->ruleResult(
+           $rule,
+           $condition,
+           NativeField::string($rule->fields['match'] ?? ''),
+           [],
+           Evaluation::INDETERMINATE,
+           ['Rule was not processed because none of its criteria is in the native ONUPDATE only_criteria scope.']
+       );
+   }
+
+   /**
+    * @param list<CriterionInspection> $criteria
+    * @param list<string> $limitations
+    */
+   private function ruleResult(
+       \RuleTicket $rule,
+       int $condition,
+       string $matchingMode,
+       array $criteria,
+       Evaluation $evaluation,
+       array $limitations
+   ): RuleInspection {
+       return new RuleInspection(
+           NativeField::integer($rule->fields['id'] ?? 0),
+           NativeField::string($rule->fields['name'] ?? ''),
+           $condition,
+           NativeField::integer($rule->fields['entities_id'] ?? 0),
+           NativeField::boolean($rule->fields['is_recursive'] ?? false),
+           NativeField::integer($rule->fields['ranking'] ?? 0),
+           $matchingMode,
+           $criteria,
+           $evaluation,
+           $limitations
+       );
+   }
+}

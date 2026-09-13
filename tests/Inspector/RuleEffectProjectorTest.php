@@ -38,6 +38,38 @@ final class RuleEffectProjectorTest extends TestCase
        self::assertSame(5, $result->effects[0]->nextValue);
    }
 
+   public function testMatchedTechnicianGroupAssignmentUsesNativeCriterionShape(): void {
+       $input = $this->context(['_groups_id_assign' => [3]]);
+       $result = $this->projector->project(
+           Evaluation::MATCH,
+           [$this->action('assign', '_groups_id_assign', '7')],
+           $input
+       );
+
+       self::assertSame([3], $input->get('_groups_id_assign')->value);
+       self::assertSame([7], $result->outputContext->get('_groups_id_assign')->value);
+       self::assertSame(ProjectionStatus::APPLIED, $result->effects[0]->status);
+       self::assertSame([3], $result->effects[0]->previousValue);
+       self::assertSame([7], $result->effects[0]->nextValue);
+   }
+
+   public function testMatchedStatusAndOlaAssignmentsAreProjectedAsScalars(): void {
+       $input = $this->context(['status' => 1, 'olas_id_ttr' => 0]);
+       $result = $this->projector->project(
+           Evaluation::MATCH,
+           [
+               $this->action('assign', 'status', '2'),
+               $this->action('assign', 'olas_id_ttr', '8100'),
+           ],
+           $input
+       );
+
+       self::assertSame(2, $result->outputContext->get('status')->value);
+       self::assertSame(8100, $result->outputContext->get('olas_id_ttr')->value);
+       self::assertSame(ProjectionStatus::APPLIED, $result->effects[0]->status);
+       self::assertSame(ProjectionStatus::APPLIED, $result->effects[1]->status);
+   }
+
    public function testNoMatchLeavesTheContextUntouched(): void {
        $input = $this->context(['impact' => 3]);
        $result = $this->projector->project(
@@ -126,6 +158,20 @@ final class RuleEffectProjectorTest extends TestCase
 
        self::assertSame(ContextState::AVAILABLE, $result->outputContext->get('time_to_resolve')->state);
        self::assertNull($result->outputContext->get('time_to_resolve')->value);
+       self::assertSame(ProjectionStatus::APPLIED, $result->effects[0]->status);
+   }
+
+   public function testMatchedNativeStopActionTerminatesReplayWithoutExecutingAnything(): void {
+       $input = $this->context(['urgency' => 3]);
+       $result = $this->projector->project(
+           Evaluation::MATCH,
+           [$this->action('assign', '_stop_rules_processing', '1')],
+           $input
+       );
+
+       self::assertTrue($result->stopProcessing);
+       self::assertFalse($result->stopProcessingIndeterminate);
+       self::assertSame(3, $result->outputContext->get('urgency')->value);
        self::assertSame(ProjectionStatus::APPLIED, $result->effects[0]->status);
    }
 

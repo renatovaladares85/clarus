@@ -2,20 +2,20 @@
 
 ## Scope
 
-Phase 3 implements a read-only diagnostic pipeline for a persisted Ticket:
+The inspector implements a read-only diagnostic pipeline for a persisted Ticket:
 
 ```text
-Ticket -> TicketContextBuilder -> RuleTicketCandidateProvider
-       -> RuleTicketInspector -> InspectionResult
+Ticket -> TicketContextBuilder -> current snapshot RuleTicket evaluation
+       -> TicketTimelineReader -> ExecutionWindowReconstructor
+       -> RuleTicketReplayEngine -> InspectionResult
 ```
 
 It does not call `process()`, `processAllRules()`, or `executeActions()`. Rule
-actions are loaded read-only to preserve core sequential semantics for every
-inspection. The opt-in `InspectionOptions::includeActions` controls only
-whether reflected actions are attached to `RuleInspection`; a separate immutable
-projection always supplies the next selected rule's context. A reported match,
-projected effect, or reflected action is not proof that the rule executed
-historically. See [action analysis](action-analysis.md).
+actions are loaded read-only for replay. The opt-in
+`InspectionOptions::includeActions` controls only whether reflected actions are
+attached to `RuleInspection`; replay projection never changes the current
+snapshot evaluation. A reported match, projected effect, or reflected action is
+not proof that the rule executed historically. See [action analysis](action-analysis.md).
 
 ## Context and evaluation
 
@@ -29,9 +29,9 @@ rule output, or other non-persisted runtime state remain explicitly
 
 Individual available criteria are evaluated with GLPI's native Rule engine.
 The overall result uses three-valued AND/OR reduction. Rules without criteria
-are `INDETERMINATE`, because GLPI's processing flow rejects them. UPDATE rules
-are also overall `INDETERMINATE`: the persisted Ticket does not contain the
-original set of fields that made the rule eligible during that update.
+are `INDETERMINATE`, because GLPI's processing flow rejects them. The current
+snapshot result can be calculated for an UPDATE rule, but is explicitly not a
+claim about the original update input or an historical ONUPDATE execution.
 
 ## Candidate selection and limits
 
@@ -45,14 +45,20 @@ The default inspection limit is 1000 rules and can be configured to any
 positive integer. `InspectionResult` reports the configured limit, known
 candidate count, evaluated count, and whether the result was truncated.
 
-## Sequential simulated context
+## Historical replay context
 
-The Inspector retains the exact candidate order returned by
-`RuleTicketCollection` and creates one immutable
-`SequentialRuleStep` per evaluated rule. Each step records its native order,
-input context, criterion result, configured actions, projected effects, and
-output context. ONADD and ONUPDATE each start from an independent persisted
-snapshot; no simulated output crosses conditions.
+The primary `RuleInspection` result evaluates every rule against the same
+current persisted context. A preceding projected action can therefore never
+turn a known current Ticket value into `INDETERMINATE`.
+
+`TicketTimelineReader` and `ExecutionWindowReconstructor` create a separate
+replay input from durable GLPI history. Current values are deliberately removed
+first; only an unambiguous retained `before` value restores a field. The
+`RuleTicketReplayEngine` then retains the exact candidate order returned by
+`RuleTicketCollection` and creates one immutable `SequentialRuleStep` per
+replayed rule. ONADD and ONUPDATE use independent windows. See
+[the replay architecture](rule-ticket-replay.md) for evidence and boundary
+details.
 
 `RuleEffectProjector` is deliberately smaller than GLPI action execution. It
 projects only reviewed scalar `assign` fields, category assignment (including
@@ -79,9 +85,9 @@ overwrite and breaks the deterministic producer chain. The domain record keeps
 previous, intermediate, and final simulated values; the presenter exposes no
 such values without a separate authorization decision.
 
-Confirmed in the sequential diagnostic does not, by itself, prove historical
-execution of these rules. ONADD and ONUPDATE are analyzed as independent
-chains, beginning from their own persisted snapshots.
+Confirmed in the replay diagnostic does not prove historical execution of these
+rules. It means only that the retained evidence and safe replay transition are
+deterministic for that reconstructed window.
 
 ## Validation boundary
 
