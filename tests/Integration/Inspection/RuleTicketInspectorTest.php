@@ -9,13 +9,18 @@ namespace GlpiPlugin\Clarus\Tests\Integration\Inspection;
 use GlpiPlugin\Clarus\Inspector\ActionEvaluation;
 use GlpiPlugin\Clarus\Inspector\ActionInspection;
 use GlpiPlugin\Clarus\Inspector\ActionSupport;
+use GlpiPlugin\Clarus\Inspector\ConfiguredAction;
 use GlpiPlugin\Clarus\Inspector\ContextState;
+use GlpiPlugin\Clarus\Inspector\ContextValue;
 use GlpiPlugin\Clarus\Inspector\Evaluation;
+use GlpiPlugin\Clarus\Inspector\ExecutionWindow;
 use GlpiPlugin\Clarus\Inspector\InspectionOptions;
 use GlpiPlugin\Clarus\Inspector\OverwriteClassification;
 use GlpiPlugin\Clarus\Inspector\RuleActionProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketCandidateProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketInspector;
+use GlpiPlugin\Clarus\Inspector\RuleTicketReplayEngine;
+use GlpiPlugin\Clarus\Inspector\TicketContext;
 use GlpiPlugin\Clarus\Inspector\TicketContextBuilder;
 use PHPUnit\Framework\TestCase;
 
@@ -507,6 +512,48 @@ final class RuleTicketInspectorTest extends TestCase
        self::assertSame(ContextState::INDETERMINATE, $firstInspection->sequentialStep->outputContext->get('urgency')->state);
        self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
        self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
+   }
+
+   public function testOnupdateReplayHonorsNativeOnlyCriteriaAndActionPropagation(): void {
+       $unrelated = $this->createRule('update-unrelated', \RuleTicket::ONUPDATE, true, 1, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'priority', '5']]);
+       $first = $this->createRule('update-first', \RuleTicket::ONUPDATE, true, 2, [
+           ['urgency', \Rule::PATTERN_IS, '4'],
+       ], [['assign', 'impact', '5']]);
+       $second = $this->createRule('update-second', \RuleTicket::ONUPDATE, true, 3, [
+           ['impact', \Rule::PATTERN_IS, '5'],
+       ], [['assign', 'priority', '4']]);
+       $window = new ExecutionWindow(
+           \RuleTicket::ONUPDATE,
+           new TicketContext([
+               'entities_id' => ContextValue::available(0, 'history', true),
+               'name' => ContextValue::available($this->prefix, 'history'),
+               'urgency' => ContextValue::available('4', 'history', true),
+               'impact' => ContextValue::available('1', 'history', true),
+               'priority' => ContextValue::available('1', 'history', true),
+           ]),
+           false,
+           [],
+           'onupdate:test',
+           [],
+           ['urgency']
+       );
+
+       $replay = (new RuleTicketReplayEngine())->replay(
+           $window,
+           [$unrelated, $first, $second],
+           [
+               $unrelated->getID() => [new ConfiguredAction($unrelated->getID(), 1, 'assign', 'priority', '5', 0)],
+               $first->getID() => [new ConfiguredAction($first->getID(), 2, 'assign', 'impact', '5', 0)],
+               $second->getID() => [new ConfiguredAction($second->getID(), 3, 'assign', 'priority', '4', 0)],
+           ]
+       );
+
+       self::assertSame(Evaluation::INDETERMINATE, $replay->rule($unrelated->getID())->evaluation);
+       self::assertSame(Evaluation::MATCH, $replay->rule($first->getID())->evaluation);
+       self::assertSame(Evaluation::MATCH, $replay->rule($second->getID())->evaluation);
+       self::assertSame(4, $replay->rule($second->getID())->sequentialStep->outputContext->get('priority')->value);
    }
 
    public function testCurrentSnapshotDoesNotProduceAHistoricalOverwriteWithoutEvidence(): void {

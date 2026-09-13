@@ -86,21 +86,15 @@ final class ExecutionWindowReconstructor
            'onadd:retained-history'
        )];
 
-       // Timestamp groups are durable later changes. They establish a
-       // pre-change context, but a log row does not prove a RuleTicket pass.
+       // Ticket::prepareInputForUpdate() receives the incoming values, not
+       // the persisted pre-change snapshot. A timestamp group remains only a
+       // possible execution boundary: GLPI history cannot distinguish a
+       // caller change from output written by a prior rule in that execution.
        foreach ($this->groupsByTimestamp($changes) as $index => $group) {
-           $windows[] = new ExecutionWindow(
-               \RuleTicket::ONUPDATE,
-               $context,
-               false,
-               array_merge($baseLimitations, [
-                   'This retained Ticket-history group is a possible ONUPDATE context, not confirmation of a RuleTicket execution boundary.',
-               ]),
-               'onupdate:history:' . ($index + 1),
-               $group
-           );
+           $updateContext = $context;
+           $onlyCriteria = [];
           foreach ($group as $change) {
-              $context = $context->with(
+              $updateContext = $updateContext->with(
                   $change->field,
                   ContextValue::available(
                       $change->after,
@@ -108,7 +102,23 @@ final class ExecutionWindowReconstructor
                       TicketContextBuilder::isPresentationSafeKey($change->field)
                   )
               );
+             if ($change->before != $change->after) {
+                 $onlyCriteria[$change->field] = true;
+             }
           }
+           $windows[] = new ExecutionWindow(
+               \RuleTicket::ONUPDATE,
+               $updateContext,
+               false,
+               array_merge($baseLimitations, [
+                   'This retained Ticket-history group is a possible ONUPDATE context, not confirmation of a RuleTicket execution boundary.',
+               ]),
+               'onupdate:history:' . ($index + 1),
+               $group,
+               array_keys($onlyCriteria),
+               false
+           );
+           $context = $updateContext;
        }
 
        return $windows;

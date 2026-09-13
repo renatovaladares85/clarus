@@ -15,6 +15,7 @@ final class ExecutionWindow
    /**
     * @param list<string> $limitations
     * @param list<TimelineFieldChange> $evidence
+    * @param null|list<string> $onlyCriteria Native ONUPDATE input/change scope.
     */
    public function __construct(
        public readonly int $condition,
@@ -22,7 +23,9 @@ final class ExecutionWindow
        public readonly bool $boundaryKnown,
        public readonly array $limitations = [],
        public readonly string $id = '',
-       public readonly array $evidence = []
+       public readonly array $evidence = [],
+       public readonly ?array $onlyCriteria = null,
+       public readonly bool $updateInputKnown = true
    ) {
    }
 }

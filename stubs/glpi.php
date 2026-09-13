@@ -368,6 +368,12 @@ class RuleTicket
        return ['content' => ['name' => 'Description']];
    }
 
+   /** @return array{linked_criteria?: string|list<string>, name?: string} */
+   public function getCriteria(string $id): array
+   {
+       return [];
+   }
+
    /** @return array<string, array{name: string}> */
    public function getActions(): array
    {

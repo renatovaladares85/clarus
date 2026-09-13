@@ -95,6 +95,28 @@ final class RuleTicketEvaluator
        return $this->ruleResult($rule, $condition, $matchingMode, $criterionResults, $overall, $limitations);
    }
 
+   /** @param list<string> $onlyCriteria */
+   public function isEligibleForUpdate(\RuleTicket $rule, array $onlyCriteria): bool {
+      foreach ($rule->criterias as $criterion) {
+         if (in_array(NativeField::string($criterion->fields['criteria'] ?? ''), $onlyCriteria, true)) {
+            return true;
+         }
+      }
+
+       return false;
+   }
+
+   public function skippedForUpdateScope(\RuleTicket $rule, int $condition): RuleInspection {
+       return $this->ruleResult(
+           $rule,
+           $condition,
+           NativeField::string($rule->fields['match'] ?? ''),
+           [],
+           Evaluation::INDETERMINATE,
+           ['Rule was not processed because none of its criteria is in the native ONUPDATE only_criteria scope.']
+       );
+   }
+
    /**
     * @param list<CriterionInspection> $criteria
     * @param list<string> $limitations

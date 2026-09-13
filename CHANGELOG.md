@@ -4,6 +4,11 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Prepare the `1.0.0-dev.8` external development build with native ONUPDATE
+  incoming-state and `only_criteria` modeling. Retained history cannot prove
+  its manual input/change set, so historical ONUPDATE evaluation now fails
+  closed while preserving its evidence separately.
+
 - Prepare the `1.0.0-dev.7` external development build by retaining the
   persisted Ticket entity exclusively for native candidate collection
   selection, while retained entity-history values override it per replay

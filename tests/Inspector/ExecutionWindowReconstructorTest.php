@@ -9,6 +9,7 @@ namespace GlpiPlugin\Clarus\Tests\Inspector;
 use GlpiPlugin\Clarus\Inspector\ContextState;
 use GlpiPlugin\Clarus\Inspector\ContextValue;
 use GlpiPlugin\Clarus\Inspector\ExecutionWindowReconstructor;
+use GlpiPlugin\Clarus\Inspector\RuleTicketReplayEngine;
 use GlpiPlugin\Clarus\Inspector\TicketContext;
 use GlpiPlugin\Clarus\Inspector\TicketTimeline;
 use GlpiPlugin\Clarus\Inspector\TimelineFieldChange;
@@ -57,13 +58,43 @@ final class ExecutionWindowReconstructorTest extends TestCase
        self::assertSame('3', $windows[0]->inputContext->get('urgency')->value);
        self::assertSame('2', $windows[0]->inputContext->get('impact')->value);
        self::assertSame(\RuleTicket::ONUPDATE, $windows[1]->condition);
-       self::assertSame('3', $windows[1]->inputContext->get('urgency')->value);
-       self::assertSame('2', $windows[1]->inputContext->get('impact')->value);
+       self::assertSame('4', $windows[1]->inputContext->get('urgency')->value);
+       self::assertSame('3', $windows[1]->inputContext->get('impact')->value);
+       self::assertSame(['urgency', 'impact'], $windows[1]->onlyCriteria);
+       self::assertFalse($windows[1]->updateInputKnown);
        self::assertCount(2, $windows[1]->evidence);
-       self::assertSame('4', $windows[2]->inputContext->get('urgency')->value);
+       self::assertSame('5', $windows[2]->inputContext->get('urgency')->value);
        self::assertSame('3', $windows[2]->inputContext->get('impact')->value);
+       self::assertSame(['urgency'], $windows[2]->onlyCriteria);
        self::assertFalse($windows[1]->boundaryKnown);
        self::assertStringContainsString('possible ONUPDATE', implode(' ', $windows[1]->limitations));
+   }
+
+   public function testOnupdateUsesIncomingEntityForCandidateSelection(): void {
+       $timeline = new TicketTimeline($this->currentContext()->with(
+           'entities_id',
+           ContextValue::available(3, 'ticket', true)
+       ), [
+           new TimelineFieldChange(10, 'entities_id', 2, 4, '2026-09-12 10:00:00'),
+       ]);
+
+       $windows = (new ExecutionWindowReconstructor())->reconstructAll($timeline);
+
+       self::assertSame(4, $windows[1]->inputContext->get('entities_id')->value);
+       self::assertSame(['entities_id'], $windows[1]->onlyCriteria);
+       self::assertFalse($windows[1]->updateInputKnown);
+   }
+
+   public function testHistoricalOnupdateDoesNotEvaluateAnUnprovenInputScope(): void {
+       $timeline = new TicketTimeline($this->currentContext(), [
+           new TimelineFieldChange(10, 'urgency', '3', '4', '2026-09-12 10:00:00'),
+       ]);
+       $window = (new ExecutionWindowReconstructor())->reconstructAll($timeline)[1];
+
+       $replay = (new RuleTicketReplayEngine())->replay($window, [], []);
+
+       self::assertSame([], $replay->rules);
+       self::assertStringContainsString('was not evaluated', implode(' ', $replay->limitations));
    }
 
    private function currentContext(): TicketContext {

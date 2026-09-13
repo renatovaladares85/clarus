@@ -12,7 +12,7 @@ Ticket being inspected.
 
 ## Development status
 
-`1.0.0-dev.7` is the current development pre-release; `1.0.0` remains reserved
+`1.0.0-dev.8` is the current development pre-release; `1.0.0` remains reserved
 for the final stable release. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it neither executes nor records rule execution.
 
@@ -25,7 +25,9 @@ are reflected in the current snapshot; it does not execute actions or attribute
 historical causality. The internal replay uses only the reconstructed execution
 input: deterministic scalar/category assignments and exact deadline deletes can
 feed the next rule; unknown or non-reconstructible effects make only their
-known criterion target indeterminate. The replay independently classifies
+known criterion target indeterminate. Historical ONUPDATE input cannot be
+distinguished from values produced by rules in the retained log, so it is kept
+as evidence but is not evaluated. The replay independently classifies
 possible and confirmed simulated overwrites; it never replaces a rule's
 `MATCH`, `NO_MATCH`, or `INDETERMINATE` current-snapshot result, and it is not
 historical proof. This internal trace is not yet presented in the Ticket tab.
