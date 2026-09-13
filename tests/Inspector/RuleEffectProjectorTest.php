@@ -129,6 +129,20 @@ final class RuleEffectProjectorTest extends TestCase
        self::assertSame(ProjectionStatus::APPLIED, $result->effects[0]->status);
    }
 
+   public function testMatchedNativeStopActionTerminatesReplayWithoutExecutingAnything(): void {
+       $input = $this->context(['urgency' => 3]);
+       $result = $this->projector->project(
+           Evaluation::MATCH,
+           [$this->action('assign', '_stop_rules_processing', '1')],
+           $input
+       );
+
+       self::assertTrue($result->stopProcessing);
+       self::assertFalse($result->stopProcessingIndeterminate);
+       self::assertSame(3, $result->outputContext->get('urgency')->value);
+       self::assertSame(ProjectionStatus::APPLIED, $result->effects[0]->status);
+   }
+
    /** @param array<string, mixed> $values */
    private function context(array $values): TicketContext {
        return new TicketContext(array_map(

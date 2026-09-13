@@ -11,7 +11,9 @@ final class RuleEffectProjection
    /** @param list<ProjectedRuleEffect> $effects */
    public function __construct(
        public readonly TicketContext $outputContext,
-       public readonly array $effects
+       public readonly array $effects,
+       public readonly bool $stopProcessing = false,
+       public readonly bool $stopProcessingIndeterminate = false
    ) {
    }
 }

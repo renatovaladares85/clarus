@@ -40,4 +40,19 @@ final class TicketContext
 
        return new self($values);
    }
+
+   /**
+    * Keeps the known RuleTicket keys but deliberately removes their values.
+    *
+    * A saved Ticket is evidence of its current state, not automatically of
+    * the input supplied to a past Rules Engine execution.
+    */
+   public function withoutValues(string $reason): self {
+       $values = [];
+      foreach ($this->values as $key => $unused) {
+          $values[$key] = ContextValue::indeterminate($reason);
+      }
+
+       return new self($values);
+   }
 }

@@ -22,7 +22,8 @@ final class InspectionResult
         public readonly bool $truncated,
         public readonly array $rules,
         public readonly array $limitations = [],
-        public readonly array $overwrites = []
+        public readonly array $overwrites = [],
+        public readonly ?RuleTicketReplay $replay = null
     ) {
       if ($configuredLimit < 0 || $candidateCount < 0 || $evaluatedCount < 0) {
           throw new \InvalidArgumentException('Inspection result counts and limit must be valid.');

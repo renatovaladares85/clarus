@@ -4,6 +4,12 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Prepare the `1.0.0-dev.5` external development build with a forensic,
+  read-only RuleTicket replay foundation. Current Ticket compatibility is now
+  separate from replay; only durable GLPI before/after history is used as a
+  past input, missing evidence fails closed, and reproducible native
+  stop-processing actions terminate the replay without executing rules.
+
 - Fix GLPI 10 CSRF handling for Clarus configuration saves and asynchronous
   inspection refreshes by relying on the native request bootstrap and sending
   the refresh form token in the required header.

@@ -430,7 +430,7 @@ final class RuleTicketInspectorTest extends TestCase
        );
    }
 
-   public function testDynamicUnsupportedUpdateAndSequentialResultsRemainIndependent(): void {
+   public function testCurrentSnapshotResultsRemainIndependentFromHistoricalReplay(): void {
        $ticket = $this->createTicket();
        $update = $this->createRule('update-actions', \RuleTicket::ONUPDATE, true, 1, [
            ['name', \Rule::PATTERN_IS, $this->prefix],
@@ -478,13 +478,14 @@ final class RuleTicketInspectorTest extends TestCase
        $secondStep = $this->findRule($addResult->rules, $second->getID())->sequentialStep;
        self::assertNotNull($firstStep);
        self::assertNotNull($secondStep);
-       self::assertSame(5, $firstStep->outputContext->get('urgency')->value);
-       self::assertSame(5, $secondStep->inputContext->get('urgency')->value);
-       self::assertSame(Evaluation::MATCH, $this->findRule($addResult->rules, $second->getID())->evaluation);
-       self::assertStringContainsString('not historical', implode(' ', $addResult->limitations));
+       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('urgency')->state);
+       self::assertSame(ContextState::INDETERMINATE, $secondStep->inputContext->get('urgency')->state);
+       self::assertSame(Evaluation::NO_MATCH, $this->findRule($addResult->rules, $second->getID())->evaluation);
+       self::assertSame(Evaluation::INDETERMINATE, $this->findRule($addResult->rules, $second->getID())->replayEvaluation);
+       self::assertStringContainsString('not proof', implode(' ', $addResult->limitations));
    }
 
-   public function testSequentialProjectionDoesNotDependOnActionReflectionPresentation(): void {
+   public function testReplayDoesNotChangeCurrentSnapshotEvaluationWhenActionsAreNotPresented(): void {
        $ticket = $this->createTicket();
        $first = $this->createRule('sequence-without-reflection-first', \RuleTicket::ONADD, true, 1, [
            ['name', \Rule::PATTERN_IS, $this->prefix],
@@ -503,11 +504,12 @@ final class RuleTicketInspectorTest extends TestCase
 
        self::assertSame([], $firstInspection->actions);
        self::assertNotNull($firstInspection->sequentialStep);
-       self::assertSame(5, $firstInspection->sequentialStep->outputContext->get('urgency')->value);
-       self::assertSame(Evaluation::MATCH, $secondInspection->evaluation);
+       self::assertSame(ContextState::INDETERMINATE, $firstInspection->sequentialStep->outputContext->get('urgency')->state);
+       self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
+       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
    }
 
-   public function testSequentiallyEligibleRuleProducesAConfirmedOverwriteWithoutActionReflection(): void {
+   public function testCurrentSnapshotDoesNotProduceAHistoricalOverwriteWithoutEvidence(): void {
        $ticket = $this->createTicket();
        $first = $this->createRule('overwrite-first', \RuleTicket::ONADD, true, 1, [
            ['name', \Rule::PATTERN_IS, $this->prefix],
@@ -522,14 +524,37 @@ final class RuleTicketInspectorTest extends TestCase
            new InspectionOptions(1000)
        );
 
-       self::assertSame(Evaluation::MATCH, $this->findRule($result->rules, $second->getID())->evaluation);
+       self::assertSame(Evaluation::NO_MATCH, $this->findRule($result->rules, $second->getID())->evaluation);
+       self::assertSame(Evaluation::INDETERMINATE, $this->findRule($result->rules, $second->getID())->replayEvaluation);
+       self::assertCount(0, $result->overwrites);
+   }
+
+   public function testReplayUsesDurableBeforeValueAndKeepsCurrentSnapshotSeparate(): void {
+       $ticket = $this->createTicket();
+       self::assertTrue($ticket->update(['id' => $ticket->getID(), 'urgency' => 4]));
+       self::assertTrue($ticket->getFromDB($ticket->getID()));
+       $first = $this->createRule('history-overwrite-first', \RuleTicket::ONADD, true, 1, [
+           ['urgency', \Rule::PATTERN_IS, '3'],
+       ], [['assign', 'urgency', '5']]);
+       $second = $this->createRule('history-overwrite-second', \RuleTicket::ONADD, true, 2, [
+           ['urgency', \Rule::PATTERN_IS, '5'],
+       ], [['assign', 'urgency', '3']]);
+
+       $result = (new RuleTicketInspector())->inspect($ticket, \RuleTicket::ONADD, new InspectionOptions(1000));
+       $firstInspection = $this->findRule($result->rules, $first->getID());
+       $secondInspection = $this->findRule($result->rules, $second->getID());
+
+       self::assertSame(Evaluation::NO_MATCH, $firstInspection->evaluation);
+       self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
+       self::assertSame(Evaluation::MATCH, $firstInspection->replayEvaluation);
+       self::assertSame(Evaluation::MATCH, $secondInspection->replayEvaluation);
+       self::assertNotNull($firstInspection->sequentialStep);
+       self::assertSame('3', (string) $firstInspection->sequentialStep->inputContext->get('urgency')->value);
+       self::assertSame(5, $firstInspection->sequentialStep->outputContext->get('urgency')->value);
        self::assertCount(1, $result->overwrites);
-       $overwrite = $result->overwrites[0];
-       self::assertSame(OverwriteClassification::CONFIRMED, $overwrite->classification);
-       self::assertSame($first->getID(), $overwrite->previousRuleId);
-       self::assertSame($second->getID(), $overwrite->laterRuleId);
-       self::assertSame(5, $overwrite->intermediateValue);
-       self::assertSame(3, $overwrite->finalValue);
+       self::assertSame(OverwriteClassification::CONFIRMED, $result->overwrites[0]->classification);
+       self::assertSame($first->getID(), $result->overwrites[0]->previousRuleId);
+       self::assertSame($second->getID(), $result->overwrites[0]->laterRuleId);
    }
 
    public function testUnsupportedRequesterEffectMakesLaterRequesterGroupCriterionIndeterminate(): void {
@@ -548,8 +573,8 @@ final class RuleTicketInspectorTest extends TestCase
 
        self::assertNotNull($firstStep);
        self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('_groups_id_of_requester')->state);
-       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->evaluation);
-       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->criteria[0]->evaluation);
+       self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
+       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
    }
 
    public function testUnsupportedCategoryCodeAliasMakesLaterCategoryCriterionIndeterminate(): void {
@@ -569,7 +594,8 @@ final class RuleTicketInspectorTest extends TestCase
        self::assertNotNull($firstStep);
        self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id')->state);
        self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id_code')->state);
-       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->evaluation);
+       self::assertSame(Evaluation::MATCH, $secondInspection->evaluation);
+       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
    }
 
    public function testSequentialInspectionDoesNotCreateTicketHistory(): void {
@@ -610,9 +636,10 @@ final class RuleTicketInspectorTest extends TestCase
        $secondInspection = $this->findRule($result->rules, $second->getID());
 
        self::assertNotNull($firstStep);
-       self::assertSame($projectedCategoryId, $firstStep->outputContext->get('itilcategories_id')->value);
-       self::assertSame('PROJECTED', $firstStep->outputContext->get('itilcategories_id_code')->value);
-       self::assertSame(Evaluation::MATCH, $secondInspection->evaluation);
+       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id')->state);
+       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id_code')->state);
+       self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
+       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
        self::assertSame($before, $after, 'Sequential projection must not write the Ticket or rule persistence.');
    }
 

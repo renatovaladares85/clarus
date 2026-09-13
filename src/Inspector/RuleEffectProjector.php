@@ -58,6 +58,8 @@ final class RuleEffectProjector
    public function project(Evaluation $evaluation, array $actions, TicketContext $context): RuleEffectProjection {
        $output = $context;
        $effects = [];
+       $stopProcessing = false;
+       $stopProcessingIndeterminate = false;
 
       foreach ($actions as $action) {
          if ($evaluation === Evaluation::NO_MATCH) {
@@ -83,11 +85,40 @@ final class RuleEffectProjector
              continue;
          }
 
+         if ($action->field === '_stop_rules_processing') {
+             $stopValue = $this->integerOrNull($action->configuredValue);
+            if ($action->actionType === 'assign' && $stopValue === 1) {
+                $effects[] = new ProjectedRuleEffect(
+                    $action->actionId,
+                    $action->actionType,
+                    $action->field,
+                    ProjectionStatus::APPLIED,
+                    null,
+                    false,
+                    null,
+                    true,
+                    1
+                );
+                $stopProcessing = true;
+                continue;
+            }
+
+             $effects[] = new ProjectedRuleEffect(
+                 $action->actionId,
+                 $action->actionType,
+                 $action->field,
+                 ProjectionStatus::UNSUPPORTED,
+                 self::REASON_UNSUPPORTED_ACTION
+             );
+             $stopProcessingIndeterminate = true;
+             continue;
+         }
+
          [$output, $effect] = $this->apply($action, $output);
          $effects[] = $effect;
       }
 
-       return new RuleEffectProjection($output, $effects);
+       return new RuleEffectProjection($output, $effects, $stopProcessing, $stopProcessingIndeterminate);
    }
 
    /** @return array{TicketContext, ProjectedRuleEffect} */

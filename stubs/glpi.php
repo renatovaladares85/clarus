@@ -59,6 +59,11 @@ class CommonDBTM extends CommonGLPI
         return $id > 0;
     }
 
+    public function getType(): string
+    {
+        return static::class;
+    }
+
     /**
      * @param array<int, array<string, mixed>> $rights
      * @param array<string, mixed> $options
@@ -262,6 +267,11 @@ class Ticket extends CommonDBTM
     /** @var array<string, mixed> */
     public array $fields;
 
+    public function getTable(): string
+    {
+        return '';
+    }
+
    public bool $viewable = false;
 
    public function isNewItem(): bool {
@@ -322,6 +332,23 @@ class RuleAction
    {
        return $actionType === 'assign' ? 'Assign' : '';
    }
+}
+
+class Log extends CommonDBTM
+{
+    public function getTable(): string
+    {
+        return '';
+    }
+}
+
+class Search
+{
+    /** @return array<int, array<string, mixed>> */
+    public static function getOptions(string $itemtype): array
+    {
+        return [];
+    }
 }
 
 class RuleTicket
