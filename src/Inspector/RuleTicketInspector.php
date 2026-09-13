@@ -79,7 +79,7 @@ final class RuleTicketInspector
                'Historical replay uses only durable before/after GLPI history and fails closed for missing inputs.',
                'Configured rule actions are never executed by inspection.',
                $options->includeActions
-                   ? 'Action comparison describes only the current Ticket snapshot, not historical causality.'
+                   ? 'Action reflection describes only the current Ticket snapshot, not historical causality.'
                    : 'Configured rule actions were not included in this inspection.',
            ], $replay->limitations),
            $replay->overwrites,
