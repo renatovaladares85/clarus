@@ -14,6 +14,7 @@ final class RuleTicketReplayEngine
 {
    public function __construct(
        private readonly RuleTicketEvaluator $evaluator = new RuleTicketEvaluator(),
+       private readonly RuleTicketInputPreparer $inputPreparer = new RuleTicketInputPreparer(),
        private readonly RuleEffectProjector $effectProjector = new RuleEffectProjector(),
        private readonly SequentialOverwriteAnalyzer $overwriteAnalyzer = new SequentialOverwriteAnalyzer()
    ) {
@@ -24,7 +25,7 @@ final class RuleTicketReplayEngine
     * @param array<int, list<ConfiguredAction>> $actionsByRule
     */
    public function replay(ExecutionWindow $window, array $candidates, array $actionsByRule): RuleTicketReplay {
-       $context = $window->inputContext;
+       $context = $this->inputPreparer->prepare($window->inputContext);
        $rules = [];
        $limitations = $window->limitations;
 
@@ -38,7 +39,9 @@ final class RuleTicketReplayEngine
               $projection->outputContext,
               $projection->effects
           ));
-          $context = $projection->outputContext;
+          // RuleTicketCollection feeds each rule output through
+          // prepareInputDataForProcess() before it becomes the next input.
+          $context = $this->inputPreparer->prepare($projection->outputContext);
 
          if ($projection->stopProcessing) {
              $limitations[] = sprintf('Replay stopped after rule #%d because its native stop-processing action is reproducible.', $inspection->id);

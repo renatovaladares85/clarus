@@ -51,18 +51,26 @@ deliberately conservative: history retention, transient inputs, and execution
 boundaries may be incomplete. A deterministic replay is an inference, never a
 claim that GLPI executed a rule.
 
-ONADD and ONUPDATE produce independent execution windows. A window currently
-records that its exact historical boundary is unknown unless durable evidence
-can establish it; it never merges the two conditions or creates an execution
-from a likely timestamp grouping.
+ONADD has one earliest-retained-state candidate. Each chronological timestamp
+group of later persisted changes creates a separate ONUPDATE candidate whose
+input is the defensible state immediately before that group. Timestamp grouping
+is only evidence of a later Ticket change; its `boundaryKnown` flag remains
+false and never asserts that GLPI executed RuleTicket at that point. The engine
+therefore exposes separate context traces without treating a likely grouping as
+historical confirmation.
 
 ## Replay semantics
 
-For each window, the engine evaluates criteria with the existing safe native
-`checkCriterias()` path, then uses `RuleEffectProjector` only for characterized
-scalar/category assignments and exact deadline deletions. Output from a matched
-rule becomes the next replay input. Unsupported, dynamic, transient, or
-indeterminate action effects taint only their known affected context keys.
+For each window, the engine obtains the native collection using the reconstructed
+entity value, then evaluates criteria with the existing safe native
+`checkCriterias()` path. Its pure input adapter mirrors the GLPI 10.0.20
+RuleTicket preparation at the initial input and after every rule output. It
+derives mail aliases only from a durable header and fails closed when historical
+requester group membership or category-code state is not persisted. The engine
+then uses `RuleEffectProjector` only for characterized scalar/category
+assignments and exact deadline deletions. Output from a matched rule becomes the
+next replay input. Unsupported, dynamic, transient, or indeterminate action
+effects taint only their known affected context keys.
 
 `_stop_rules_processing = 1` is characterized from GLPI 10.0.20 as a native
 collection termination signal. The replay records and honors that signal when

@@ -56,13 +56,53 @@ final class RuleTicketInspector
       }
 
        $timeline = $this->timelineReader->read($ticket);
-       $window = $this->windowReconstructor->reconstruct($timeline, $condition);
-       $replay = $this->replayEngine->replay($window, $selected, $actionsByRule)->withLaterChanges(array_map(
-           static fn (TimelineFieldChange $change): LaterTicketChange => new LaterTicketChange($change),
-           $timeline->changes
+       $replays = [];
+      foreach ($this->windowReconstructor->reconstructAll($timeline) as $window) {
+          $entity = $window->inputContext->get('entities_id');
+         if ($entity->state !== ContextState::AVAILABLE) {
+             $replay = $this->replayEngine->replay($window, [], [])->withLimitations([
+                 'Native RuleTicket candidate selection is indeterminate because the historical entity is unavailable.',
+             ]);
+         } else {
+             $windowCandidates = $this->candidateProvider->candidatesForEntity(
+                 NativeField::integer($entity->value),
+                 $window->condition
+             );
+             $windowActions = $this->actionProvider->forRuleIds(array_map(
+                 static fn (\RuleTicket $rule): int => NativeField::integer($rule->fields['id'] ?? 0),
+                 $windowCandidates
+             ));
+             // Never apply the presentation limit to replay: an omitted native
+             // rule could alter the input of every subsequent rule.
+             $replay = $this->replayEngine->replay($window, $windowCandidates, $windowActions);
+         }
+          $replays[] = $replay->withLaterChanges(array_map(
+              static fn (TimelineFieldChange $change): LaterTicketChange => new LaterTicketChange($change),
+              $window->evidence
+          ));
+      }
+
+       $matchingReplays = array_values(array_filter(
+           $replays,
+           static fn (RuleTicketReplay $replay): bool => $replay->window->condition === $condition
        ));
+       $replay = $matchingReplays[0] ?? $this->replayEngine->replay(
+           $this->windowReconstructor->reconstruct($timeline, $condition),
+           [],
+           []
+       );
        $rules = array_map(
-           static fn (RuleInspection $rule): RuleInspection => $rule->withReplay($replay->rule($rule->id)),
+           static function (RuleInspection $rule) use ($matchingReplays): RuleInspection {
+               $contexts = [];
+            foreach ($matchingReplays as $contextReplay) {
+                   $replayRule = $contextReplay->rule($rule->id);
+               if ($replayRule !== null) {
+                      $contexts[$contextReplay->window->id] = $replayRule;
+               }
+            }
+
+               return $rule->withReplayContexts($contexts);
+           },
            $rules
        );
 
@@ -83,7 +123,8 @@ final class RuleTicketInspector
                    : 'Configured rule actions were not included in this inspection.',
            ], $replay->limitations),
            $replay->overwrites,
-           $replay
+           $replay,
+           $replays
        );
    }
 }

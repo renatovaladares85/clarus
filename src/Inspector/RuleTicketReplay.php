@@ -38,4 +38,9 @@ final class RuleTicketReplay
    public function withLaterChanges(array $laterChanges): self {
        return new self($this->window, $this->rules, $this->limitations, $this->overwrites, $laterChanges);
    }
+
+   /** @param list<string> $limitations */
+   public function withLimitations(array $limitations): self {
+       return new self($this->window, $this->rules, array_merge($this->limitations, $limitations), $this->overwrites, $this->laterChanges);
+   }
 }

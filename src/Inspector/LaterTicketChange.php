@@ -14,7 +14,7 @@ final class LaterTicketChange
 {
    public function __construct(
        public readonly TimelineFieldChange $change,
-       public readonly LaterChangeClassification $classification = LaterChangeClassification::NOT_ATTRIBUTABLE_TO_RULE
+       public readonly LaterChangeClassification $classification = LaterChangeClassification::PERSISTED_LATER_CHANGE
    ) {
    }
 }

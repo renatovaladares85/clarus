@@ -12,12 +12,17 @@ namespace GlpiPlugin\Clarus\Inspector;
  */
 final class ExecutionWindow
 {
-   /** @param list<string> $limitations */
+   /**
+    * @param list<string> $limitations
+    * @param list<TimelineFieldChange> $evidence
+    */
    public function __construct(
        public readonly int $condition,
        public readonly TicketContext $inputContext,
        public readonly bool $boundaryKnown,
-       public readonly array $limitations = []
+       public readonly array $limitations = [],
+       public readonly string $id = '',
+       public readonly array $evidence = []
    ) {
    }
 }

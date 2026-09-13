@@ -4,6 +4,12 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Prepare the `1.0.0-dev.6` external development build with independent
+  retained-history ONUPDATE candidates, historical entity-aware native
+  candidate selection, and pure GLPI 10.0.20 RuleTicket input preparation
+  between replayed rules. Missing historical group membership or category-code
+  evidence remains indeterminate instead of reading today's related data.
+
 - Prepare the `1.0.0-dev.5` external development build with a forensic,
   read-only RuleTicket replay foundation. Current Ticket compatibility is now
   separate from replay; only durable GLPI before/after history is used as a

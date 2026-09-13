@@ -145,6 +145,57 @@ final class RuleTicketCharacterizationTest extends TestCase
        self::assertSame('5', (string) $output['impact']);
    }
 
+   public function testConditionBitmaskParticipatesInBothNativeCollections(): void {
+       $both = $this->createRule(
+           'both-conditions',
+           0,
+           \RuleTicket::ONADD | \RuleTicket::ONUPDATE,
+           true,
+           1
+       );
+
+       self::assertContains($both->getID(), $this->collectionIds(0, \RuleTicket::ONADD));
+       self::assertContains($both->getID(), $this->collectionIds(0, \RuleTicket::ONUPDATE));
+   }
+
+   public function testNativePreparationDerivesMailAliasesAndRequesterGroups(): void {
+       $collection = new \RuleTicketCollection(0);
+       $prepared = $collection->prepareInputDataForProcess([
+           '_head' => [
+               'from' => 'sender@example.test',
+               'subject' => 'Subject from durable input',
+           ],
+           '_users_id_requester' => (int) \Session::getLoginUserID(),
+       ], []);
+
+       self::assertSame('sender@example.test', $prepared['_from']);
+       self::assertSame('Subject from durable input', $prepared['_subject']);
+       self::assertIsArray($prepared['_groups_id_of_requester']);
+   }
+
+   public function testNativeStopProcessingPreventsLaterRuleActions(): void {
+       $stop = $this->createRule('stop', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', '_stop_rules_processing', '1']]);
+       $later = $this->createRule('after-stop', 0, \RuleTicket::ONADD, true, 2, true, \Rule::AND_MATCHING, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'urgency', '5']]);
+       $collection = new \RuleTicketCollection(0);
+       $collection->RuleList = new \SingletonRuleList();
+       $collection->RuleList->list = [$stop, $later];
+       $collection->RuleList->load = 15;
+
+       $output = $collection->processAllRules(
+           ['entities_id' => 0, 'name' => $this->prefix, 'urgency' => '1'],
+           ['entities_id' => 0, 'name' => $this->prefix, 'urgency' => '1'],
+           ['recursive' => true, 'entities_id' => 0],
+           ['condition' => \RuleTicket::ONADD]
+       );
+
+       self::assertSame('1', (string) $output['urgency']);
+       self::assertSame($stop->getID(), (int) $output['_ruleid']);
+   }
+
    public function testCheckCriteriasDoesNotExecuteConfiguredActions(): void {
        $rule = $this->createRule('read-only', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [
            ['name', \Rule::PATTERN_IS, $this->prefix],

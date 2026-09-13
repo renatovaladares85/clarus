@@ -9,6 +9,9 @@ namespace GlpiPlugin\Clarus\Inspector;
 /** Safe native-criterion evaluation over an immutable reconstructed context. */
 final class RuleTicketEvaluator
 {
+   public function __construct(private readonly RuleTicketInputPreparer $inputPreparer = new RuleTicketInputPreparer()) {
+   }
+
    public function inspect(\RuleTicket $rule, TicketContext $context, int $condition): RuleInspection {
        $matchingMode = NativeField::string($rule->fields['match'] ?? '');
        $criterionResults = [];
@@ -24,6 +27,11 @@ final class RuleTicketEvaluator
           return $this->ruleResult($rule, $condition, $matchingMode, [], Evaluation::INDETERMINATE, $limitations);
       }
 
+       // GLPI prepares derived RuleTicket inputs before processing and again
+       // after every rule output. The replay engine gives us the equivalent
+       // context; do it here too so the current-snapshot diagnostic has the
+       // same criterion inputs without invoking the mutating pipeline.
+       $context = $this->inputPreparer->prepare($context);
        $nativeResults = [];
        $input = $context->availableInput();
        $diagnosticRule = clone $rule;

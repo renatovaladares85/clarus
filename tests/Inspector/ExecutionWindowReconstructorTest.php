@@ -43,6 +43,29 @@ final class ExecutionWindowReconstructorTest extends TestCase
        self::assertStringContainsString('No durable', implode(' ', $window->limitations));
    }
 
+   public function testBuildsIndependentOnupdateCandidatesFromChronologicalHistory(): void {
+       $timeline = new TicketTimeline($this->currentContext(), [
+           new TimelineFieldChange(10, 'urgency', '3', '4', '2026-09-12 10:00:00'),
+           new TimelineFieldChange(11, 'impact', '2', '3', '2026-09-12 10:00:00'),
+           new TimelineFieldChange(12, 'urgency', '4', '5', '2026-09-12 11:00:00'),
+       ]);
+
+       $windows = (new ExecutionWindowReconstructor())->reconstructAll($timeline);
+
+       self::assertCount(3, $windows);
+       self::assertSame(\RuleTicket::ONADD, $windows[0]->condition);
+       self::assertSame('3', $windows[0]->inputContext->get('urgency')->value);
+       self::assertSame('2', $windows[0]->inputContext->get('impact')->value);
+       self::assertSame(\RuleTicket::ONUPDATE, $windows[1]->condition);
+       self::assertSame('3', $windows[1]->inputContext->get('urgency')->value);
+       self::assertSame('2', $windows[1]->inputContext->get('impact')->value);
+       self::assertCount(2, $windows[1]->evidence);
+       self::assertSame('4', $windows[2]->inputContext->get('urgency')->value);
+       self::assertSame('3', $windows[2]->inputContext->get('impact')->value);
+       self::assertFalse($windows[1]->boundaryKnown);
+       self::assertStringContainsString('possible ONUPDATE', implode(' ', $windows[1]->limitations));
+   }
+
    private function currentContext(): TicketContext {
        return new TicketContext([
            'urgency' => ContextValue::available('5', 'ticket', true),

@@ -12,7 +12,8 @@ final class RuleInspection
      * @param list<CriterionInspection> $criteria
      * @param list<string> $limitations
      * @param list<ActionInspection> $actions
-     * @param list<string> $replayLimitations
+    * @param list<string> $replayLimitations
+    * @param array<string, RuleInspection> $replayContexts
      */
    public function __construct(
         public readonly int $id,
@@ -28,7 +29,8 @@ final class RuleInspection
         public readonly array $actions = [],
         public readonly ?SequentialRuleStep $sequentialStep = null,
         public readonly ?Evaluation $replayEvaluation = null,
-        public readonly array $replayLimitations = []
+        public readonly array $replayLimitations = [],
+        public readonly array $replayContexts = []
     ) {
    }
 
@@ -48,7 +50,8 @@ final class RuleInspection
            $actions,
            $this->sequentialStep,
            $this->replayEvaluation,
-           $this->replayLimitations
+           $this->replayLimitations,
+           $this->replayContexts
        );
    }
 
@@ -67,7 +70,8 @@ final class RuleInspection
            $this->actions,
            $step,
            $this->replayEvaluation,
-           $this->replayLimitations
+           $this->replayLimitations,
+           $this->replayContexts
        );
    }
 
@@ -86,7 +90,30 @@ final class RuleInspection
            $this->actions,
            $replayRule?->sequentialStep,
            $replayRule?->evaluation,
-           $replayRule === null ? [] : $replayRule->limitations
+           $replayRule === null ? [] : $replayRule->limitations,
+           $this->replayContexts
+       );
+   }
+
+   /** @param array<string, RuleInspection> $replays */
+   public function withReplayContexts(array $replays): self {
+       $primary = reset($replays);
+       return new self(
+           $this->id,
+           $this->name,
+           $this->condition,
+           $this->entityId,
+           $this->recursive,
+           $this->ranking,
+           $this->matchingMode,
+           $this->criteria,
+           $this->evaluation,
+           $this->limitations,
+           $this->actions,
+           $primary instanceof self ? $primary->sequentialStep : null,
+           $primary instanceof self ? $primary->evaluation : null,
+           $primary instanceof self ? $primary->limitations : [],
+           $replays
        );
    }
 }
