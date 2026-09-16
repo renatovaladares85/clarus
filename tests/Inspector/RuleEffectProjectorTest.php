@@ -47,10 +47,10 @@ final class RuleEffectProjectorTest extends TestCase
        );
 
        self::assertSame([3], $input->get('_groups_id_assign')->value);
-       self::assertSame([7], $result->outputContext->get('_groups_id_assign')->value);
+       self::assertSame(7, $result->outputContext->get('_groups_id_assign')->value);
        self::assertSame(ProjectionStatus::APPLIED, $result->effects[0]->status);
        self::assertSame([3], $result->effects[0]->previousValue);
-       self::assertSame([7], $result->effects[0]->nextValue);
+       self::assertSame(7, $result->effects[0]->nextValue);
    }
 
    public function testMatchedStatusAndOlaAssignmentsAreProjectedAsScalars(): void {
@@ -65,7 +65,9 @@ final class RuleEffectProjectorTest extends TestCase
        );
 
        self::assertSame(2, $result->outputContext->get('status')->value);
+       self::assertTrue($result->outputContext->get('_do_not_compute_status')->value);
        self::assertSame(8100, $result->outputContext->get('olas_id_ttr')->value);
+       self::assertSame(8100, $result->outputContext->get('_olas_id_ttr')->value);
        self::assertSame(ProjectionStatus::APPLIED, $result->effects[0]->status);
        self::assertSame(ProjectionStatus::APPLIED, $result->effects[1]->status);
    }

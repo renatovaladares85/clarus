@@ -184,6 +184,18 @@ final class RuleEffectProjector
 
        $previous = $context->get($action->field);
        $output = $context->with($action->field, ContextValue::available($value, 'simulated:rule-action', true));
+      if ($action->field === 'status') {
+          $output = $output->with(
+              '_do_not_compute_status',
+              ContextValue::available(true, 'simulated:rule-action', false)
+          );
+      }
+      if (in_array($action->field, ['slas_id_ttr', 'slas_id_tto', 'olas_id_ttr', 'olas_id_tto'], true)) {
+          $output = $output->with(
+              '_' . $action->field,
+              ContextValue::available($value, 'simulated:rule-action', true)
+          );
+      }
 
        return [$output, new ProjectedRuleEffect(
            $action->actionId,
@@ -258,7 +270,7 @@ final class RuleEffectProjector
        $previous = $context->get($action->field);
        $output = $context->with(
            $action->field,
-           ContextValue::available([$value], 'simulated:rule-action', true)
+           ContextValue::available($value, 'simulated:rule-action', true)
        );
 
        return [$output, new ProjectedRuleEffect(
@@ -270,7 +282,7 @@ final class RuleEffectProjector
            $previous->state === ContextState::AVAILABLE,
            $previous->value,
            true,
-           [$value]
+           $value
        )];
    }
 

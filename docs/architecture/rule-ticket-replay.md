@@ -54,16 +54,21 @@ conservative: history retention, transient inputs, and execution boundaries may
 be incomplete. A deterministic replay is an inference, never a claim that
 GLPI executed a rule.
 
-ONADD has one fail-closed unknown-input window; its candidate entity is used
-only to select native rules, never as criterion input. Each chronological
+ONADD has one fail-closed unknown-input window and does not select candidates
+from the current Ticket entity, because that entity may have changed after
+creation. Each chronological
 timestamp group of later persisted changes retains a separate ONUPDATE evidence window
 whose context uses the incoming (`after`) state and its changed fields as a
 proposed native `only_criteria` scope. Timestamp grouping does not identify
 which changes came from the caller versus a rule output in the same execution.
-The window therefore has `updateInputKnown = false`: its evidence is exposed,
-but historical ONUPDATE is not evaluated. This avoids incorrectly treating a
-rule-produced value as native update input or collapsing a same-execution
-overwrite into a later update.
+The resulting ONUPDATE replay is explicitly `POSSIBLE_REPLAY`: it enumerates
+the bounded non-empty subsets of changed retained fields as possible incoming
+`only_criteria` sets and uses the corresponding `after` values. A result is
+kept only when every bounded hypothesis has the same rule/effect outcome;
+otherwise it is indeterminate. Entity-changing groups are indeterminate because
+their hypotheses can require different native candidate collections. This is
+not confirmation that the group was caller input or one native execution
+boundary, and must never be presented as confirmed historical rule execution.
 
 ## Replay semantics
 
@@ -76,7 +81,8 @@ requester group membership or category-code state is not persisted. The engine
 then uses `RuleEffectProjector` only for characterized scalar/category,
 status, SLA/OLA, and technician-group assignments, plus exact deadline
 deletions. Technician-group `assign` replaces the projected
-`_groups_id_assign` value; group append remains unsupported because GLPI keeps
+`_groups_id_assign` scalar value; status sets `_do_not_compute_status`; SLA/OLA
+assignments set their underscored companion keys. Group append remains unsupported because GLPI keeps
 it in a distinct pending-assignment channel. Output from a matched rule becomes
 the next replay input. Unsupported, dynamic, transient, or indeterminate action
 effects taint only their known affected context keys.

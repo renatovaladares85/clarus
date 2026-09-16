@@ -15,6 +15,7 @@ use GlpiPlugin\Clarus\Inspector\ContextValue;
 use GlpiPlugin\Clarus\Inspector\Evaluation;
 use GlpiPlugin\Clarus\Inspector\ExecutionWindow;
 use GlpiPlugin\Clarus\Inspector\InspectionOptions;
+use GlpiPlugin\Clarus\Inspector\ReplayEvidenceLevel;
 use GlpiPlugin\Clarus\Inspector\RuleActionProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketCandidateProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketInspector;
@@ -587,7 +588,7 @@ final class RuleTicketInspectorTest extends TestCase
 
        self::assertSame(Evaluation::MATCH, $replay->rule($first->getID())->evaluation);
        self::assertSame(Evaluation::MATCH, $replay->rule($second->getID())->evaluation);
-       self::assertSame([$groupId], $replay->rule($first->getID())->sequentialStep->outputContext->get('_groups_id_assign')->value);
+       self::assertSame($groupId, $replay->rule($first->getID())->sequentialStep->outputContext->get('_groups_id_assign')->value);
        self::assertSame(8100, $replay->rule($second->getID())->sequentialStep->outputContext->get('olas_id_ttr')->value);
    }
 
@@ -603,10 +604,11 @@ final class RuleTicketInspectorTest extends TestCase
        $inspection = $this->findRule($result->rules, $rule->getID());
 
        self::assertSame(Evaluation::MATCH, $inspection->evaluation);
-       self::assertNull($inspection->replayEvaluation);
+       self::assertSame(Evaluation::MATCH, $inspection->replayEvaluation);
        self::assertNotEmpty($result->replay->laterChanges);
-       self::assertSame([], $result->replay->rules);
-       self::assertStringContainsString('was not evaluated', implode(' ', $result->limitations));
+       self::assertNotSame([], $result->replay->rules);
+       self::assertSame(ReplayEvidenceLevel::POSSIBLE_REPLAY, $result->replay->window->evidenceLevel);
+       self::assertStringContainsString('possible replay', implode(' ', $result->limitations));
    }
 
    public function testCurrentSnapshotDoesNotProduceAHistoricalOverwriteWithoutEvidence(): void {

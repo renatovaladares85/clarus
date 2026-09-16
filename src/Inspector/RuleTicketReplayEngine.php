@@ -25,15 +25,65 @@ final class RuleTicketReplayEngine
     * @param array<int, list<ConfiguredAction>> $actionsByRule
     */
    public function replay(ExecutionWindow $window, array $candidates, array $actionsByRule): RuleTicketReplay {
-       $context = $this->inputPreparer->prepare($window->inputContext);
-       $rules = [];
        $limitations = $window->limitations;
-       $onlyCriteria = $window->onlyCriteria;
 
-      if ($onlyCriteria !== null && !$window->updateInputKnown) {
-          $limitations[] = 'Historical ONUPDATE replay was not evaluated because retained history cannot distinguish caller input changes from values produced later by rules.';
-          return new RuleTicketReplay($window, $rules, $limitations, []);
+      if ($window->evidenceLevel === ReplayEvidenceLevel::INDETERMINATE) {
+          $limitations[] = 'Historical replay was not evaluated because the required execution input is indeterminate.';
+          return new RuleTicketReplay($window, [], $limitations, []);
       }
+
+      if ($window->evidenceLevel === ReplayEvidenceLevel::POSSIBLE_REPLAY) {
+         if ($window->hypotheses === []) {
+              $limitations[] = 'Historical replay is indeterminate because retained history does not provide a bounded candidate input with one defensible native candidate sequence.';
+              return new RuleTicketReplay($window, [], $limitations, []);
+         }
+          $candidateReplays = array_map(
+              fn (ReplayHypothesis $hypothesis): RuleTicketReplay => $this->replayOne(
+                  $window,
+                  $hypothesis->inputContext,
+                  $hypothesis->onlyCriteria,
+                  $candidates,
+                  $actionsByRule
+              ),
+              $window->hypotheses
+          );
+          $signatures = array_values(array_unique(array_map(
+              fn (RuleTicketReplay $replay): string => $this->outcomeSignature($replay),
+              $candidateReplays
+          )));
+         if (count($signatures) !== 1) {
+             $limitations[] = 'Historical replay is indeterminate because bounded retained-history hypotheses produce different rule outcomes.';
+             return new RuleTicketReplay($window, [], $limitations, []);
+         }
+          $representative = $candidateReplays[0];
+          $limitations = array_merge($limitations, $representative->limitations, [
+              sprintf(
+                  'This is a possible replay: %d bounded retained-history hypotheses agree, but the observed changes do not prove a RuleTicket execution boundary.',
+                  count($candidateReplays)
+              ),
+          ]);
+          return new RuleTicketReplay($window, $representative->rules, $limitations, $representative->overwrites);
+      }
+
+       $replay = $this->replayOne($window, $window->inputContext, $window->onlyCriteria, $candidates, $actionsByRule);
+       return new RuleTicketReplay($window, $replay->rules, array_merge($limitations, $replay->limitations), $replay->overwrites);
+   }
+
+   /**
+    * @param list<\RuleTicket> $candidates Native collection order
+    * @param array<int, list<ConfiguredAction>> $actionsByRule
+    * @param null|list<string> $onlyCriteria
+    */
+   private function replayOne(
+       ExecutionWindow $window,
+       TicketContext $inputContext,
+       ?array $onlyCriteria,
+       array $candidates,
+       array $actionsByRule
+   ): RuleTicketReplay {
+       $context = $this->inputPreparer->prepare($inputContext);
+       $rules = [];
+       $limitations = [];
 
       foreach ($candidates as $processingIndex => $rule) {
          if ($onlyCriteria !== null && !$this->evaluator->isEligibleForUpdate($rule, $onlyCriteria)) {
@@ -87,6 +137,20 @@ final class RuleTicketReplayEngine
            $limitations,
            $this->overwriteAnalyzer->analyze($rules)
        );
+   }
+
+   private function outcomeSignature(RuleTicketReplay $replay): string {
+      $rules = [];
+      foreach ($replay->rules as $rule) {
+          $effects = [];
+          $step = $rule->sequentialStep;
+         foreach ($step === null ? [] : $step->effects as $effect) {
+             $effects[] = [$effect->actionId, $effect->field, $effect->status->value, $effect->nextValue];
+         }
+          $rules[] = [$rule->id, $rule->evaluation->value, $effects];
+      }
+
+       return serialize([$rules, $replay->overwrites]);
    }
 
    /** @param list<ProjectedRuleEffect> $effects */

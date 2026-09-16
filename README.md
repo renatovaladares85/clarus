@@ -12,14 +12,15 @@ Ticket being inspected.
 
 ## Development status
 
-`1.0.0-dev.9` is the current development pre-release; `1.0.0` remains reserved
+`1.0.0-dev.10` is the current development pre-release; `1.0.0` remains reserved
 for the final stable release. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it neither executes nor records rule execution.
 
 The inspector reports current-snapshot compatibility separately from a
 read-only historical replay. The replay reconstructs only durable GLPI
 before/after history values; it never treats the saved Ticket as an invented
-historical input and marks missing inputs as `INDETERMINATE`.
+historical input, marking creation input as `INDETERMINATE` and retained
+ONUPDATE candidates as `POSSIBLE_REPLAY` rather than historical confirmation.
 Action analysis is opt-in and reports only whether supported configured effects
 are reflected in the current snapshot; it does not execute actions or attribute
 historical causality. The internal replay uses only the reconstructed execution

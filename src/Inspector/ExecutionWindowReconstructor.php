@@ -13,6 +13,7 @@ namespace GlpiPlugin\Clarus\Inspector;
 final class ExecutionWindowReconstructor
 {
    public const REASON_MISSING_HISTORICAL_EVIDENCE = 'historical_input_not_persisted';
+   private const MAX_UPDATE_HYPOTHESES_FIELDS = 6;
 
    public function reconstruct(TicketTimeline $timeline, int $condition): ExecutionWindow {
       if (!in_array($condition, [\RuleTicket::ONADD, \RuleTicket::ONUPDATE], true)) {
@@ -32,7 +33,11 @@ final class ExecutionWindowReconstructor
            $timeline->currentContext->withoutValues(self::REASON_MISSING_HISTORICAL_EVIDENCE),
            false,
            ['No durable before/after field evidence is available for a historical replay input.'],
-           'unavailable:' . $condition
+           'unavailable:' . $condition,
+           [],
+           null,
+           null,
+           ReplayEvidenceLevel::INDETERMINATE
        );
    }
 
@@ -79,11 +84,8 @@ final class ExecutionWindowReconstructor
                : 'Only fields with durable before/after history are reconstructed; all remaining inputs are unknown.',
        ];
        // Later Ticket history records a value that was already persisted after
-       // creation. It cannot establish the caller input that preceded ONADD
-       // actions, so never feed those retained before values into ONADD.
-       $onaddCandidateEntity = $persistedEntity->state === ContextState::AVAILABLE
-           ? NativeField::integer($persistedEntity->value)
-           : null;
+       // creation. It cannot establish either the caller input or entity that
+       // preceded ONADD actions, so never use the current Ticket entity here.
        $windows = [new ExecutionWindow(
            \RuleTicket::ONADD,
            $timeline->currentContext->withoutValues(self::REASON_MISSING_HISTORICAL_EVIDENCE),
@@ -94,8 +96,8 @@ final class ExecutionWindowReconstructor
            'onadd:input-not-reconstructable',
            [],
            null,
-           true,
-           $onaddCandidateEntity
+           null,
+           ReplayEvidenceLevel::INDETERMINATE
        )];
 
        // Ticket::prepareInputForUpdate() receives the incoming values, not
@@ -118,6 +120,8 @@ final class ExecutionWindowReconstructor
                  $onlyCriteria[$change->field] = true;
              }
           }
+           $hypotheses = $this->buildUpdateHypotheses($context, $group);
+           $hasEntityChange = in_array('entities_id', array_keys($onlyCriteria), true);
            $windows[] = new ExecutionWindow(
                \RuleTicket::ONUPDATE,
                $updateContext,
@@ -128,15 +132,63 @@ final class ExecutionWindowReconstructor
                'onupdate:history:' . ($index + 1),
                $group,
                array_keys($onlyCriteria),
-               false,
-               $updateContext->get('entities_id')->state === ContextState::AVAILABLE
-                   ? NativeField::integer($updateContext->get('entities_id')->value)
-                   : null
+               !$hasEntityChange && $context->get('entities_id')->state === ContextState::AVAILABLE
+                   ? NativeField::integer($context->get('entities_id')->value)
+                   : null,
+               ReplayEvidenceLevel::POSSIBLE_REPLAY,
+               $hypotheses
            );
            $context = $updateContext;
        }
 
        return $windows;
+   }
+
+   /**
+    * A retained timestamp may contain a mix of caller input and in-engine
+    * output. Enumerate only the bounded non-empty subsets of observed changed
+    * fields; an entity change is excluded because every subset could require a
+    * different native candidate sequence.
+    *
+    * @param list<TimelineFieldChange> $group
+    * @return list<ReplayHypothesis>
+    */
+   private function buildUpdateHypotheses(TicketContext $before, array $group): array {
+       $changes = [];
+      foreach ($group as $change) {
+         if ($change->before != $change->after) {
+             $changes[$change->field] = $change;
+         }
+      }
+      if ($changes === []
+          || array_key_exists('entities_id', $changes)
+          || count($changes) > self::MAX_UPDATE_HYPOTHESES_FIELDS) {
+          return [];
+      }
+
+       $changes = array_values($changes);
+       $hypotheses = [];
+      for ($mask = 1; $mask < (1 << count($changes)); $mask++) {
+          $context = $before;
+          $onlyCriteria = [];
+         foreach ($changes as $index => $change) {
+            if (($mask & (1 << $index)) === 0) {
+                continue;
+            }
+             $context = $context->with(
+                 $change->field,
+                 ContextValue::available(
+                     $change->after,
+                     'history:' . $change->id,
+                     TicketContextBuilder::isPresentationSafeKey($change->field)
+                 )
+             );
+             $onlyCriteria[] = $change->field;
+         }
+          $hypotheses[] = new ReplayHypothesis($context, $onlyCriteria);
+      }
+
+       return $hypotheses;
    }
 
    /**

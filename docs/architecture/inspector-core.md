@@ -61,10 +61,11 @@ replayed rule. ONADD and ONUPDATE use independent windows. See
 details.
 
 `RuleEffectProjector` is deliberately smaller than GLPI action execution. It
-projects only reviewed scalar `assign` fields, category assignment (including
-the linked `itilcategories_id_code`), and exact-null deadline `delete` actions.
-Actor, append, computed, lookup, regex, template, SLA/OLA, transient, plugin,
-and otherwise unknown behavior is not approximated. If a matching or
+projects reviewed scalar `assign` fields, technician-group scalar assignment,
+category assignment (including the linked `itilcategories_id_code`), status
+and SLA/OLA companion effects, and exact-null deadline `delete` actions.
+Append, computed, lookup, regex, template, transient, plugin, and otherwise
+unknown behavior is not approximated. If a matching or
 indeterminate rule could alter a known criterion through an unsupported effect,
 that criterion and reviewed derived dependencies become `INDETERMINATE` for
 later steps. The trace stays inside

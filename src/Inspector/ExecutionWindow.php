@@ -16,6 +16,7 @@ final class ExecutionWindow
     * @param list<string> $limitations
     * @param list<TimelineFieldChange> $evidence
     * @param null|list<string> $onlyCriteria Native ONUPDATE input/change scope.
+    * @param list<ReplayHypothesis> $hypotheses Bounded retained-history alternatives.
     */
    public function __construct(
        public readonly int $condition,
@@ -25,8 +26,9 @@ final class ExecutionWindow
        public readonly string $id = '',
        public readonly array $evidence = [],
        public readonly ?array $onlyCriteria = null,
-       public readonly bool $updateInputKnown = true,
-       public readonly ?int $candidateEntityId = null
+       public readonly ?int $candidateEntityId = null,
+       public readonly ReplayEvidenceLevel $evidenceLevel = ReplayEvidenceLevel::EXACT,
+       public readonly array $hypotheses = []
    ) {
    }
 }

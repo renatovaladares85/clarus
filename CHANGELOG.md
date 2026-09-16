@@ -4,6 +4,11 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Prepare the `1.0.0-dev.10` external development build. Retained ONUPDATE
+  groups now produce explicitly possible replay candidates, while ONADD keeps
+  historical entity selection fail-closed. Native scalar group assignments,
+  status, and SLA/OLA companion effects are reproduced without executing rules.
+
 - Prepare the `1.0.0-dev.9` external development build. ONADD replay now
   treats retained later history as unknown creation input; deterministic
   technician-group, status, SLA, and OLA assignments can feed later rule

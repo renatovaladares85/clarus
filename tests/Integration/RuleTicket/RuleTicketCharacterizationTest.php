@@ -256,6 +256,28 @@ final class RuleTicketCharacterizationTest extends TestCase
        self::assertSame('8100', (string) $output['olas_id_ttr']);
    }
 
+   public function testNativeStatusAndAgreementAssignmentsSetCompanionKeys(): void {
+       $rule = $this->createRule('native-side-effects', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [], [
+           ['assign', 'status', '2'],
+           ['assign', 'slas_id_ttr', '7100'],
+           ['assign', 'olas_id_ttr', '8100'],
+       ]);
+       $collection = new \RuleTicketCollection(0);
+       $collection->RuleList = new \SingletonRuleList();
+       $collection->RuleList->list = [$rule];
+       $collection->RuleList->load = 15;
+       $input = ['entities_id' => 0, 'status' => 1, 'slas_id_ttr' => 0, 'olas_id_ttr' => 0];
+
+       $output = $collection->processAllRules($input, $input, ['recursive' => true, 'entities_id' => 0], [
+           'condition' => \RuleTicket::ONADD,
+       ]);
+
+       self::assertSame('2', (string) $output['status']);
+       self::assertTrue($output['_do_not_compute_status']);
+       self::assertSame('7100', (string) $output['_slas_id_ttr']);
+       self::assertSame('8100', (string) $output['_olas_id_ttr']);
+   }
+
    public function testNativePreparationDerivesMailAliasesAndRequesterGroups(): void {
        $collection = new \RuleTicketCollection(0);
        $prepared = $collection->prepareInputDataForProcess([

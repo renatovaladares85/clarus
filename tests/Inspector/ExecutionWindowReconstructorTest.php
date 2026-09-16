@@ -9,6 +9,7 @@ namespace GlpiPlugin\Clarus\Tests\Inspector;
 use GlpiPlugin\Clarus\Inspector\ContextState;
 use GlpiPlugin\Clarus\Inspector\ContextValue;
 use GlpiPlugin\Clarus\Inspector\ExecutionWindowReconstructor;
+use GlpiPlugin\Clarus\Inspector\ReplayEvidenceLevel;
 use GlpiPlugin\Clarus\Inspector\RuleTicketReplayEngine;
 use GlpiPlugin\Clarus\Inspector\TicketContext;
 use GlpiPlugin\Clarus\Inspector\TicketTimeline;
@@ -61,7 +62,9 @@ final class ExecutionWindowReconstructorTest extends TestCase
        self::assertSame('4', $windows[1]->inputContext->get('urgency')->value);
        self::assertSame('3', $windows[1]->inputContext->get('impact')->value);
        self::assertSame(['urgency', 'impact'], $windows[1]->onlyCriteria);
-       self::assertFalse($windows[1]->updateInputKnown);
+       self::assertSame(ReplayEvidenceLevel::INDETERMINATE, $windows[0]->evidenceLevel);
+       self::assertSame(ReplayEvidenceLevel::POSSIBLE_REPLAY, $windows[1]->evidenceLevel);
+       self::assertCount(3, $windows[1]->hypotheses);
        self::assertCount(2, $windows[1]->evidence);
        self::assertSame('5', $windows[2]->inputContext->get('urgency')->value);
        self::assertSame('3', $windows[2]->inputContext->get('impact')->value);
@@ -82,9 +85,9 @@ final class ExecutionWindowReconstructorTest extends TestCase
 
        self::assertSame(4, $windows[1]->inputContext->get('entities_id')->value);
        self::assertSame(['entities_id'], $windows[1]->onlyCriteria);
-       self::assertFalse($windows[1]->updateInputKnown);
-       self::assertSame(3, $windows[0]->candidateEntityId);
-       self::assertSame(4, $windows[1]->candidateEntityId);
+       self::assertNull($windows[0]->candidateEntityId);
+       self::assertNull($windows[1]->candidateEntityId);
+       self::assertSame([], $windows[1]->hypotheses);
    }
 
    public function testHistoricalOnupdateDoesNotEvaluateAnUnprovenInputScope(): void {
@@ -96,7 +99,7 @@ final class ExecutionWindowReconstructorTest extends TestCase
        $replay = (new RuleTicketReplayEngine())->replay($window, [], []);
 
        self::assertSame([], $replay->rules);
-       self::assertStringContainsString('was not evaluated', implode(' ', $replay->limitations));
+       self::assertStringContainsString('possible replay', implode(' ', $replay->limitations));
    }
 
    private function currentContext(): TicketContext {
