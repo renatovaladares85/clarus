@@ -275,7 +275,7 @@ final class RuleTicketCharacterizationTest extends TestCase
        ]);
 
        self::assertSame('2', (string) $output['status']);
-       self::assertTrue($output['_do_not_compute_status']);
+       self::assertTrue((bool) $output['_do_not_compute_status']);
        self::assertSame('7100', (string) $output['_slas_id_ttr']);
        self::assertSame('8100', (string) $output['_olas_id_ttr']);
    }
