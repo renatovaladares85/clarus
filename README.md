@@ -12,24 +12,28 @@ Ticket being inspected.
 
 ## Development status
 
-`1.0.0-dev.2` is the current development pre-release; `1.0.0` remains reserved
+`1.0.0-dev.11` is the current development pre-release; `1.0.0` remains reserved
 for the final stable release. The initial MVP targets Ticket (`RuleTicket`)
 business-rule inspection only; it neither executes nor records rule execution.
 
-The Phase 3 inspector core can reconstruct persisted and safely derived Ticket
-context, select native RuleTicket candidates, and report `MATCH`, `NO_MATCH`,
-or `INDETERMINATE` per criterion and rule. `INDETERMINATE` is used whenever a
-historical/transient value cannot be reconstructed without guessing.
+The inspector reports current-snapshot compatibility separately from a
+read-only historical replay. The replay reconstructs only durable GLPI
+before/after history values; it never treats the saved Ticket as an invented
+historical input, marking creation input as `INDETERMINATE` and retained
+ONUPDATE candidates as `POSSIBLE_REPLAY` rather than historical confirmation.
 Action analysis is opt-in and reports only whether supported configured effects
 are reflected in the current snapshot; it does not execute actions or attribute
-historical causality. Clarus always builds an internal immutable sequence for
-the selected condition: deterministic
-scalar/category assignments and exact deadline deletes can feed the next rule;
-unknown or non-reconstructible effects make only their known criterion target
-indeterminate. The same sequence independently classifies possible and
-confirmed simulated overwrites; it never replaces a rule's `MATCH`, `NO_MATCH`,
-or `INDETERMINATE` result, and it is not historical evidence. This internal
-trace is not yet presented in the Ticket tab.
+historical causality. The internal replay uses only the reconstructed execution
+input: deterministic scalar/category assignments and exact deadline deletes can
+feed the next rule; unknown or non-reconstructible effects make only their
+known criterion target indeterminate. Historical ONUPDATE input cannot be
+distinguished from values produced by rules in the retained log. It is evaluated
+only as bounded non-empty hypotheses of the retained changes, and yields a
+possible replay only when every hypothesis agrees; otherwise it remains
+indeterminate. The replay independently classifies
+possible and confirmed simulated overwrites; it never replaces a rule's
+`MATCH`, `NO_MATCH`, or `INDETERMINATE` current-snapshot result, and it is not
+historical proof. This internal trace is not yet presented in the Ticket tab.
 
 The Ticket tab presents ONADD and ONUPDATE diagnostics in one responsive view.
 It evaluates the last saved Ticket state; unsaved form changes are explicitly not included.
@@ -101,6 +105,8 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 
 The executable RuleTicket characterization that informs the future inspector is documented in [the Phase 2 technical spike](docs/architecture/rule-ticket-technical-spike.md).
 The implemented read-only pipeline and its limits are documented in [the Inspector core architecture](docs/architecture/inspector-core.md).
+The evidence levels, execution windows, and replay boundary are documented in
+[the RuleTicket replay architecture](docs/architecture/rule-ticket-replay.md).
 The supported action semantics and their read-only limits are documented in [the action analysis architecture](docs/architecture/action-analysis.md).
 The Profile right, lifecycle, and future UI authorization contract are documented
 in [the permissions architecture](docs/architecture/permissions.md).

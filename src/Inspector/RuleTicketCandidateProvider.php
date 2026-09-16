@@ -8,9 +8,13 @@ namespace GlpiPlugin\Clarus\Inspector;
 
 final class RuleTicketCandidateProvider
 {
-    /** @return list<\RuleTicket> */
+   /** @return list<\RuleTicket> */
    public function candidates(\Ticket $ticket, int $condition): array {
-       $entityId = NativeField::integer($ticket->fields['entities_id'] ?? 0);
+       return $this->candidatesForEntity(NativeField::integer($ticket->fields['entities_id'] ?? 0), $condition);
+   }
+
+   /** @return list<\RuleTicket> */
+   public function candidatesForEntity(int $entityId, int $condition): array {
        $collection = new \RuleTicketCollection($entityId);
        $collection->getCollectionDatas(1, 0, $condition);
 

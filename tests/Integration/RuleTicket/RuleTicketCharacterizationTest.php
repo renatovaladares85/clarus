@@ -20,6 +20,8 @@ final class RuleTicketCharacterizationTest extends TestCase
         'actions' => [],
         'criteria' => [],
         'rules' => [],
+        'groups' => [],
+        'categories' => [],
         'entities' => [],
     ];
 
@@ -28,6 +30,8 @@ final class RuleTicketCharacterizationTest extends TestCase
         'actions' => [],
         'criteria' => [],
         'rules' => [],
+        'groups' => [],
+        'categories' => [],
         'entities' => [],
     ];
 
@@ -145,6 +149,175 @@ final class RuleTicketCharacterizationTest extends TestCase
        self::assertSame('5', (string) $output['impact']);
    }
 
+   public function testConditionBitmaskParticipatesInBothNativeCollections(): void {
+       $both = $this->createRule(
+           'both-conditions',
+           0,
+           \RuleTicket::ONADD | \RuleTicket::ONUPDATE,
+           true,
+           1
+       );
+
+       self::assertContains($both->getID(), $this->collectionIds(0, \RuleTicket::ONADD));
+       self::assertContains($both->getID(), $this->collectionIds(0, \RuleTicket::ONUPDATE));
+   }
+
+   public function testNativeOnupdateFiltersAndExpandsOnlyCriteriaBetweenRules(): void {
+       $unrelated = $this->createRule('update-unrelated', 0, \RuleTicket::ONUPDATE, true, 1, true, \Rule::AND_MATCHING, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'priority', '5']]);
+       $first = $this->createRule('update-first', 0, \RuleTicket::ONUPDATE, true, 2, true, \Rule::AND_MATCHING, [
+           ['urgency', \Rule::PATTERN_IS, '4'],
+       ], [['assign', 'impact', '5']]);
+       $second = $this->createRule('update-second', 0, \RuleTicket::ONUPDATE, true, 3, true, \Rule::AND_MATCHING, [
+           ['impact', \Rule::PATTERN_IS, '5'],
+       ], [['assign', 'priority', '4']]);
+       $collection = new \RuleTicketCollection(0);
+       $collection->RuleList = new \SingletonRuleList();
+       $collection->RuleList->list = [$unrelated, $first, $second];
+       $collection->RuleList->load = 15;
+       $input = [
+           'entities_id' => 0,
+           'name' => $this->prefix,
+           'urgency' => '4',
+           'impact' => '1',
+           'priority' => '1',
+       ];
+
+       $output = $collection->processAllRules($input, $input, ['recursive' => true, 'entities_id' => 0], [
+           'condition' => \RuleTicket::ONUPDATE,
+           'only_criteria' => ['urgency'],
+       ]);
+
+       self::assertSame('5', (string) $output['impact']);
+       self::assertSame('4', (string) $output['priority']);
+   }
+
+   public function testNativeOnupdateCollectionUsesTheIncomingEntity(): void {
+       $incomingEntityId = $this->createEntity($this->prefix . '-incoming', 0);
+       $incomingRule = $this->createRule('incoming-entity', $incomingEntityId, \RuleTicket::ONUPDATE, true, 1);
+
+       self::assertNotContains($incomingRule->getID(), $this->collectionIds(0, \RuleTicket::ONUPDATE));
+       self::assertContains($incomingRule->getID(), $this->collectionIds($incomingEntityId, \RuleTicket::ONUPDATE));
+   }
+
+   public function testNativeOnupdateAddsLinkedCriteriaAfterCategoryAction(): void {
+       $categoryId = $this->createCategory('UPDATE-LINKED');
+       $first = $this->createRule('update-category-first', 0, \RuleTicket::ONUPDATE, true, 1, true, \Rule::AND_MATCHING, [
+           ['urgency', \Rule::PATTERN_IS, '4'],
+       ], [['assign', 'itilcategories_id', (string) $categoryId]]);
+       $second = $this->createRule('update-category-second', 0, \RuleTicket::ONUPDATE, true, 2, true, \Rule::AND_MATCHING, [
+           ['itilcategories_id_code', \Rule::PATTERN_IS, 'UPDATE-LINKED'],
+       ], [['assign', 'priority', '5']]);
+       $collection = new \RuleTicketCollection(0);
+       $collection->RuleList = new \SingletonRuleList();
+       $collection->RuleList->list = [$first, $second];
+       $collection->RuleList->load = 15;
+       $input = [
+           'entities_id' => 0,
+           'urgency' => '4',
+           'itilcategories_id' => 0,
+           'itilcategories_id_code' => '',
+           'priority' => '1',
+       ];
+
+       $output = $collection->processAllRules($input, $input, ['recursive' => true, 'entities_id' => 0], [
+           'condition' => \RuleTicket::ONUPDATE,
+           'only_criteria' => ['urgency'],
+       ]);
+
+       self::assertSame('5', (string) $output['priority']);
+   }
+
+   public function testNativeTechnicianGroupAssignmentFeedsLaterOlaCriterion(): void {
+       $groupId = $this->createGroup();
+       $first = $this->createRule('group-first', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', '_groups_id_assign', (string) $groupId]]);
+       $second = $this->createRule('group-ola', 0, \RuleTicket::ONADD, true, 2, true, \Rule::AND_MATCHING, [
+           ['_groups_id_assign', \Rule::PATTERN_IS, (string) $groupId],
+       ], [['assign', 'olas_id_ttr', '8100']]);
+       $collection = new \RuleTicketCollection(0);
+       $collection->RuleList = new \SingletonRuleList();
+       $collection->RuleList->list = [$first, $second];
+       $collection->RuleList->load = 15;
+       $input = [
+           'entities_id' => 0,
+           'name' => $this->prefix,
+           '_groups_id_assign' => [],
+           'olas_id_ttr' => 0,
+       ];
+
+       $output = $collection->processAllRules($input, $input, ['recursive' => true, 'entities_id' => 0], [
+           'condition' => \RuleTicket::ONADD,
+       ]);
+
+       self::assertSame((string) $groupId, (string) $output['_groups_id_assign']);
+       self::assertSame('8100', (string) $output['olas_id_ttr']);
+   }
+
+   public function testNativeStatusAndAgreementAssignmentsSetCompanionKeys(): void {
+       $rule = $this->createRule('native-side-effects', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [
+           ['assign', 'status', '2'],
+           ['assign', 'slas_id_ttr', '7100'],
+           ['assign', 'olas_id_ttr', '8100'],
+       ]);
+       $collection = new \RuleTicketCollection(0);
+       $collection->RuleList = new \SingletonRuleList();
+       $collection->RuleList->list = [$rule];
+       $collection->RuleList->load = 15;
+       $input = ['entities_id' => 0, 'name' => $this->prefix, 'status' => 1, 'slas_id_ttr' => 0, 'olas_id_ttr' => 0];
+
+       $output = $collection->processAllRules($input, $input, ['recursive' => true, 'entities_id' => 0], [
+           'condition' => \RuleTicket::ONADD,
+       ]);
+
+       self::assertSame('2', (string) $output['status']);
+       self::assertTrue((bool) $output['_do_not_compute_status']);
+       self::assertSame('7100', (string) $output['_slas_id_ttr']);
+       self::assertSame('8100', (string) $output['_olas_id_ttr']);
+   }
+
+   public function testNativePreparationDerivesMailAliasesAndRequesterGroups(): void {
+       $collection = new \RuleTicketCollection(0);
+       $prepared = $collection->prepareInputDataForProcess([
+           '_head' => [
+               'from' => 'sender@example.test',
+               'subject' => 'Subject from durable input',
+           ],
+           '_users_id_requester' => (int) \Session::getLoginUserID(),
+       ], []);
+
+       self::assertSame('sender@example.test', $prepared['_from']);
+       self::assertSame('Subject from durable input', $prepared['_subject']);
+       self::assertIsArray($prepared['_groups_id_of_requester']);
+   }
+
+   public function testNativeStopProcessingPreventsLaterRuleActions(): void {
+       $stop = $this->createRule('stop', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', '_stop_rules_processing', '1']]);
+       $later = $this->createRule('after-stop', 0, \RuleTicket::ONADD, true, 2, true, \Rule::AND_MATCHING, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [['assign', 'urgency', '5']]);
+       $collection = new \RuleTicketCollection(0);
+       $collection->RuleList = new \SingletonRuleList();
+       $collection->RuleList->list = [$stop, $later];
+       $collection->RuleList->load = 15;
+
+       $output = $collection->processAllRules(
+           ['entities_id' => 0, 'name' => $this->prefix, 'urgency' => '1'],
+           ['entities_id' => 0, 'name' => $this->prefix, 'urgency' => '1'],
+           ['recursive' => true, 'entities_id' => 0],
+           ['condition' => \RuleTicket::ONADD]
+       );
+
+       self::assertSame('1', (string) $output['urgency']);
+       self::assertSame($stop->getID(), (int) $output['_ruleid']);
+   }
+
    public function testCheckCriteriasDoesNotExecuteConfiguredActions(): void {
        $rule = $this->createRule('read-only', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [
            ['name', \Rule::PATTERN_IS, $this->prefix],
@@ -230,6 +403,35 @@ final class RuleTicketCharacterizationTest extends TestCase
        return $entityId;
    }
 
+   private function createCategory(string $code): int {
+       $category = new \ITILCategory();
+       $categoryId = (int) $category->add([
+           'name' => $this->prefix . '-category-' . $code,
+           'entities_id' => 0,
+           'is_recursive' => 1,
+           'code' => $code,
+       ]);
+      if ($categoryId > 0) {
+          $this->track('categories', $categoryId);
+      }
+       self::assertGreaterThan(0, $categoryId);
+       return $categoryId;
+   }
+
+   private function createGroup(): int {
+       $group = new \Group();
+       $groupId = (int) $group->add([
+           'name' => $this->prefix . '-group',
+           'entities_id' => 0,
+           'is_assign' => 1,
+       ]);
+      if ($groupId > 0) {
+          $this->track('groups', $groupId);
+      }
+       self::assertGreaterThan(0, $groupId);
+       return $groupId;
+   }
+
    private function track(string $type, int $id): void {
        $this->createdIds[$type][$id] = true;
        self::$pendingIds[$type][$id] = true;
@@ -244,6 +446,8 @@ final class RuleTicketCharacterizationTest extends TestCase
            'actions' => \RuleAction::class,
            'criteria' => \RuleCriteria::class,
            'rules' => \RuleTicket::class,
+           'groups' => \Group::class,
+           'categories' => \ITILCategory::class,
            'entities' => \Entity::class,
        ] as $type => $class) {
           $objectIds = array_keys($ids[$type]);
@@ -274,7 +478,7 @@ final class RuleTicketCharacterizationTest extends TestCase
 
     /** @return array<string, array<int, true>> */
    private static function emptyIdMap(): array {
-       return ['actions' => [], 'criteria' => [], 'rules' => [], 'entities' => []];
+       return ['actions' => [], 'criteria' => [], 'rules' => [], 'groups' => [], 'categories' => [], 'entities' => []];
    }
 
     /** @return list<int> */

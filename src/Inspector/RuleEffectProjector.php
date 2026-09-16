@@ -38,8 +38,13 @@ final class RuleEffectProjector
        'urgency',
        'impact',
        'priority',
+       'status',
        'locations_id',
        'requesttypes_id',
+       'slas_id_ttr',
+       'slas_id_tto',
+       'olas_id_ttr',
+       'olas_id_tto',
        'global_validation',
        'validation_percent',
    ];
@@ -58,6 +63,8 @@ final class RuleEffectProjector
    public function project(Evaluation $evaluation, array $actions, TicketContext $context): RuleEffectProjection {
        $output = $context;
        $effects = [];
+       $stopProcessing = false;
+       $stopProcessingIndeterminate = false;
 
       foreach ($actions as $action) {
          if ($evaluation === Evaluation::NO_MATCH) {
@@ -83,11 +90,40 @@ final class RuleEffectProjector
              continue;
          }
 
+         if ($action->field === '_stop_rules_processing') {
+             $stopValue = $this->integerOrNull($action->configuredValue);
+            if ($action->actionType === 'assign' && $stopValue === 1) {
+                $effects[] = new ProjectedRuleEffect(
+                    $action->actionId,
+                    $action->actionType,
+                    $action->field,
+                    ProjectionStatus::APPLIED,
+                    null,
+                    false,
+                    null,
+                    true,
+                    1
+                );
+                $stopProcessing = true;
+                continue;
+            }
+
+             $effects[] = new ProjectedRuleEffect(
+                 $action->actionId,
+                 $action->actionType,
+                 $action->field,
+                 ProjectionStatus::UNSUPPORTED,
+                 self::REASON_UNSUPPORTED_ACTION
+             );
+             $stopProcessingIndeterminate = true;
+             continue;
+         }
+
          [$output, $effect] = $this->apply($action, $output);
          $effects[] = $effect;
       }
 
-       return new RuleEffectProjection($output, $effects);
+       return new RuleEffectProjection($output, $effects, $stopProcessing, $stopProcessingIndeterminate);
    }
 
    /** @return array{TicketContext, ProjectedRuleEffect} */
@@ -98,6 +134,10 @@ final class RuleEffectProjector
 
       if ($action->actionType === 'assign' && in_array($action->field, self::SCALAR_ASSIGN_FIELDS, true)) {
           return $this->assignInteger($action, $context);
+      }
+
+      if ($action->actionType === 'assign' && $action->field === '_groups_id_assign') {
+          return $this->assignGroup($action, $context);
       }
 
       if ($action->actionType === 'delete' && in_array($action->field, self::DELETE_FIELDS, true)) {
@@ -144,6 +184,18 @@ final class RuleEffectProjector
 
        $previous = $context->get($action->field);
        $output = $context->with($action->field, ContextValue::available($value, 'simulated:rule-action', true));
+      if ($action->field === 'status') {
+          $output = $output->with(
+              '_do_not_compute_status',
+              ContextValue::available(true, 'simulated:rule-action', false)
+          );
+      }
+      if (in_array($action->field, ['slas_id_ttr', 'slas_id_tto', 'olas_id_ttr', 'olas_id_tto'], true)) {
+          $output = $output->with(
+              '_' . $action->field,
+              ContextValue::available($value, 'simulated:rule-action', true)
+          );
+      }
 
        return [$output, new ProjectedRuleEffect(
            $action->actionId,
@@ -187,6 +239,39 @@ final class RuleEffectProjector
               ContextValue::available($category->fields['code'], 'simulated:category', false)
           );
       }
+
+       return [$output, new ProjectedRuleEffect(
+           $action->actionId,
+           $action->actionType,
+           $action->field,
+           ProjectionStatus::APPLIED,
+           null,
+           $previous->state === ContextState::AVAILABLE,
+           $previous->value,
+           true,
+           $value
+       )];
+   }
+
+   /** @return array{TicketContext, ProjectedRuleEffect} */
+   private function assignGroup(ConfiguredAction $action, TicketContext $context): array {
+       $value = $this->integerOrNull($action->configuredValue);
+      if ($value === null || $value < 1) {
+          $output = $this->taint($context, $action->field, self::REASON_INVALID_CONFIGURED_VALUE);
+          return [$output, new ProjectedRuleEffect(
+              $action->actionId,
+              $action->actionType,
+              $action->field,
+              ProjectionStatus::INDETERMINATE,
+              self::REASON_INVALID_CONFIGURED_VALUE
+          )];
+      }
+
+       $previous = $context->get($action->field);
+       $output = $context->with(
+           $action->field,
+           ContextValue::available($value, 'simulated:rule-action', true)
+       );
 
        return [$output, new ProjectedRuleEffect(
            $action->actionId,

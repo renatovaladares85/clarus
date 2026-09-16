@@ -59,9 +59,9 @@ rules actually evaluated. Rows are grouped by `rules_id` and ordered by
 
 ## Sequential rules, ADD, and UPDATE
 
-RuleTicket uses previous rule output as the next rule input. Clarus always
-reconstructs only a narrow, internal and immutable subset of those intermediate
-contexts; `InspectionOptions::includeActions` controls action reflection
+RuleTicket uses previous rule output as the next rule input. Clarus replays
+only a narrow, internal and immutable subset of those intermediate contexts
+after a separate historical input reconstruction; `InspectionOptions::includeActions` controls action reflection
 presentation, not sequential semantics. Scalar assignments, category assignment
 with its resolved category code, and exact deadline deletes are applied in the
 native action order after a `MATCH`. Unknown, unsupported, or indeterminate
@@ -77,7 +77,7 @@ chain for its semantic replacement field without approximating the action.
 The projection is not action execution and does not claim historical causality.
 Reflection still uses the persisted snapshot, so a later rule or manual change
 can make an earlier action appear reflected or not reflected. ONADD and
-ONUPDATE remain separate chains and begin from independent snapshots.
+ONUPDATE remain separate chains with independently reconstructed inputs.
 
 The sequential overwrite diagnostic consumes projected effects separately from
 action reflection and primary rule evaluation. It may report a possible or a
