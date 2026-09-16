@@ -257,7 +257,9 @@ final class RuleTicketCharacterizationTest extends TestCase
    }
 
    public function testNativeStatusAndAgreementAssignmentsSetCompanionKeys(): void {
-       $rule = $this->createRule('native-side-effects', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [], [
+       $rule = $this->createRule('native-side-effects', 0, \RuleTicket::ONADD, true, 1, true, \Rule::AND_MATCHING, [
+           ['name', \Rule::PATTERN_IS, $this->prefix],
+       ], [
            ['assign', 'status', '2'],
            ['assign', 'slas_id_ttr', '7100'],
            ['assign', 'olas_id_ttr', '8100'],
@@ -266,7 +268,7 @@ final class RuleTicketCharacterizationTest extends TestCase
        $collection->RuleList = new \SingletonRuleList();
        $collection->RuleList->list = [$rule];
        $collection->RuleList->load = 15;
-       $input = ['entities_id' => 0, 'status' => 1, 'slas_id_ttr' => 0, 'olas_id_ttr' => 0];
+       $input = ['entities_id' => 0, 'name' => $this->prefix, 'status' => 1, 'slas_id_ttr' => 0, 'olas_id_ttr' => 0];
 
        $output = $collection->processAllRules($input, $input, ['recursive' => true, 'entities_id' => 0], [
            'condition' => \RuleTicket::ONADD,

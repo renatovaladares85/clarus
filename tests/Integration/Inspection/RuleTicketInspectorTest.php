@@ -16,6 +16,7 @@ use GlpiPlugin\Clarus\Inspector\Evaluation;
 use GlpiPlugin\Clarus\Inspector\ExecutionWindow;
 use GlpiPlugin\Clarus\Inspector\InspectionOptions;
 use GlpiPlugin\Clarus\Inspector\ReplayEvidenceLevel;
+use GlpiPlugin\Clarus\Inspector\ReplayHypothesis;
 use GlpiPlugin\Clarus\Inspector\RuleActionProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketCandidateProvider;
 use GlpiPlugin\Clarus\Inspector\RuleTicketInspector;
@@ -151,9 +152,9 @@ final class RuleTicketInspectorTest extends TestCase
            new InspectionOptions(1000, true)
        );
       foreach ([$parentRecursive, $child, $childSecond] as $rule) {
-          $step = $this->findRule($inspection->rules, $rule->getID())->sequentialStep;
-          self::assertNotNull($step);
-          self::assertSame(array_search($rule->getID(), $candidateIds, true), $step->processingIndex);
+          $replayed = $this->findRule($inspection->rules, $rule->getID());
+          self::assertNull($replayed->sequentialStep);
+          self::assertNull($replayed->replayEvaluation);
       }
    }
 
@@ -479,14 +480,10 @@ final class RuleTicketInspectorTest extends TestCase
            ActionEvaluation::REFLECTED,
            $this->findAction($this->findRule($addResult->rules, $second->getID())->actions, 'urgency')->evaluation
        );
-       $firstStep = $this->findRule($addResult->rules, $first->getID())->sequentialStep;
-       $secondStep = $this->findRule($addResult->rules, $second->getID())->sequentialStep;
-       self::assertNotNull($firstStep);
-       self::assertNotNull($secondStep);
-       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('urgency')->state);
-       self::assertSame(ContextState::INDETERMINATE, $secondStep->inputContext->get('urgency')->state);
+       self::assertNull($this->findRule($addResult->rules, $first->getID())->sequentialStep);
+       self::assertNull($this->findRule($addResult->rules, $second->getID())->sequentialStep);
        self::assertSame(Evaluation::NO_MATCH, $this->findRule($addResult->rules, $second->getID())->evaluation);
-       self::assertSame(Evaluation::INDETERMINATE, $this->findRule($addResult->rules, $second->getID())->replayEvaluation);
+       self::assertNull($this->findRule($addResult->rules, $second->getID())->replayEvaluation);
        self::assertStringContainsString('not proof', implode(' ', $addResult->limitations));
    }
 
@@ -508,10 +505,9 @@ final class RuleTicketInspectorTest extends TestCase
        $secondInspection = $this->findRule($result->rules, $second->getID());
 
        self::assertSame([], $firstInspection->actions);
-       self::assertNotNull($firstInspection->sequentialStep);
-       self::assertSame(ContextState::INDETERMINATE, $firstInspection->sequentialStep->outputContext->get('urgency')->state);
+       self::assertNull($firstInspection->sequentialStep);
        self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
-       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
+       self::assertNull($secondInspection->replayEvaluation);
    }
 
    public function testOnupdateReplayHonorsNativeOnlyCriteriaAndActionPropagation(): void {
@@ -554,6 +550,60 @@ final class RuleTicketInspectorTest extends TestCase
        self::assertSame(Evaluation::MATCH, $replay->rule($first->getID())->evaluation);
        self::assertSame(Evaluation::MATCH, $replay->rule($second->getID())->evaluation);
        self::assertSame(4, $replay->rule($second->getID())->sequentialStep->outputContext->get('priority')->value);
+   }
+
+   public function testPossibleOnupdateReplayRequiresBoundedHypothesisAgreement(): void {
+       $rule = $this->createRule('possible-update', \RuleTicket::ONUPDATE, true, 1, [
+           ['urgency', \Rule::PATTERN_IS, '4'],
+       ], [['assign', 'impact', '5']]);
+       $context = new TicketContext([
+           'entities_id' => ContextValue::available(0, 'history', true),
+           'urgency' => ContextValue::available('4', 'history', true),
+           'impact' => ContextValue::available('1', 'history', true),
+       ]);
+       $actions = [
+           $rule->getID() => [new ConfiguredAction($rule->getID(), 1, 'assign', 'impact', '5', 0)],
+       ];
+       $engine = new RuleTicketReplayEngine();
+
+       $consistent = new ExecutionWindow(
+           \RuleTicket::ONUPDATE,
+           $context,
+           false,
+           [],
+           'onupdate:possible-consistent',
+           [],
+           ['urgency'],
+           0,
+           ReplayEvidenceLevel::POSSIBLE_REPLAY,
+           [
+               new ReplayHypothesis($context, ['urgency']),
+               new ReplayHypothesis($context, ['urgency']),
+           ]
+       );
+       $consistentReplay = $engine->replay($consistent, [$rule], $actions);
+       self::assertSame(Evaluation::MATCH, $consistentReplay->rule($rule->getID())->evaluation);
+       self::assertStringContainsString('possible replay', implode(' ', $consistentReplay->limitations));
+
+       $divergentContext = $context->with('urgency', ContextValue::available('3', 'history', true));
+       $divergent = new ExecutionWindow(
+           \RuleTicket::ONUPDATE,
+           $context,
+           false,
+           [],
+           'onupdate:possible-divergent',
+           [],
+           ['urgency'],
+           0,
+           ReplayEvidenceLevel::POSSIBLE_REPLAY,
+           [
+               new ReplayHypothesis($context, ['urgency']),
+               new ReplayHypothesis($divergentContext, ['urgency']),
+           ]
+       );
+       $divergentReplay = $engine->replay($divergent, [$rule], $actions);
+       self::assertSame([], $divergentReplay->rules);
+       self::assertStringContainsString('different rule outcomes', implode(' ', $divergentReplay->limitations));
    }
 
    public function testReplayProjectsTechnicianGroupBeforeLaterOlaRule(): void {
@@ -604,11 +654,10 @@ final class RuleTicketInspectorTest extends TestCase
        $inspection = $this->findRule($result->rules, $rule->getID());
 
        self::assertSame(Evaluation::MATCH, $inspection->evaluation);
-       self::assertSame(Evaluation::MATCH, $inspection->replayEvaluation);
+       self::assertNull($inspection->replayEvaluation);
        self::assertNotEmpty($result->replay->laterChanges);
-       self::assertNotSame([], $result->replay->rules);
        self::assertSame(ReplayEvidenceLevel::POSSIBLE_REPLAY, $result->replay->window->evidenceLevel);
-       self::assertStringContainsString('possible replay', implode(' ', $result->limitations));
+       self::assertStringContainsString('indeterminate', implode(' ', $result->limitations));
    }
 
    public function testCurrentSnapshotDoesNotProduceAHistoricalOverwriteWithoutEvidence(): void {
@@ -627,7 +676,7 @@ final class RuleTicketInspectorTest extends TestCase
        );
 
        self::assertSame(Evaluation::NO_MATCH, $this->findRule($result->rules, $second->getID())->evaluation);
-       self::assertSame(Evaluation::INDETERMINATE, $this->findRule($result->rules, $second->getID())->replayEvaluation);
+       self::assertNull($this->findRule($result->rules, $second->getID())->replayEvaluation);
        self::assertCount(0, $result->overwrites);
    }
 
@@ -648,11 +697,9 @@ final class RuleTicketInspectorTest extends TestCase
 
        self::assertSame(Evaluation::NO_MATCH, $firstInspection->evaluation);
        self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
-       self::assertSame(Evaluation::INDETERMINATE, $firstInspection->replayEvaluation);
-       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
-       self::assertNotNull($firstInspection->sequentialStep);
-       self::assertSame(ContextState::INDETERMINATE, $firstInspection->sequentialStep->inputContext->get('urgency')->state);
-       self::assertSame(ContextState::INDETERMINATE, $firstInspection->sequentialStep->outputContext->get('urgency')->state);
+       self::assertNull($firstInspection->replayEvaluation);
+       self::assertNull($secondInspection->replayEvaluation);
+       self::assertNull($firstInspection->sequentialStep);
        self::assertCount(0, $result->overwrites);
        self::assertStringContainsString('cannot establish the pre-creation', implode(' ', $result->limitations));
    }
@@ -671,10 +718,9 @@ final class RuleTicketInspectorTest extends TestCase
        $firstStep = $this->findRule($result->rules, $first->getID())->sequentialStep;
        $secondInspection = $this->findRule($result->rules, $second->getID());
 
-       self::assertNotNull($firstStep);
-       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('_groups_id_of_requester')->state);
+       self::assertNull($firstStep);
        self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
-       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
+       self::assertNull($secondInspection->replayEvaluation);
    }
 
    public function testUnsupportedCategoryCodeAliasMakesLaterCategoryCriterionIndeterminate(): void {
@@ -691,11 +737,9 @@ final class RuleTicketInspectorTest extends TestCase
        $firstStep = $this->findRule($result->rules, $first->getID())->sequentialStep;
        $secondInspection = $this->findRule($result->rules, $second->getID());
 
-       self::assertNotNull($firstStep);
-       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id')->state);
-       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id_code')->state);
+       self::assertNull($firstStep);
        self::assertSame(Evaluation::MATCH, $secondInspection->evaluation);
-       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
+       self::assertNull($secondInspection->replayEvaluation);
    }
 
    public function testSequentialInspectionDoesNotCreateTicketHistory(): void {
@@ -735,11 +779,9 @@ final class RuleTicketInspectorTest extends TestCase
        $firstStep = $this->findRule($result->rules, $first->getID())->sequentialStep;
        $secondInspection = $this->findRule($result->rules, $second->getID());
 
-       self::assertNotNull($firstStep);
-       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id')->state);
-       self::assertSame(ContextState::INDETERMINATE, $firstStep->outputContext->get('itilcategories_id_code')->state);
+       self::assertNull($firstStep);
        self::assertSame(Evaluation::NO_MATCH, $secondInspection->evaluation);
-       self::assertSame(Evaluation::INDETERMINATE, $secondInspection->replayEvaluation);
+       self::assertNull($secondInspection->replayEvaluation);
        self::assertSame($before, $after, 'Sequential projection must not write the Ticket or rule persistence.');
    }
 

@@ -4,6 +4,10 @@ All notable changes to Clarus are documented in this file.
 
 ## Unreleased
 
+- Prepare the `1.0.0-dev.11` external development build. ONADD is now fully
+  fail-closed without a historical candidate entity, and retained ONUPDATE
+  hypotheses are accepted only when their pure replay outcomes agree.
+
 - Prepare the `1.0.0-dev.10` external development build. Retained ONUPDATE
   groups now produce explicitly possible replay candidates, while ONADD keeps
   historical entity selection fail-closed. Native scalar group assignments,
